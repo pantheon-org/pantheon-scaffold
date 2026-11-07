@@ -93,3 +93,21 @@ test("a pre-release runner of the required version is older than the requirement
   const next = preflight(withUri("0.2.0", { requires: { runner: "0.1.0" } }), emptyManifest(), { ...base, runnerVersion: "0.1.1-rc.1" });
   expect(next.errors).toEqual([]);
 });
+
+// A consumer pins the package with its checksum, so the URI the package reports carries ::sha256:<hash> before the #.
+const SUM = "a".repeat(64);
+const pinned = (v: string, sum = SUM) => `package://github.com/pantheon-org/pantheon-scaffold/releases/download/v${v}/pantheon-scaffold@${v}::sha256:${sum}#/Config.pkl`;
+
+test("the version is read from a package URI that carries a checksum, pre-releases included", () => {
+  expect(packageVersionOf(pinned("0.1.0"))).toBe("0.1.0");
+  expect(packageVersionOf(pinned("0.2.0-rc.1"))).toBe("0.2.0-rc.1");
+});
+test("a checksum that is not 64 hex characters is not accepted as part of the URI", () => {
+  expect(() => packageVersionOf(pinned("0.1.0", "xyz"))).toThrow("readable version");
+  expect(() => packageVersionOf(pinned("0.1.0", "a".repeat(63)))).toThrow("readable version");
+});
+test("a render with a checksum-pinned package URI gets its version, the way every real consumer does", () => {
+  const r = preflight(withUri("0.1.0", { packageUri: pinned("0.1.0") }), emptyManifest(), base);
+  expect(r.errors).toEqual([]);
+  expect(r.packageVersion).toBe("0.1.0");
+});

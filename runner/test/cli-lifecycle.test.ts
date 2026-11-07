@@ -152,3 +152,11 @@ test("--repair rebuilds an unreadable manifest, so the version rules must not re
   expect(fixed.code).toBe(0);
   expect(JSON.parse(get(s.repo, ".pkl-gen/manifest.json")).packageVersion).toBe("0.2.0");
 });
+
+test("a package URI that carries the pinned checksum renders and records the version, as every real consumer's does", async () => {
+  const pinned = uri("0.2.0").replace("#/Config.pkl", `::sha256:${"a".repeat(64)}#/Config.pkl`);
+  const s = setup("0.2.0", { packageUri: pinned });
+  const r = await s.run(["render", "pantheon.pkl", "--root", s.repo], noNet);
+  expect(r.code).toBe(0);
+  expect(JSON.parse(get(s.repo, ".pkl-gen/manifest.json")).packageVersion).toBe("0.2.0");
+});

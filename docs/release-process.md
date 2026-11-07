@@ -40,3 +40,9 @@ They are asserted by `runner/test/release-workflow.test.ts` and kept honest by `
 - **Cross-compiling downloads the bun runtime** for each target at build time, and the pipeline downloads tools through mise. Both are supply-chain inputs for any later Security review.
 - **No second reviewer.** The repository has one member, so promotion with an independent reviewer (task 5.5) cannot be set up yet.
 - **The tag ruleset has no creation rule**, so anyone with write access can push a `v*` tag. Today that is the maintainer only.
+
+## Releases so far
+
+| Version | Published | Status |
+|---|---|---|
+| 0.1.0 | 07-11-2026, pre-release | Published and **known bad** (listed in `known-bad.json`). Its runner could not read the version of a package URI that carries the pinned checksum, which every real consumer has, so it fails on every real consumer. The release pipeline's `verify-release` job found this on all three platforms. The assets, the attestations, `mise lock` and `mise install --locked` with provenance, and the real `gh attestation verify` all worked. A published version is never re-published, so the fix is 0.1.1. |

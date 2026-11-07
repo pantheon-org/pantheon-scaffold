@@ -7,9 +7,11 @@ import { loadKnownBad } from "./knownbad";
 import { LockError } from "./lock";
 import { ManifestError, emptyManifest, readManifest } from "./manifest";
 import { PathError } from "./paths";
+import { PinError } from "./pins";
 import { evalContractJson } from "./pkl";
 import { packageVersionOf, preflight, type KnownBad } from "./preflight";
 import type { Schema } from "./schema";
+import { UpgradeError, upgrade } from "./upgrade";
 
 export const VERSION = "0.0.0";
 const SCHEMA_PATH = join(import.meta.dir, "../../contract.schema.json");
@@ -22,27 +24,30 @@ const usage = `usage (exit codes: 0 ok, 1 error, 2 usage, 3 refused, 4 drift; --
   pantheon-scaffold contract <pantheon.pkl>
   pantheon-scaffold render <pantheon.pkl> [--root <dir>] [--dry-run] [--force] [--repair] [--strict] [--cache-dir <dir>] [--allow-local-package <dir>]... [--attempts <n>]
   pantheon-scaffold check <pantheon.pkl> [--root <dir>] [--strict] [--cache-dir <dir>] [--allow-local-package <dir>]... [--attempts <n>]
-  pantheon-scaffold detach [--root <dir>] [--dry-run] [--force]`;
+  pantheon-scaffold detach [--root <dir>] [--dry-run] [--force]
+  pantheon-scaffold upgrade <version> [--root <dir>] [--config <file>] [--dry-run] [--force] [--no-render]`;
 
-type Flags = { root: string; dryRun: boolean; force: boolean; repair: boolean; strict: boolean; cacheDir?: string; local: string[]; attempts: number };
+type Flags = { root: string; dryRun: boolean; force: boolean; repair: boolean; strict: boolean; noRender: boolean; config?: string; cacheDir?: string; local: string[]; attempts: number };
 
 function parseFlags(args: string[]): Flags | string {
-  const f: Flags = { root: process.cwd(), dryRun: false, force: false, repair: false, strict: false, local: [], attempts: 3 };
+  const f: Flags = { root: process.cwd(), dryRun: false, force: false, repair: false, strict: false, noRender: false, local: [], attempts: 3 };
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === "--dry-run") f.dryRun = true;
     else if (a === "--force") f.force = true;
     else if (a === "--repair") f.repair = true;
     else if (a === "--strict") f.strict = true;
+    else if (a === "--no-render") f.noRender = true;
     else if (a === "--attempts") {
       const n = Number(args[++i]);
       if (!Number.isInteger(n) || n < 1) return "--attempts needs a whole number of at least 1";
       f.attempts = n;
-    } else if (a === "--root" || a === "--allow-local-package" || a === "--cache-dir") {
+    } else if (a === "--root" || a === "--allow-local-package" || a === "--cache-dir" || a === "--config") {
       const v = args[++i];
       if (!v) return `${a} needs a value`;
       if (a === "--root") f.root = resolve(v);
       else if (a === "--cache-dir") f.cacheDir = resolve(v);
+      else if (a === "--config") f.config = v;
       else f.local.push(resolve(v));
     } else return `unknown option ${a}`;
   }
@@ -121,7 +126,23 @@ async function runDetach(flags: Flags): Promise<number> {
   return EXIT.ok;
 }
 
-const isKnownError = (e: unknown): boolean => e instanceof ContractError || e instanceof PathError || e instanceof ManifestError || e instanceof LockError;
+async function runUpgrade(version: string, flags: Flags): Promise<number> {
+  const r = await upgrade(flags.root, version, { config: flags.config, dryRun: flags.dryRun, force: flags.force, noRender: flags.noRender, baseUrl: process.env.PANTHEON_SCAFFOLD_RELEASE_BASE });
+  for (const c of r.changes) console.log(`${r.dryRun ? "would change" : "changed"}  ${c}`);
+  if (r.dryRun) {
+    console.log("dry run: the release was verified, nothing was changed");
+    return EXIT.ok;
+  }
+  if (r.renderExit) {
+    console.error(`upgrade: the pins are updated, but the render exited ${r.renderExit}. Fix what it reports and run render again.`);
+    return r.renderExit;
+  }
+  console.log(`upgraded ${r.from} -> ${r.to}${r.renderExit === undefined ? ", run render with the new runner" : ""}`);
+  return EXIT.ok;
+}
+
+const isKnownError = (e: unknown): boolean =>
+  e instanceof ContractError || e instanceof PathError || e instanceof ManifestError || e instanceof LockError || e instanceof PinError || e instanceof UpgradeError;
 
 export async function main(argv: string[]): Promise<number> {
   const [cmd, ...rest] = argv;
@@ -131,7 +152,7 @@ export async function main(argv: string[]): Promise<number> {
   }
   const isDetach = cmd === "detach";
   const config = isDetach ? undefined : rest[0];
-  if (!isDetach && !((cmd === "contract" || cmd === "render" || cmd === "check") && config)) {
+  if (!isDetach && !((cmd === "contract" || cmd === "render" || cmd === "check" || cmd === "upgrade") && config)) {
     console.error(usage);
     return EXIT.usage;
   }
@@ -142,6 +163,7 @@ export async function main(argv: string[]): Promise<number> {
   }
   try {
     if (isDetach) return await runDetach(flags);
+    if (cmd === "upgrade") return await runUpgrade(config!, flags);
     const contract = await loadContract(config!, flags);
     if (cmd === "contract") {
       const { uses, constructs } = contract.escapeHatch;

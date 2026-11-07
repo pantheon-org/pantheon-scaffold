@@ -1,6 +1,6 @@
 # Runner lifecycle: version rules, the cache, the known-bad list and `detach`
 
-How the runner treats the package it renders from, over time. Added in phase 2b, wave B1. `upgrade` follows in wave B2.
+How the runner treats the package it renders from, over time. Added in phase 2b, wave B1. `upgrade` is in [runner-upgrade.md](runner-upgrade.md).
 
 ## The package version
 

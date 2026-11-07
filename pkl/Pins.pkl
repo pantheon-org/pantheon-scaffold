@@ -1,0 +1,15 @@
+/// Action pins. The version is always a release tag (decision 71), and the runner appends it as a comment.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.Pins
+
+class Pin {
+  /// owner/repo, with an optional path (for example owner/repo/.github/workflows/x.yml).
+  action: String
+  /// The 40 hex character commit of the release tag.
+  sha: String(matches(Regex("[0-9a-f]{40}")))
+  /// The release tag, for example v7.0.1.
+  version: String
+}
+
+checkout: Pin = new { action = "actions/checkout"; sha = "3d3c42e5aac5ba805825da76410c181273ba90b1"; version = "v7.0.1" }
+miseAction: Pin = new { action = "jdx/mise-action"; sha = "9b200bcecbfd6303e69a4a261b2e09e3757440a7"; version = "v5.2.0" }

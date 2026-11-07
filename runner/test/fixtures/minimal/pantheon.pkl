@@ -1,0 +1,27 @@
+amends "../../../../pkl/Config.pkl"
+
+import "../../../../pkl/Pins.pkl"
+
+options { toolchain = "1.96.1" }
+
+workflows {
+  ["hello"] {
+    name = "Hello"
+    on { ["push"] = new Mapping { ["branches"] = new Listing { "main" } }; ["workflow_dispatch"] = new Mapping {} }
+    permissions { ["contents"] = "read" }
+    jobs {
+      ["greet"] {
+        steps {
+          new { uses = Pins.checkout }
+          new { name = "Say hello"; run = "echo hello\n" }
+        }
+      }
+    }
+  }
+}
+
+files {
+  ["rust-toolchain.toml"] = new { content = "[toolchain]\nchannel = \"\(options.toolchain)\"\n" }
+  ["mise.lock"] = new { `class` = "external" }
+  [".github/scripts/hello.sh"] = new { content = "#!/usr/bin/env bash\necho hello\n"; executable = true }
+}

@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/pantheon-org/pantheon-scaffold/contract.schema.json",
+  "title": "pantheon-scaffold contract",
+  "description": "The one JSON document the pkl package renders and the runner reads (decision 44 of the plan).",
+  "type": "object",
+  "required": ["schemaVersion", "files", "pins", "escapeHatch"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "class", "mode"],
+        "additionalProperties": false,
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "class": { "enum": ["owned", "seed", "external"] },
+          "mode": { "enum": ["0644", "0755"] },
+          "content": { "type": "string" }
+        }
+      }
+    },
+    "pins": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["action", "sha", "version"],
+        "additionalProperties": false,
+        "properties": {
+          "action": { "type": "string", "minLength": 1 },
+          "sha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+          "version": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "escapeHatch": {
+      "type": "object",
+      "required": ["uses", "constructs"],
+      "additionalProperties": false,
+      "properties": {
+        "uses": { "type": "integer", "minimum": 0 },
+        "constructs": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

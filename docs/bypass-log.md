@@ -5,3 +5,4 @@ Every merge made with the maintainer bypass of the pull request approval rule is
 | Date | Pull request | Why the bypass was used |
 |---|---|---|
 | 07-11-2026 | #2 | Only one member in the organisation, so no second reviewer exists to approve (decision 69) |
+| 07-11-2026 | #3 | Only one member in the organisation, so no second reviewer exists to approve (decision 69) |

@@ -24,3 +24,5 @@ Limits and findings:
 - The `yaml` package installed through the package gate with one warning: version 2.9.1 was published without attestations, so its provenance cannot be verified. That is a cost of the fallback.
 - Results are for bun 1.4.2. Re-run when the pinned bun version changes.
 The `console.log` lines are the tools' output on purpose.
+
+To re-run: `bash fetch-suite.sh <empty-dir>` then `bun trial.ts <empty-dir>`.

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Tests the hk-style config in a throwaway copy. Usage: bash tmp/pkl-hk-spike/test.sh
-# Compares against pantheon-adr origin/main; set ADR_REPO to its clone path if not the default.
+# Compares against pantheon-adr at the pinned commit 060531b (the state the spike was written against), set UPSTREAM_REF=origin/main to compare with the current main (expected to fail once upstream has moved), and ADR_REPO to its clone path if not the default.
 set -euo pipefail
 
 SPIKE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -10,9 +10,10 @@ W="$(mktemp -d)"
 [ -d "$W" ] || { echo "mktemp failed" >&2; exit 2; }
 trap 'rm -rf "$W"' EXIT
 
+REF="${UPSTREAM_REF:-060531b}"
 git -C "$ADR" fetch origin --prune -q
-echo "pantheon-adr origin/main: $(git -C "$ADR" rev-parse --short origin/main)"
-git -C "$ADR" show origin/main:.github/workflows/cargo-deny.yml > "$W/adr-cargo-deny.yml"
+echo "pantheon-adr at $REF: $(git -C "$ADR" rev-parse --short "$REF")"
+git -C "$ADR" show "$REF":.github/workflows/cargo-deny.yml > "$W/adr-cargo-deny.yml"
 
 cp "$SPIKE"/{Config.pkl,Builtins.pkl,pantheon.pkl,runner.ts,compare.ts} "$W/"
 cd "$W"

@@ -28,3 +28,5 @@ pklr 5.2.3 (`../pklr-spike`) evaluates this config, including `renderValue`. Its
 ## Not tested
 
 `package://` publishing and `amends "package://..."`, comments preserved in YAML, and running the rendered workflows in GitHub.
+
+The test pins pantheon-adr at 060531b, the state this spike was written against (set UPSTREAM_REF=origin/main to compare with the current main, which is expected to fail now that upstream has moved).

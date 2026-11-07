@@ -10,3 +10,5 @@ Proves a pkl template plus a thin runner can do what projen does for a Pantheon 
 - `target/` and `.stage/`: scratch output.
 
 Run on 06-11-2026 against Apple pkl 0.32.2 and bun. Rendered `rust-toolchain.toml`, `deny.toml` and `cargo-deny.yml` are byte-identical to `pantheon-adr`. Not tested: pklr (the pure Rust evaluator, https://github.com/jdx/pklr), packaging as a `package://` module, real Cargo.toml seeding.
+
+The test pins pantheon-adr at 060531b, the state this spike was written against (set UPSTREAM_REF=origin/main to compare with the current main, which is expected to fail now that upstream has moved).

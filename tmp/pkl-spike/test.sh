@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Runs the pkl spike assertions in a throwaway copy. Usage: bash tmp/pkl-spike/test.sh
-# Compares against pantheon-adr origin/main; set ADR_REPO to its clone path if not the default.
+# Compares against pantheon-adr at the pinned commit 060531b (the state the spike was written against), set UPSTREAM_REF=origin/main to compare with the current main (expected to fail once upstream has moved), and ADR_REPO to its clone path if not the default.
 set -euo pipefail
 
 SPIKE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -10,8 +10,9 @@ W="$(mktemp -d)"
 [ -d "$W" ] || { echo "mktemp failed" >&2; exit 2; }
 trap 'rm -rf "$W"' EXIT
 
+REF="${UPSTREAM_REF:-060531b}"
 git -C "$ADR" fetch origin --prune -q
-echo "pantheon-adr origin/main: $(git -C "$ADR" rev-parse --short origin/main)"
+echo "pantheon-adr at $REF: $(git -C "$ADR" rev-parse --short "$REF")"
 
 cp -R "$SPIKE/template.pkl" "$SPIKE/pantheon.pkl" "$SPIKE/runner.ts" "$SPIKE/assets" "$W/"
 cd "$W"
@@ -23,7 +24,7 @@ no() { echo "FAIL $1"; failures=$((failures + 1)); }
 run() { bun runner.ts pantheon.pkl target; }
 tree() { (cd target && find . -type f -not -path './.pkl-gen/*' | sort | xargs shasum -a 256 | shasum -a 256); }
 set_agnix() { sed "s/agnix = $1/agnix = $2/" pantheon.pkl > pantheon.pkl.new && mv pantheon.pkl.new pantheon.pkl; }
-upstream() { git -C "$ADR" show "origin/main:$1"; }
+upstream() { git -C "$ADR" show "$REF:$1"; }
 
 run > /dev/null
 for p in rust-toolchain.toml deny.toml .github/workflows/cargo-deny.yml; do

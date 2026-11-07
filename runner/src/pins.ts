@@ -13,6 +13,8 @@ export type NewPins = { version: string; checksum: string };
 // All pin locations live in this file, so a consumer that keeps the pin somewhere else (a PklProject) changes one place (decision 45).
 const AMENDS = /(amends "package:\/\/github\.com\/pantheon-org\/pantheon-scaffold\/releases\/download\/v)([^/"]+)(\/pantheon-scaffold@)([^:#"]+)(?:::sha256:([0-9a-f]{64}))?(#\/Config\.pkl")/g;
 const TOOL_STRING = new RegExp(`^(\\s*"${RUNNER_TOOL}"\\s*=\\s*")([^"]+)(")`, "gm");
+// The section form mise writes when a tool has options: [tools."..."] followed by lines that do not open another section, one of them the version.
+const TOOL_SECTION = new RegExp(`^(\\[tools\\."${RUNNER_TOOL}"\\][ \\t]*\\n(?:(?!\\[)[^\\n]*\\n)*?[ \\t]*version[ \\t]*=[ \\t]*")([^"]+)(")`, "gm");
 const TOOL_TABLE = new RegExp(`^(\\s*"${RUNNER_TOOL}"\\s*=\\s*\\{[^}\\n]*?\\bversion\\s*=\\s*")([^"]+)(")`, "gm");
 
 const readText = (root: string, file: string): string => {
@@ -29,7 +31,7 @@ function only(text: string, pattern: RegExp, what: string, file: string): RegExp
 }
 
 function toolMatch(mise: string): RegExpExecArray {
-  const hits = [...mise.matchAll(TOOL_STRING), ...mise.matchAll(TOOL_TABLE)];
+  const hits = [...mise.matchAll(TOOL_STRING), ...mise.matchAll(TOOL_TABLE), ...mise.matchAll(TOOL_SECTION)];
   if (hits.length === 0) throw new PinError(`mise.toml: no ${RUNNER_TOOL} entry with a version`);
   if (hits.length > 1) throw new PinError(`mise.toml: more than one ${RUNNER_TOOL} entry, the runner will not guess which to change`);
   return hits[0];

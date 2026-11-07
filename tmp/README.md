@@ -20,6 +20,7 @@ Needs bun, pkl, gh (logged in, read-only calls), and a clone of `pantheon-org/pa
 | `phase-2b-wave-b1` | Mutation check of the wave B1 lifecycle behaviours | `bun tmp/phase-2b-wave-b1/mutate.ts` (about 5 minutes) |
 | `phase-2b-wave-b2` | Mutation check of the `upgrade` behaviours | `bun tmp/phase-2b-wave-b2/mutate.ts` (about 5 minutes) |
 | `phase-2b-wave-c` | Mutation check of the compiled binary through the smoke suite | `bun tmp/phase-2b-wave-c/mutate.ts` (Apple silicon Mac) |
+| `phase-2b-wave-d` | Mutation check of the release logic and the release workflow properties | `bun tmp/phase-2b-wave-d/mutate.ts` |
 | `apply-fourth-review`, `edit-roles` | One-off plan editing helpers, kept for the record | not meant to be re-run |
 
 Tests that read the current upstream (`p6-*`, `pkl-s3-spike`, `pkl-yaml-trial`'s real workflows) can change result when upstream changes. The two original tests are pinned.

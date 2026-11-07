@@ -1,0 +1,255 @@
+name: release
+
+# A v-tag push publishes a pre-release of the package and the runner binaries, together, under the version in pkl/PklProject.
+# Run by hand it is a dry run: everything is built, tested and assembled, and nothing is attested or published.
+on:
+  push:
+    tags: ["v[0-9]*"]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Build and assemble everything but attest and publish nothing
+        type: boolean
+        default: true
+
+permissions: {}
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Check the version
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5.2.0
+        with:
+          version: 2026.10.25
+          install: false
+          cache: false
+      - name: Install the pinned tools from the lock file
+        run: mise install --locked
+      - name: Check the tag against pkl/PklProject, or read the version for a dry run
+        id: version
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [ "$REF_TYPE" = tag ]; then
+            version="$(mise x -- bun runner/scripts/release-assets.ts check-tag "$REF_NAME")"
+          else
+            version="$(mise x -- bun runner/scripts/release-assets.ts version)"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Refuse to release a version that already has a release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if gh release view "$REF_NAME" > /dev/null 2>&1; then
+            echo "A release for $REF_NAME already exists. A published version is never re-published: use a new patch version." >&2
+            exit 1
+          fi
+
+  build:
+    name: Test and build
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5.2.0
+        with:
+          version: 2026.10.25
+          install: false
+          cache: false
+      - name: Install the pinned tools from the lock file
+        run: mise install --locked
+      - name: Run the runner tests
+        working-directory: runner
+        run: mise x -- bun test
+      - name: Build the package
+        run: mise x -- pkl project package pkl --output-path dist
+      - name: Build the runner for the three targets
+        run: mise x -- bun runner/scripts/build.ts --version "$VERSION" --out dist
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: built-files
+          path: dist/
+          retention-days: 1
+          if-no-files-found: error
+
+  smoke:
+    name: Smoke test ${{ matrix.target }}
+    needs: [prepare, build]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, target: linux-x64 }
+          - { os: ubuntu-24.04-arm, target: linux-arm64 }
+          - { os: macos-latest, target: darwin-arm64 }
+    permissions:
+      contents: read
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5.2.0
+        with:
+          version: 2026.10.25
+          install: false
+          cache: false
+      - name: Install the pinned tools from the lock file
+        run: mise install --locked
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: built-files
+          path: dist/
+      - name: Make the binary executable
+        run: chmod +x "dist/pantheon-scaffold-${{ matrix.target }}"
+      - name: Run the smoke suite against the built binary
+        run: mise x -- bun runner/scripts/smoke.ts "dist/pantheon-scaffold-${{ matrix.target }}" --version "$VERSION"
+
+  release:
+    name: Attest and publish
+    needs: [prepare, smoke]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5.2.0
+        with:
+          version: 2026.10.25
+          install: false
+          cache: false
+      - name: Install the pinned tools from the lock file
+        run: mise install --locked
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: built-files
+          path: dist/
+      - name: Write checksums.txt after cross-checking the package files
+        run: |
+          rm -f dist/checksums.txt
+          mise x -- bun runner/scripts/release-assets.ts checksums dist "$VERSION"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-assets
+          path: dist/
+          retention-days: 7
+          if-no-files-found: error
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        if: github.event_name == 'push'
+        with:
+          subject-path: |
+            dist/pantheon-scaffold-*
+            dist/pantheon-scaffold@*
+            dist/checksums.txt
+      - name: Publish the pre-release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" dist/* \
+            --verify-tag \
+            --prerelease \
+            --title "$TAG (pre-release)" \
+            --notes "Pre-release of the package and the runner, released together. checksums.txt lists every file and carries a build provenance attestation: gh attestation verify checksums.txt --repo $GH_REPO"
+
+  verify-release:
+    name: Verify the published release on ${{ matrix.os }}
+    needs: [prepare, release]
+    if: github.event_name == 'push'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest]
+    permissions:
+      contents: read
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ needs.prepare.outputs.version }}
+      TAG: ${{ github.ref_name }}
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5.2.0
+        with:
+          version: 2026.10.25
+          install: false
+          cache: false
+      - name: Install the runner as a consumer would, with checksums and provenance enforced
+        run: |
+          mkdir -p "$RUNNER_TEMP/consumer" && cd "$RUNNER_TEMP/consumer"
+          cat > mise.toml <<TOML
+          [settings]
+          lockfile = true
+          locked_verify_provenance = true
+
+          [tools]
+          pkl = "0.32.2"
+          "github:$REPO" = "$VERSION"
+          TOML
+          mise lock
+          mise install --locked
+          test "$(mise x -- pantheon-scaffold --version)" = "$VERSION"
+      - name: Verify the attestation of checksums.txt, as upgrade does
+        run: |
+          cd "$RUNNER_TEMP/consumer"
+          curl -fsSL --retry 8 --retry-delay 10 --retry-all-errors -o checksums.txt "https://github.com/$REPO/releases/download/$TAG/checksums.txt"
+          gh attestation verify checksums.txt --repo "$REPO"
+      - name: Load the package from its package URI with the published checksum
+        run: |
+          cd "$RUNNER_TEMP/consumer"
+          sum="$(awk -v n="pantheon-scaffold@$VERSION" '$2 == n { print $1 }' checksums.txt)"
+          test -n "$sum"
+          printf 'amends "package://github.com/%s/releases/download/%s/pantheon-scaffold@%s::sha256:%s#/Config.pkl"\n\noptions { toolchain = "1.96.1" }\n' "$REPO" "$TAG" "$VERSION" "$sum" > pantheon.pkl
+          mise x -- pantheon-scaffold render pantheon.pkl --attempts 8
+          mise x -- pantheon-scaffold check pantheon.pkl --attempts 8
+      - name: Dry-run upgrade against the real release
+        run: |
+          mkdir -p "$RUNNER_TEMP/old"
+          zeros="$(printf '0%.0s' $(seq 64))"
+          printf 'amends "package://github.com/%s/releases/download/v0.0.0/pantheon-scaffold@0.0.0::sha256:%s#/Config.pkl"\n' "$REPO" "$zeros" > "$RUNNER_TEMP/old/pantheon.pkl"
+          printf '[tools]\n"github:%s" = "0.0.0"\n' "$REPO" > "$RUNNER_TEMP/old/mise.toml"
+          cd "$RUNNER_TEMP/consumer"
+          mise x -- pantheon-scaffold upgrade "$VERSION" --dry-run --root "$RUNNER_TEMP/old"

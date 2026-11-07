@@ -33,4 +33,4 @@ If the contract renames an owned file only by case (`readme.md` to `README.md`),
 
 ## Not in this wave
 
-Installing the binary through mise, the checksums in the consumer's lock file and the build provenance attestation all need a published release, so they are exercised with the release pipeline (wave D). The smoke suite has not been run against `linux-x64` outside CI.
+Installing the binary through mise, the checksums in the consumer's lock file and the build provenance attestation need a published release. They are done by the release pipeline and verified after publication (see [release-process.md](release-process.md)).

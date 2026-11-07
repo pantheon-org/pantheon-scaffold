@@ -4,10 +4,8 @@
 import { mkdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { formatChecksums } from "../src/checksums";
+import { TARGETS, binaryName } from "../src/release";
 import { parseSemver } from "../src/semver";
-
-export const TARGETS = ["linux-x64", "linux-arm64", "darwin-arm64"] as const;
-export const binaryName = (target: string): string => `pantheon-scaffold-${target}`;
 
 function args(argv: string[]): { version: string; out: string; targets: string[] } {
   const get = (flag: string, fallback: string): string => {

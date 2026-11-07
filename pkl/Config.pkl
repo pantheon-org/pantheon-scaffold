@@ -1,4 +1,168 @@
-/// Entry module of the pantheon-scaffold package. The typed workflow, job and step classes
-/// and the options arrive in phase 2a of the plan; this stub only holds the package together.
+/// Entry module of the pantheon-scaffold package. A repository amends this module in its
+/// pantheon.pkl, sets `options`, `workflows` and `files`, and the runner reads the one JSON
+/// document this module renders (decision 44, contract.schema.json).
 @ModuleInfo { minPklVersion = "0.32.0" }
 module pantheon.scaffold.Config
+
+import "Pins.pkl"
+
+/// Version of the JSON document. The runner rejects any other value.
+const schemaVersion: Int = 1
+
+class Options {
+  /// The Rust toolchain, one source for every file that names it.
+  toolchain: String
+}
+
+/// A workflow step. Typed keys cover what the workflows use. `raw` is the escape hatch (decision 33):
+/// its keys are merged over the typed ones, and every use is counted for gate B.
+class Step {
+  name: String?
+  id: String?
+  uses: (Pins.Pin|String)?
+  run: String?
+  `with`: Mapping<String, Any>?
+  env: Mapping<String, Any>?
+  `if`: String?
+  `working-directory`: String?
+  raw: Mapping<String, Any>?
+}
+
+class Job {
+  name: String?
+  `runs-on`: String = "ubuntu-latest"
+  needs: Listing<String>?
+  `if`: String?
+  permissions: Mapping<String, String>?
+  `timeout-minutes`: Int?
+  env: Mapping<String, Any>?
+  strategy: Mapping<String, Any>?
+  steps: Listing<Step>
+  raw: Mapping<String, Any>?
+}
+
+class Workflow {
+  /// Rendered as `#` comment lines above the YAML.
+  header: String?
+  name: String
+  on: Mapping<String, Any?>
+  permissions: Mapping<String, String>?
+  concurrency: Mapping<String, Any>?
+  env: Mapping<String, Any>?
+  jobs: Mapping<String, Job>
+  raw: Mapping<String, Any>?
+}
+
+typealias FileClass = "owned"|"seed"|"external"
+
+class GenFile {
+  /// owned: rewritten by the runner and refused if hand-edited. seed: written once.
+  /// external: listed but never written, hashed or deleted (for example mise.lock).
+  `class`: FileClass = "owned"
+  /// Absent for an external file.
+  content: String?
+  executable: Boolean = false
+}
+
+options: Options
+
+/// Workflows by file name without extension. Builtins and custom workflows go here.
+workflows: Mapping<String, Workflow> = new {}
+
+/// Files that are not workflows, by path.
+files: Mapping<String, GenFile> = new {}
+
+local yaml = new YamlRenderer { omitNullProperties = true }
+
+local function pinRef(u: Pins.Pin|String): String =
+  if (u is Pins.Pin) "\(u.action)@\(u.sha)" else u
+
+local function renderStep(s: Step): Dynamic = new Dynamic {
+  when (s.name != null) { name = s.name }
+  when (s.id != null) { id = s.id }
+  when (s.uses != null) { uses = pinRef(s.uses!!) }
+  when (s.`if` != null) { `if` = s.`if` }
+  when (s.run != null) { run = s.run }
+  when (s.`with` != null) { `with` = s.`with` }
+  when (s.env != null) { env = s.env }
+  when (s.`working-directory` != null) { `working-directory` = s.`working-directory` }
+  when (s.raw != null) { ...s.raw }
+}
+
+local function renderJob(j: Job): Dynamic = new Dynamic {
+  when (j.name != null) { name = j.name }
+  `runs-on` = j.`runs-on`
+  when (j.needs != null) { needs = j.needs }
+  when (j.`if` != null) { `if` = j.`if` }
+  when (j.permissions != null) { permissions = j.permissions }
+  when (j.`timeout-minutes` != null) { `timeout-minutes` = j.`timeout-minutes` }
+  when (j.env != null) { env = j.env }
+  when (j.strategy != null) { strategy = j.strategy }
+  steps = j.steps.toList().map((s) -> renderStep(s)).toListing()
+  when (j.raw != null) { ...j.raw }
+}
+
+local function commentBlock(text: String?): String =
+  if (text == null) ""
+  else text.split("\n").map((l) -> if (l == "") "#" else "# \(l)").join("\n") + "\n"
+
+local function renderWorkflow(w: Workflow): String =
+  commentBlock(w.header) + yaml.renderValue(new Dynamic {
+    name = w.name
+    on = w.on
+    when (w.permissions != null) { permissions = w.permissions }
+    when (w.concurrency != null) { concurrency = w.concurrency }
+    when (w.env != null) { env = w.env }
+    jobs = w.jobs.toMap().mapValues((_, j) -> renderJob(j)).toMapping()
+    when (w.raw != null) { ...w.raw }
+  })
+
+/// Every pin used by a step, de-duplicated by action and sha.
+local usedPins: List<Pins.Pin> =
+  workflows.toMap().values.flatMap((w) ->
+    w.jobs.toMap().values.flatMap((j) ->
+      j.steps.toList().filter((s) -> s.uses is Pins.Pin).map((s) -> s.uses as Pins.Pin)))
+    .distinct
+
+local allSteps: List<Step> =
+  workflows.toMap().values.flatMap((w) -> w.jobs.toMap().values.flatMap((j) -> j.steps.toList()))
+local allJobs: List<Job> = workflows.toMap().values.flatMap((w) -> w.jobs.toMap().values)
+
+/// Escape hatch accounting for gate B: uses over typed constructs (workflows, jobs and steps).
+local escapeUses: Int =
+  workflows.toMap().values.filter((w) -> w.raw != null).length +
+  allJobs.filter((j) -> j.raw != null).length +
+  allSteps.filter((s) -> s.raw != null).length
+local constructCount: Int = workflows.length + allJobs.length + allSteps.length
+
+local generated: Map<String, GenFile> =
+  workflows.toMap().mapKeys((k, _) -> ".github/workflows/\(k).yml")
+    .mapValues((_, w) -> new GenFile { content = renderWorkflow(w) })
+  + files.toMap()
+
+contract: Dynamic = new Dynamic {
+  schemaVersion = module.schemaVersion
+  files = generated.keys.toList().sort().map((filePath) ->
+    let (f = generated[filePath])
+      new Dynamic {
+        path = filePath
+        `class` = f.`class`
+        mode = if (f.executable) "0755" else "0644"
+        when (f.`class` != "external") { content = f.content }
+      }
+  ).toListing()
+  pins = usedPins.sortWith((a, b) -> a.action < b.action).map((p) -> new Dynamic {
+    action = p.action
+    sha = p.sha
+    version = p.version
+  }).toListing()
+  escapeHatch = new Dynamic {
+    uses = escapeUses
+    constructs = constructCount
+  }
+}
+
+output {
+  renderer = new JsonRenderer { omitNullProperties = true }
+  value = contract
+}

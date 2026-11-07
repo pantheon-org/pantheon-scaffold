@@ -41,3 +41,6 @@ jobs:
           done
       - name: Build the package
         run: mise x -- pkl project package pkl --output-path "$RUNNER_TEMP/package"
+      - name: Run the runner tests
+        working-directory: runner
+        run: mise x -- bun test

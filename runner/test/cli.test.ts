@@ -93,3 +93,39 @@ test("the rendered workflows carry version comments and still equal the pinned u
     expect(compareWorkflows(upstream, text)).toEqual({ equal: true, differences: [], duplicateKeys: [] });
   }
 });
+
+const check = (repo: string, ...extra: string[]) => run("check", slice, "--root", repo, "--allow-local-package", pkgDir, ...extra);
+
+test("check is clean after a render (exit 0)", async () => {
+  const repo = tempRepo();
+  await render(repo);
+  const r = await check(repo);
+  expect(r.code).toBe(0);
+  expect(r.out).toBe("check ok: 8 owned file(s) match the render");
+});
+
+test("check reports drift with exit 4 and does not modify anything", async () => {
+  const repo = tempRepo();
+  await render(repo);
+  put(repo, "deny.toml", "# mine\n");
+  const manifest = get(repo, ".pkl-gen/manifest.json");
+  const r = await check(repo);
+  expect(r.code).toBe(4);
+  expect(r.err).toContain("drift in 1 of 8 owned file(s)");
+  expect(r.err).toContain("deny.toml: different");
+  expect(get(repo, "deny.toml")).toBe("# mine\n");
+  expect(get(repo, ".pkl-gen/manifest.json")).toBe(manifest);
+});
+
+test("check on an empty repo reports every owned file as missing", async () => {
+  const r = await check(tempRepo());
+  expect(r.code).toBe(4);
+  expect(r.err).toContain("drift in 8 of 8 owned file(s)");
+});
+
+test("check fails closed with exit 1 when pkl cannot evaluate", async () => {
+  const r = await run("check", "runner/test/fixtures/does-not-exist.pkl", "--root", tempRepo(), "--attempts", "1");
+  expect(r.code).toBe(1);
+});
+
+test("a bad --attempts value is a usage error", async () => expect((await run("check", slice, "--attempts", "0")).code).toBe(2));

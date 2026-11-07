@@ -44,3 +44,5 @@ jobs:
       - name: Run the runner tests
         working-directory: runner
         run: mise x -- bun test
+      - name: Lint the consumer check sample
+        run: mise x -- actionlint runner/test/fixtures/consumer-check.yml

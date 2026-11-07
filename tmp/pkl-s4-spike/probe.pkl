@@ -1,0 +1,25 @@
+// S.4 probes: null values, cron quoting and the "on" key under pkl's YamlRenderer.
+output {
+  renderer = new YamlRenderer {}
+}
+
+on {
+  workflow_dispatch = null
+  schedule {
+    new { cron = "0 8 * * 1" }
+    new { cron = "*/15 * * * *" }
+    new { cron = "* * * * *" }
+  }
+  push {
+    branches { "main" }
+  }
+}
+
+jobs {
+  build {
+    `runs-on` = "ubuntu-latest"
+    steps {
+      new { run = "echo hi" }
+    }
+  }
+}

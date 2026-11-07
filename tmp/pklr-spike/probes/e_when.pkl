@@ -1,0 +1,2 @@
+x = true
+m = new Mapping { ["a"] = 1; when (x) { ["b"] = 2 } }

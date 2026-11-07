@@ -1,0 +1,4 @@
+open module R
+class O { t: String; a: Boolean = false }
+o: O
+m: Mapping<String, String> = new { ["x"] = "1"; when (o.a) { ["y"] = "2" } }

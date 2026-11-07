@@ -1,0 +1,74 @@
+/// Spike: an hk-style config. A repo-level pantheon.pkl amends this module, reuses
+/// builtins from Builtins.pkl and defines custom workflows inline.
+open module Config
+
+class Step {
+  name: String?
+  uses: String?
+  run: String?
+  `with`: Mapping<String, Any>?
+}
+
+class Job {
+  name: String?
+  `runs-on`: String = "ubuntu-latest"
+  `timeout-minutes`: Int?
+  steps: Listing<Step>
+}
+
+class Workflow {
+  /// Rendered as `#` comment lines above the YAML.
+  header: String?
+  name: String
+  on: Dynamic
+  permissions: Mapping<String, String>
+  concurrency: Dynamic?
+  jobs: Mapping<String, Job>
+}
+
+class GenFile {
+  content: String
+  /// true = written once, never overwritten or deleted.
+  seed: Boolean = false
+  executable: Boolean = false
+}
+
+/// Workflows by file name, without extension. Builtins and custom ones go here.
+workflows: Mapping<String, Workflow>
+
+/// Extra files that are not workflows (seeded README, scripts and so on).
+extraFiles: Mapping<String, GenFile> = new {}
+
+local yaml = new YamlRenderer { omitNullProperties = true }
+
+local function commentBlock(text: String?): String =
+  if (text == null) ""
+  else text.split("\n").map((l) -> if (l == "") "#" else "# \(l)").join("\n") + "\n"
+
+local function render(w: Workflow): String =
+  commentBlock(w.header) + yaml.renderValue(new Dynamic {
+    name = w.name
+    on = w.on
+    permissions = w.permissions
+    concurrency = w.concurrency
+    jobs = w.jobs
+  })
+
+generated: Mapping<String, GenFile> = new {
+  for (key, w in workflows) {
+    [".github/workflows/\(key).yml"] = new GenFile { content = render(w) }
+  }
+  ...extraFiles
+}
+
+output {
+  files {
+    for (path, f in generated) {
+      ["files/\(path)"] { text = f.content }
+    }
+    ["manifest.json"] {
+      renderer = new JsonRenderer { indent = "  " }
+      value = generated.toMap().mapValues((_, f) -> new Dynamic { seed = f.seed; executable = f.executable })
+    }
+  }
+}

@@ -1,0 +1,13 @@
+// With omitNullProperties = false, every null property is emitted, not only the intended one.
+class Job {
+  name: String?
+  `runs-on`: String
+}
+
+output {
+  renderer = new YamlRenderer { omitNullProperties = false }
+}
+
+jobs {
+  build = new Job { `runs-on` = "ubuntu-latest" }
+}

@@ -1,0 +1,3 @@
+open module M
+class O { t: String }
+o: O

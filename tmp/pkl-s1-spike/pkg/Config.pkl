@@ -1,0 +1,7 @@
+module pantheon.scaffold.Config
+
+toolchain: String = "1.90.0"
+
+output {
+  text = "toolchain = \(toolchain)\n"
+}

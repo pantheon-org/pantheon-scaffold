@@ -1,0 +1,3 @@
+class Job { name: String?; `runs-on`: String = "ubuntu-latest"; n: Int = 1 }
+a: Mapping<String, Job> = new { ["x"] { name = "X" } ["y"] {} }
+b: Mapping<String, Job> = new { ["x"] = new Job { name = "X" } }

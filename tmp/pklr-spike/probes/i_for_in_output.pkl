@@ -1,0 +1,2 @@
+m = new Mapping { ["a"] = "x" }
+output { files { for (k, v in m) { ["f/\(k)"] { text = v } } } }

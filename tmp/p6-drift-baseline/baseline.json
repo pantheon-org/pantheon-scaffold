@@ -1,0 +1,5142 @@
+{
+  "taken": "2026-11-07",
+  "heads": {
+    "pantheon-adr": "c51f9ef",
+    "pantheon-journal": "91f0eb7",
+    "pantheon-skill-auditor": "ef190ab",
+    "pantheon-agentic-harness-dev-kit": "21c6c76"
+  },
+  "counts": {
+    "identical": 29,
+    "drifted": 14,
+    "per-repo": 426,
+    "single-repo": 1
+  },
+  "toggles": {
+    "adr": {
+      "skills": true,
+      "binary": true,
+      "hasBinaryTarget": true,
+      "agnix": true,
+      "commitTypes": true,
+      "conventionalCommits": true,
+      "zizmor": true
+    },
+    "journal": {
+      "skills": true,
+      "binary": true,
+      "hasBinaryTarget": true,
+      "agnix": true,
+      "commitTypes": true,
+      "conventionalCommits": true,
+      "zizmor": true
+    },
+    "skill-auditor": {
+      "skills": true,
+      "binary": true,
+      "hasBinaryTarget": true,
+      "agnix": true,
+      "commitTypes": true,
+      "conventionalCommits": true,
+      "zizmor": true
+    },
+    "agentic-harness-dev-kit": {
+      "skills": false,
+      "binary": false,
+      "hasBinaryTarget": false,
+      "agnix": true,
+      "commitTypes": true,
+      "conventionalCommits": true,
+      "zizmor": true
+    }
+  },
+  "settings": {
+    "pantheon-adr": {
+      "visibility": "public",
+      "default_branch": "main",
+      "allow_merge_commit": true,
+      "allow_squash_merge": true,
+      "allow_rebase_merge": true,
+      "delete_branch_on_merge": false
+    },
+    "pantheon-journal": {
+      "visibility": "public",
+      "default_branch": "main",
+      "allow_merge_commit": true,
+      "allow_squash_merge": true,
+      "allow_rebase_merge": true,
+      "delete_branch_on_merge": false
+    },
+    "pantheon-skill-auditor": {
+      "visibility": "public",
+      "default_branch": "main",
+      "allow_merge_commit": true,
+      "allow_squash_merge": true,
+      "allow_rebase_merge": true,
+      "delete_branch_on_merge": false
+    },
+    "pantheon-agentic-harness-dev-kit": {
+      "visibility": "public",
+      "default_branch": "main",
+      "allow_merge_commit": true,
+      "allow_squash_merge": true,
+      "allow_rebase_merge": true,
+      "delete_branch_on_merge": false
+    }
+  },
+  "rulesets": {
+    "pantheon-adr": [
+      {
+        "name": "Require Cargo Deny",
+        "target": "branch",
+        "enforcement": "active",
+        "rules": [
+          "required_status_checks"
+        ],
+        "required_checks": [
+          "Cargo Deny"
+        ],
+        "bypass_actors": []
+      }
+    ],
+    "pantheon-journal": [
+      {
+        "name": "Protect main",
+        "target": "branch",
+        "enforcement": "active",
+        "rules": [
+          "deletion",
+          "non_fast_forward",
+          "required_linear_history",
+          "pull_request",
+          "required_status_checks"
+        ],
+        "required_checks": [
+          "Build, test, lint",
+          "Inline Scripts",
+          "Cargo Deny",
+          "zizmor",
+          "Conventional Commit Title"
+        ],
+        "bypass_actors": [
+          "RepositoryRole:pull_request"
+        ]
+      },
+      {
+        "name": "Require Cargo Deny",
+        "target": "branch",
+        "enforcement": "active",
+        "rules": [
+          "required_status_checks"
+        ],
+        "required_checks": [
+          "Cargo Deny"
+        ],
+        "bypass_actors": []
+      }
+    ],
+    "pantheon-skill-auditor": [
+      {
+        "name": "Protect main",
+        "target": "branch",
+        "enforcement": "active",
+        "rules": [
+          "deletion",
+          "non_fast_forward",
+          "required_linear_history",
+          "pull_request",
+          "required_status_checks"
+        ],
+        "required_checks": [
+          "Build, test, lint",
+          "Cargo Deny",
+          "Conventional Commit Title",
+          "Inline Scripts",
+          "zizmor"
+        ],
+        "bypass_actors": [
+          "RepositoryRole:pull_request"
+        ]
+      },
+      {
+        "name": "Require Cargo Deny",
+        "target": "branch",
+        "enforcement": "active",
+        "rules": [
+          "required_status_checks"
+        ],
+        "required_checks": [
+          "Cargo Deny"
+        ],
+        "bypass_actors": []
+      }
+    ],
+    "pantheon-agentic-harness-dev-kit": [
+      {
+        "name": "Protect main",
+        "target": "branch",
+        "enforcement": "active",
+        "rules": [
+          "deletion",
+          "non_fast_forward",
+          "required_linear_history",
+          "pull_request",
+          "required_status_checks"
+        ],
+        "required_checks": [
+          "Build, test, lint",
+          "Inline Scripts",
+          "Cargo Deny",
+          "zizmor",
+          "Conventional Commit Title"
+        ],
+        "bypass_actors": [
+          "RepositoryRole:pull_request"
+        ]
+      },
+      {
+        "name": "Require Cargo Deny",
+        "target": "branch",
+        "enforcement": "active",
+        "rules": [
+          "required_status_checks"
+        ],
+        "required_checks": [
+          "Cargo Deny"
+        ],
+        "bypass_actors": []
+      }
+    ]
+  },
+  "org": {
+    "plan": "free",
+    "members_can_create_public_repositories": true
+  },
+  "orgRulesets": "gh: Not Found (HTTP 404)",
+  "orgProperties": [],
+  "files": [
+    {
+      "path": ".agnix.toml",
+      "class": "drifted",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor"
+        ],
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".claude/settings.json",
+      "class": "identical",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor",
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".coderabbit.yaml",
+      "class": "drifted",
+      "repos": 4,
+      "versions": [
+        [
+          "adr"
+        ],
+        [
+          "journal"
+        ],
+        [
+          "skill-auditor"
+        ],
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".github/actionlint.yaml",
+      "class": "identical",
+      "repos": 3,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": ".github/commit-types.txt",
+      "class": "identical",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor",
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".github/dependabot.yml",
+      "class": "drifted",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor"
+        ],
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".github/labels.txt",
+      "class": "identical",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor",
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".github/pull_request_template.md",
+      "class": "identical",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor",
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".github/scripts/agnix-assemble-comment.sh",
+      "class": "identical",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor",
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".github/scripts/agnix-file-issues.sh",
+      "class": "identical",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor",
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".github/scripts/agnix-introduced-errors.sh",
+      "class": "identical",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor",
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".github/scripts/auto-rebase.sh",
+      "class": "identical",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor",
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".github/scripts/cargo-deny.sh",
+      "class": "identical",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor",
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".github/scripts/check-commit-types.sh",
+      "class": "identical",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor",
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".github/scripts/check-inline-scripts.sh",
+      "class": "identical",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor",
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".github/scripts/release-automerge.sh",
+      "class": "identical",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor",
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".github/scripts/sync-labels.sh",
+      "class": "identical",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor",
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".github/scripts/tag-release.sh",
+      "class": "drifted",
+      "repos": 3,
+      "versions": [
+        [
+          "adr"
+        ],
+        [
+          "journal"
+        ],
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": ".github/workflows/agnix.yml",
+      "class": "drifted",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor"
+        ],
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".github/workflows/aislop.yml",
+      "class": "drifted",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor"
+        ],
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".github/workflows/audit-skill.yml",
+      "class": "drifted",
+      "repos": 3,
+      "versions": [
+        [
+          "adr"
+        ],
+        [
+          "journal"
+        ],
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": ".github/workflows/cargo-deny.yml",
+      "class": "identical",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor",
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".github/workflows/commit-types.yml",
+      "class": "identical",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor",
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".github/workflows/conventional-commits.yml",
+      "class": "identical",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor",
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".github/workflows/inline-scripts.yml",
+      "class": "identical",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor",
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".github/workflows/plumber.yml",
+      "class": "identical",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor",
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".github/workflows/pr-auto-rebase.yml",
+      "class": "identical",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor",
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".github/workflows/release-automerge.yml",
+      "class": "identical",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor",
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".github/workflows/release-please.yml",
+      "class": "drifted",
+      "repos": 4,
+      "versions": [
+        [
+          "adr"
+        ],
+        [
+          "journal"
+        ],
+        [
+          "skill-auditor"
+        ],
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".github/workflows/release.yml",
+      "class": "identical",
+      "repos": 3,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": ".github/workflows/rust-ci.yml",
+      "class": "drifted",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor"
+        ],
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".github/workflows/sync-labels.yml",
+      "class": "identical",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor",
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".github/workflows/zizmor.yml",
+      "class": "drifted",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal"
+        ],
+        [
+          "skill-auditor"
+        ],
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".github/zizmor.yml",
+      "class": "drifted",
+      "repos": 3,
+      "versions": [
+        [
+          "adr",
+          "journal"
+        ],
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": ".gitignore",
+      "class": "drifted",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor"
+        ],
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".plumber.yaml",
+      "class": "identical",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor",
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".release-please-manifest.json",
+      "class": "per-repo",
+      "repos": 4,
+      "versions": [
+        [
+          "adr"
+        ],
+        [
+          "journal"
+        ],
+        [
+          "skill-auditor"
+        ],
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": ".rumdl.toml",
+      "class": "identical",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor",
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": "CHANGELOG.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": "CLAUDE.md",
+      "class": "per-repo",
+      "repos": 3,
+      "versions": [
+        [
+          "adr"
+        ],
+        [
+          "journal"
+        ],
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "Cargo.lock",
+      "class": "per-repo",
+      "repos": 4,
+      "versions": [
+        [
+          "adr"
+        ],
+        [
+          "journal"
+        ],
+        [
+          "skill-auditor"
+        ],
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": "Cargo.toml",
+      "class": "per-repo",
+      "repos": 4,
+      "versions": [
+        [
+          "adr"
+        ],
+        [
+          "journal"
+        ],
+        [
+          "skill-auditor"
+        ],
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": "LICENSE",
+      "class": "identical",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor",
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": "README.md",
+      "class": "per-repo",
+      "repos": 4,
+      "versions": [
+        [
+          "adr"
+        ],
+        [
+          "journal"
+        ],
+        [
+          "skill-auditor"
+        ],
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": "SECURITY.md",
+      "class": "drifted",
+      "repos": 4,
+      "versions": [
+        [
+          "adr"
+        ],
+        [
+          "journal"
+        ],
+        [
+          "skill-auditor"
+        ],
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": "action.yml",
+      "class": "single-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/adr/Cargo.toml",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "crates/adr/build.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "crates/adr/docs/design/agent-driven-adr-lifecycle.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "crates/adr/src/commands.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "crates/adr/src/completeness.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "crates/adr/src/date.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "crates/adr/src/draft.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "crates/adr/src/git.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "crates/adr/src/hooks.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "crates/adr/src/index.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "crates/adr/src/install_cmd.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "crates/adr/src/lib.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "crates/adr/src/main.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "crates/adr/src/record.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "crates/adr/src/skill_bundle.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "crates/adr/src/store.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "crates/adr/src/sync.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "crates/adr/src/template.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "crates/adr/src/undocumented.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "crates/adr/src/validate.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "crates/adr/tests/integration.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "crates/journal/Cargo.toml",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "crates/journal/README.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "crates/journal/build.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "crates/journal/src/archive_media.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "crates/journal/src/backfill.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "crates/journal/src/date.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "crates/journal/src/entry.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "crates/journal/src/index.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "crates/journal/src/install_cmd.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "crates/journal/src/kb.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "crates/journal/src/lib.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "crates/journal/src/lint.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "crates/journal/src/main.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "crates/journal/src/scan.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "crates/journal/src/skill_bundle.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "crates/journal/src/status.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "crates/journal/src/taxonomy.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "crates/journal/src/taxonomy_sync.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "crates/journal/src/validate.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "crates/journal/tests/backfill.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "crates/journal/tests/entries_dir.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "crates/journal/tests/index.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "crates/journal/tests/lint.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "crates/journal/tests/roundtrip.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "crates/journal/tests/validate.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "crates/pahdk-core/Cargo.toml",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": "crates/pahdk-core/src/config.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": "crates/pahdk-core/src/error.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": "crates/pahdk-core/src/frontmatter.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": "crates/pahdk-core/src/fs.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": "crates/pahdk-core/src/lib.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": "crates/pahdk-core/src/output.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": "crates/pahdk-core/src/validate.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": "crates/pahdk-install/Cargo.toml",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": "crates/pahdk-install/src/agents.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": "crates/pahdk-install/src/env.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": "crates/pahdk-install/src/hooks.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": "crates/pahdk-install/src/install.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": "crates/pahdk-install/src/lib.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/Cargo.toml",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/NOTICE",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/build.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/aggregation.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/baseline.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/check_stored.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/duplication.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/install_cmd.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/lib.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/main.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/pattern_analysis.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/prune.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/quality_signals.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/reporter/analysis.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/reporter/mod.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/reporter/pr_detail.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/reporter/remediation.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/reporter/report.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/reporter/store.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/reports.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/scorer/agents.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/scorer/bridge.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/scorer/d1_knowledge_delta.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/scorer/d2_mindset_procedures.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/scorer/d3_anti_pattern.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/scorer/d4_specification.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/scorer/d5_progressive_disclosure.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/scorer/d6_freedom_calibration.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/scorer/d7_pattern_recognition.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/scorer/d8_practical_usability.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/scorer/d9_eval_validation.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/scorer/grades.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/scorer/helpers.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/scorer/mod.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/semantic.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/src/skill_bundle.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/testdata/fixtures/skill-full/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/testdata/fixtures/skill-full/evals/instructions.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/testdata/fixtures/skill-full/evals/scenario-1/capability.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/testdata/fixtures/skill-full/evals/scenario-1/criteria.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/testdata/fixtures/skill-full/evals/scenario-1/task.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/testdata/fixtures/skill-full/evals/scenario-2/capability.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/testdata/fixtures/skill-full/evals/scenario-2/criteria.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/testdata/fixtures/skill-full/evals/scenario-2/task.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/testdata/fixtures/skill-full/evals/scenario-3/capability.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/testdata/fixtures/skill-full/evals/scenario-3/criteria.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/testdata/fixtures/skill-full/evals/scenario-3/task.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/testdata/fixtures/skill-full/evals/summary.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/testdata/fixtures/skill-full/references/deep-reference.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/testdata/fixtures/skill-minimal/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/base_ref.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/batch_details.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/check_stored_cli.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/embedded_validator.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/README.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/corpus.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-b-google-scholar-search/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-b-google-scholar-search/evals/instructions.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-b-google-scholar-search/evals/scenario-01.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-b-google-scholar-search/evals/scenario-02.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-b-google-scholar-search/evals/scenario-03.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-b-google-scholar-search/evals/summary.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-b-google-scholar-search/references/setup-and-troubleshooting.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-b-google-scholar-search/requirements.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-b-google-scholar-search/scripts/google-scholar-search.py",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-bplus-moscow-prioritization/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-bplus-moscow-prioritization/evals/instructions.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-bplus-moscow-prioritization/evals/scenario-01.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-bplus-moscow-prioritization/evals/scenario-01/capability.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-bplus-moscow-prioritization/evals/scenario-01/criteria.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-bplus-moscow-prioritization/evals/scenario-01/task.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-bplus-moscow-prioritization/evals/scenario-02.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-bplus-moscow-prioritization/evals/scenario-02/capability.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-bplus-moscow-prioritization/evals/scenario-02/criteria.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-bplus-moscow-prioritization/evals/scenario-02/task.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-bplus-moscow-prioritization/evals/scenario-03.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-bplus-moscow-prioritization/evals/scenario-03/capability.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-bplus-moscow-prioritization/evals/scenario-03/criteria.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-bplus-moscow-prioritization/evals/scenario-03/task.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-bplus-moscow-prioritization/evals/scenario-04.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-bplus-moscow-prioritization/evals/scenario-05.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-bplus-moscow-prioritization/evals/summary.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-bplus-moscow-prioritization/references/categorization-decision-tree.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-bplus-moscow-prioritization/references/effort-balancing-and-tradeoffs.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-bplus-moscow-prioritization/references/facilitator-workshop-template.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-c-reproduce-benchmark/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-c-reproduce-benchmark/assets/schemas/repro-benchmark.schema.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-c-reproduce-benchmark/assets/templates/REPRO-benchmark.yaml",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-c-reproduce-benchmark/evals/scenario-01.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-c-reproduce-benchmark/evals/scenario-02.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-c-reproduce-benchmark/evals/scenario-03.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-c-reproduce-benchmark/scripts/validate-repro-benchmark.sh",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-cplus-scholar-evaluation/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-cplus-scholar-evaluation/evals/instructions.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-cplus-scholar-evaluation/evals/scenario-01.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-cplus-scholar-evaluation/evals/scenario-02.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-cplus-scholar-evaluation/evals/scenario-03.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-cplus-scholar-evaluation/references/evaluation_framework.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-d-chezmoi-assistant/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-d-chezmoi-assistant/evals/scenario-01.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-d-chezmoi-assistant/evals/scenario-02.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-d-chezmoi-assistant/evals/scenario-03.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-d-chezmoi-assistant/references/commands.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-d-chezmoi-assistant/references/source-attrs.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-d-chezmoi-assistant/references/templates.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-f-gitlab-api/CHANGELOG.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-f-gitlab-api/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-f-gitlab-api/evals/scenario-01.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-f-gitlab-api/evals/scenario-02.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-f-gitlab-api/evals/scenario-03.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-f-gitlab-api/evals/scenario-04.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-f-gitlab-api/evals/scenario-05.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/fixtures/grade-f-gitlab-api/scripts/get_mr_comments.sh",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/goldens.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/pr-detail/grade-b-google-scholar-search.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/golden-corpus/pr-detail/grade-bplus-moscow-prioritization.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/grade_parity.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/legacy_criteria.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/pr_detail_golden.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-auditor/tests/stored_audit_has_no_machine_path.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/Cargo.toml",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/src/artifacts.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/src/cli/mod.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/src/cli/model.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/src/cli/probes_cmd.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/src/cli/render.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/src/cli/run.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/src/contamination.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/src/content.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/src/lib.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/src/links.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/src/listing.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/src/main.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/src/probes.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/src/skill.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/src/structure/frontmatter.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/src/structure/fsutil.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/src/structure/internal_links.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/src/structure/markdown.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/src/structure/mod.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/src/structure/orphans.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/src/structure/tokens.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/src/triggers.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/src/types.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/src/util.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/cli.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/README.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/corpus.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/boundary/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/boundary/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/boundary/body-500-lines/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/boundary/body-501-lines/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/boundary/desc-1024/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/boundary/desc-1025/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/boundary/fence-unclosed/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/boundary/keyword-stuffed/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/boundary/link-traversal/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/examples/README.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/examples/ci/.github/scripts/validate-skills.sh",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/examples/ci/.github/workflows/validate-skills.yml",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/examples/review-skill/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/examples/review-skill/assets/report.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/examples/review-skill/references/install-skill-validator.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/examples/review-skill/references/llm-scoring.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/testdata/allowed-dirs-skill/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/testdata/allowed-dirs-skill/evals/evals.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/testdata/allowed-dirs-skill/evals/files/sample_input.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/testdata/allowed-dirs-skill/references/guide.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/testdata/allowed-dirs-skill/scripts/validate.sh",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/testdata/allowed-dirs-skill/testing/fixtures.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/testdata/auxiliary-only-skill/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/testdata/broken-frontmatter/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/testdata/flat-skill/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/testdata/flat-skill/extract.py",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/testdata/flat-skill/guide.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/testdata/flat-skill/template.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/testdata/invalid-skill/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/testdata/invalid-skill/extras/.gitkeep",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/testdata/invalid-skill/references/exists.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/testdata/multi-skill/skill-alpha/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/testdata/multi-skill/skill-alpha/references/guide.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/testdata/multi-skill/skill-beta/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/testdata/multi-skill/skill-gamma/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/testdata/multi-skill/skill-gamma/extras/.gitkeep",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/testdata/rich-skill/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/testdata/valid-skill/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/testdata/valid-skill/assets/template.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/testdata/valid-skill/references/guide.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/testdata/valid-skill/scripts/setup.sh",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/testdata/warnings-only-skill/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/fixtures/testdata/warnings-only-skill/extras/.gitkeep",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden-corpus/goldens.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/golden_parity.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/token-parity/README.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/token-parity/corpus.jsonl",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/token-parity/descriptions.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/token-parity/expected_counts.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/token-parity/gen_corpus.mjs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/token-parity/goref/go.mod",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/token-parity/goref/go.sum",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/token-parity/goref/main.go",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "crates/skill-validator-rs/tests/token_parity.rs",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "deny.toml",
+      "class": "identical",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor",
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": "dist-workspace.toml",
+      "class": "per-repo",
+      "repos": 3,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "hk.pkl",
+      "class": "drifted",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor"
+        ],
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": "mise.toml",
+      "class": "identical",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor",
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": "release-please-config.json",
+      "class": "per-repo",
+      "repos": 4,
+      "versions": [
+        [
+          "adr"
+        ],
+        [
+          "journal"
+        ],
+        [
+          "skill-auditor"
+        ],
+        [
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": "rust-toolchain.toml",
+      "class": "identical",
+      "repos": 4,
+      "versions": [
+        [
+          "adr",
+          "journal",
+          "skill-auditor",
+          "agentic-harness-dev-kit"
+        ]
+      ]
+    },
+    {
+      "path": "skills/adr-creator/.audits/2026-09-15/Analysis.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "skills/adr-creator/.audits/2026-09-15/Remediation.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "skills/adr-creator/.audits/2026-09-15/audit.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "skills/adr-creator/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "skills/adr-creator/assets/adr-frontmatter.schema.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "skills/adr-creator/assets/adr.yaml",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "skills/adr-creator/evals/instructions.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "skills/adr-creator/evals/scenario-1/capability.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "skills/adr-creator/evals/scenario-1/criteria.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "skills/adr-creator/evals/scenario-1/task.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "skills/adr-creator/evals/scenario-2/capability.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "skills/adr-creator/evals/scenario-2/criteria.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "skills/adr-creator/evals/scenario-2/task.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "skills/adr-creator/evals/scenario-3/capability.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "skills/adr-creator/evals/scenario-3/criteria.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "skills/adr-creator/evals/scenario-3/task.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "skills/adr-creator/evals/scenario-4/capability.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "skills/adr-creator/evals/scenario-4/criteria.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "skills/adr-creator/evals/scenario-4/task.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "skills/adr-creator/evals/summary.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "skills/adr-creator/references/adr-lifecycle.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "skills/adr-creator/references/cli-usage.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "skills/adr-creator/references/context-extraction.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "skills/adr-creator/references/template-and-schema.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "adr"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/.audits/2026-02-24/analysis.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/.audits/2026-02-24/audit.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/.audits/2026-03-02/analysis.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/.audits/2026-03-02/audit.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/.audits/2026-03-02/remediation-plan.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/.audits/2026-03-03/analysis.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/.audits/2026-03-03/audit.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/.audits/2026-03-03/remediation-plan.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/.audits/2026-10-02/Analysis.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/.audits/2026-10-02/Remediation.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/.audits/2026-10-02/audit.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/.audits/latest",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/CHANGELOG.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/assets/schemas/entry-frontmatter.schema.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/assets/schemas/taxonomy.schema.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/assets/taxonomy.default.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/assets/templates/article-summary.yaml",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/assets/templates/journal-entry.yaml",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/assets/templates/learning.yaml",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/assets/templates/ticket-kickoff.yaml",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/assets/templates/ticket-refinement.yaml",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/assets/templates/troubleshooting.yaml",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/instructions.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-1/capability.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-1/criteria.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-1/task.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-10/capability.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-10/criteria.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-10/task.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-11/capability.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-11/criteria.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-11/task.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-2/capability.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-2/criteria.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-2/task.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-3/capability.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-3/criteria.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-3/task.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-4/capability.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-4/criteria.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-4/task.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-5/capability.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-5/criteria.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-5/task.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-6/capability.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-6/criteria.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-6/task.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-7/capability.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-7/criteria.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-7/task.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-8/capability.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-8/criteria.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-8/task.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-9/capability.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-9/criteria.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/scenario-9/task.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/evals/summary.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/references/compliance.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/references/edge-cases.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/references/example-journal-entry.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/references/example-with-frontmatter.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/journal-entry-creator/references/journal-command.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "journal"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/.audits/2026-02-21/analysis.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/.audits/2026-02-21/audit.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/.audits/2026-02-21/remediation-plan.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/.audits/2026-02-22/analysis.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/.audits/2026-02-22/audit.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/.audits/2026-02-22/remediation-plan.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/.audits/2026-02-23/analysis.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/.audits/2026-02-23/audit.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/.audits/2026-02-23/remediation-plan.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/.audits/2026-03-02/analysis.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/.audits/2026-03-02/audit.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/.audits/2026-03-02/remediation-plan.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/.audits/2026-03-04/analysis.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/.audits/2026-03-04/audit.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/.audits/2026-03-04/remediation-plan.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/.audits/2026-04-08/analysis.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/.audits/2026-04-08/audit.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/.audits/2026-04-08/remediation-plan.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/.audits/2026-04-27/Analysis.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/.audits/2026-04-27/Remediation.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/.audits/2026-04-27/audit.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/.audits/2026-10-02/Analysis.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/.audits/2026-10-02/Remediation.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/.audits/2026-10-02/audit.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/.audits/latest",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/AGENTS.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/CHANGELOG.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/SKILL.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/assets/schemas/criteria.schema.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/evals/instructions.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/evals/scenario-1/capability.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/evals/scenario-1/criteria.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/evals/scenario-1/task.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/evals/scenario-2/capability.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/evals/scenario-2/criteria.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/evals/scenario-2/task.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/evals/scenario-3/capability.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/evals/scenario-3/criteria.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/evals/scenario-3/task.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/evals/scenario-4/capability.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/evals/scenario-4/criteria.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/evals/scenario-4/task.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/evals/scenario-5/capability.txt",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/evals/scenario-5/criteria.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/evals/scenario-5/task.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/evals/summary.json",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/references/advanced-custom-metrics.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/references/advanced-pattern-recognition.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/references/advanced-trends-analysis.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/references/aggregation-implementation.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/references/aggregation-pattern.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/references/detailed-anti-patterns.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/references/dimension-analysis-template.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/references/duplication-detection-algorithm.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/references/duplication-remediation.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/references/eval-format.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/references/examples-audit-workflows.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/references/framework-dimensions.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/references/framework-quality-standards.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/references/framework-scoring-rubric.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/references/quality-thresholds-scoring.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/references/remediation-planning.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/references/reporting-analysis.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/references/reporting-dashboards.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/references/scoring-rubric.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/references/scripts-audit-workflow.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/references/scripts-ci-integration.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/references/skill-taxonomy.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    },
+    {
+      "path": "skills/skill-quality-auditor/references/skill-template.md",
+      "class": "per-repo",
+      "repos": 1,
+      "versions": [
+        [
+          "skill-auditor"
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+m: Mapping<String, Int> = new { ["a"] = 1 }
+r = m.toMap().mapValues((_, v) -> v + 1)

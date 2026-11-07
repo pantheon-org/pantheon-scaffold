@@ -1,0 +1,3 @@
+class O { t: String }
+o: O = new { t = "x" }
+r = o.t

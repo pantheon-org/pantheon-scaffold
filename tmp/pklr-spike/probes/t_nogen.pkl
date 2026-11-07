@@ -1,0 +1,18 @@
+open module Template
+
+class Options {
+  toolchain: String
+  agnix: Boolean = false
+}
+
+class GenFile {
+  content: String
+  seed: Boolean = false
+  executable: Boolean = false
+}
+
+opts: Options
+
+local function tmpl(path: String): String =
+  read(path).text.replaceAll("@@TOOLCHAIN@@", opts.toolchain)
+

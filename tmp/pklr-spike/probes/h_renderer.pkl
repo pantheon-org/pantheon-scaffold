@@ -1,0 +1,1 @@
+output { files { ["a.json"] { renderer = new JsonRenderer {}; value = new Dynamic { a = 1 } } } }

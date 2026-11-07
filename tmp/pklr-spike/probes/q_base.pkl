@@ -1,0 +1,5 @@
+open module Q
+class O { t: String }
+o: O
+local function f(p: String): String = read(p).text.replaceAll("@@", o.t)
+r = f("deny.toml").length

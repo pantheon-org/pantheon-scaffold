@@ -1,0 +1,2 @@
+amends "o_base.pkl"
+o { t = "x" }

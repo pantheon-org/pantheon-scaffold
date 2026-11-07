@@ -1,0 +1,12 @@
+amends "pkl:Project"
+
+package {
+  name = "pantheon-scaffold-spike"
+  baseUri = "package://github.com/pantheon-org/pantheon-scaffold-spike/releases/download/v\(version)/pantheon-scaffold-spike"
+  version = "0.0.1"
+  packageZipUrl = "https://github.com/pantheon-org/pantheon-scaffold-spike/releases/download/v\(version)/pantheon-scaffold-spike@\(version).zip"
+  description = "Spike S.1: minimal package to test packaging and consumption."
+  authors { "Pantheon scaffold spike <spike@example.invalid>" }
+  license = "MIT"
+  sourceCode = "https://github.com/pantheon-org/pantheon-scaffold-spike"
+}

@@ -1,0 +1,8 @@
+output {
+  renderer = new YamlRenderer { omitNullProperties = false }
+}
+
+on {
+  workflow_dispatch = null
+  push { branches { "main" } }
+}

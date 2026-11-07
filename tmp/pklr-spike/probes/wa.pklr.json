@@ -1,0 +1,33 @@
+{
+  "generated": {
+    ".github/scripts/cargo-deny.sh": {
+      "content": "#!/usr/bin/env bash\n#\n# cargo-deny.sh\n#\n# Runs `cargo deny check` (advisories, licenses, bans, sources) against the\n# policy in deny.toml, installing the pinned cargo-deny release first if needed.\n# Duplicate crate versions only warn; every other finding fails the run.\n#\n# Usage: cargo-deny.sh [extra cargo-deny check arguments]\n# Env:   CARGO_DENY_VERSION  override the pinned version\n\nset -euo pipefail\n\nVERSION=\"${CARGO_DENY_VERSION:-0.20.2}\"\n\nif ! command -v cargo-deny >/dev/null 2>&1 || ! cargo-deny --version | grep -q \" ${VERSION}\\$\"; then\n  cargo install cargo-deny --version \"${VERSION}\" --locked\nfi\n\ncargo deny --locked check \"$@\"\n",
+      "executable": true,
+      "seed": false
+    },
+    ".github/workflows/cargo-deny.yml": {
+      "content": "name: Cargo Deny\n\n# Checks the dependency tree against deny.toml: RustSec advisories (including\n# yanked and unmaintained crates), licences, banned or duplicate crates, and\n# allowed registries and git sources. The advisory database changes without a\n# commit here, so a weekly run catches new advisories on an idle repository.\non:\n  pull_request:\n    types: [opened, synchronize, reopened]\n    branches: [main]\n  push:\n    branches: [main]\n  schedule:\n    - cron: \"17 5 * * 1\"\n  workflow_dispatch:\n\npermissions:\n  contents: read\n\nconcurrency:\n  group: ${{ github.workflow }}-${{ github.ref }}\n  cancel-in-progress: true\n\njobs:\n  cargo-deny:\n    name: Cargo Deny\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n\n      - name: Install Rust toolchain\n        run: |\n          rustup toolchain install 1.96.1 --profile minimal\n          rustup default 1.96.1\n\n      - name: Check dependencies\n        run: bash .github/scripts/cargo-deny.sh\n",
+      "executable": false,
+      "seed": false
+    },
+    "README.md": {
+      "content": "# Seeded once\n\nEdit freely; the generator never touches this again.\n",
+      "executable": false,
+      "seed": true
+    },
+    "deny.toml": {
+      "content": "# cargo-deny policy. Checked by .github/workflows/cargo-deny.yml.\n# Shared across the pantheon-* tool repositories; keep the copies in step.\n\n[graph]\nall-features = true\n\n[advisories]\n# Fail on any RustSec advisory (vulnerability, unmaintained, unsound) and on\n# yanked releases. To accept one deliberately, add its id to `ignore` with a reason.\nyanked = \"deny\"\n# RUSTSEC-2024-0449: unsafe-libyaml is archived, with no fix. It arrives through\n# serde_yaml_ng, which every tool uses to read frontmatter. Revisit when\n# serde_yaml_ng moves to a maintained YAML backend; remove this entry then.\nignore = [\"RUSTSEC-2024-0449\"]\n\n[licenses]\nallow = [\n    \"MIT\",\n    \"Apache-2.0\",\n    \"Apache-2.0 WITH LLVM-exception\",\n    \"BSD-2-Clause\",\n    \"BSD-3-Clause\",\n    \"ISC\",\n    \"Unicode-3.0\",\n    \"Zlib\",\n    \"CC0-1.0\",\n    \"MPL-2.0\",\n    \"MIT-0\",\n    \"CDLA-Permissive-2.0\",\n]\nconfidence-threshold = 0.9\n# The list is shared across repositories, so not every entry is used in each.\nunused-allowed-license = \"allow\"\n\n[bans]\nmultiple-versions = \"warn\"\nwildcards = \"deny\"\n# Path dependencies inside the workspace have no version requirement.\nallow-wildcard-paths = true\n\n[sources]\nunknown-registry = \"deny\"\nunknown-git = \"deny\"\nallow-registry = [\"https://github.com/rust-lang/crates.io-index\"]\n# The shared dev-kit is a git dependency until it is published to crates.io.\nunused-allowed-source = \"allow\"\nallow-git = [\"https://github.com/pantheon-org/pantheon-agentic-harness-dev-kit\"]\n",
+      "executable": false,
+      "seed": false
+    },
+    "rust-toolchain.toml": {
+      "content": "[toolchain]\nchannel = \"1.96.1\"\ncomponents = [\"rustfmt\", \"clippy\"]\n",
+      "executable": false,
+      "seed": false
+    }
+  },
+  "opts": {
+    "agnix": false,
+    "toolchain": "1.96.1"
+  }
+}

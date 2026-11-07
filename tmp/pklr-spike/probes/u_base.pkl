@@ -1,0 +1,6 @@
+open module U
+class O { t: String }
+class F { content: String }
+o: O
+local function f(p: String): String = p + o.t
+g: Mapping<String, F> = new { ["k"] = new F { content = f("x") } }

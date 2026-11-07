@@ -1,0 +1,7 @@
+class O {
+  /// doc
+  t: String
+  a: Boolean = false
+}
+o: O = new { t = "x" }
+r = o.t

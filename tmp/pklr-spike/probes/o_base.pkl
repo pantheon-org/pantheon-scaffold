@@ -1,0 +1,5 @@
+open module O2
+class O { t: String }
+class F { content: String }
+o: O
+g: Mapping<String, F> = new { ["k"] = new F { content = o.t } }

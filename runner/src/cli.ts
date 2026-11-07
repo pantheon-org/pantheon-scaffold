@@ -1,6 +1,7 @@
 import { join, resolve } from "node:path";
 import { apply } from "./apply";
 import { check } from "./check";
+import contractSchema from "../../contract.schema.json";
 import { ContractError, parseContract, type Contract } from "./contract";
 import { detach } from "./detach";
 import { loadKnownBad } from "./knownbad";
@@ -12,9 +13,9 @@ import { evalContractJson } from "./pkl";
 import { packageVersionOf, preflight, type KnownBad } from "./preflight";
 import type { Schema } from "./schema";
 import { UpgradeError, upgrade } from "./upgrade";
+import { VERSION } from "./version";
 
-export const VERSION = "0.0.0";
-const SCHEMA_PATH = join(import.meta.dir, "../../contract.schema.json");
+export { VERSION };
 
 // Exit codes: 0 ok, 1 error, 2 usage, 3 refused (a hand edit, an existing file, the delete guard, an older package or --strict), 4 drift (check found a difference).
 export const EXIT = { ok: 0, error: 1, usage: 2, refused: 3, drift: 4 } as const;
@@ -55,7 +56,7 @@ function parseFlags(args: string[]): Flags | string {
 }
 
 async function loadContract(config: string, flags: Flags) {
-  const schema = (await Bun.file(SCHEMA_PATH).json()) as Schema;
+  const schema = contractSchema as Schema;
   const cacheDir = flags.cacheDir ?? join(flags.root, ".pkl-gen/cache");
   return parseContract(await evalContractJson(resolve(config), flags.root, { allowFilesUnder: flags.local, attempts: flags.attempts, cacheDir }), schema);
 }

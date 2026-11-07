@@ -153,6 +153,12 @@ function planOrphans(contract: Contract, root: string, manifest: Manifest, opts:
   for (const path of Object.keys(manifest.files)) {
     const entry = manifest.files[path];
     if (entry.class !== "owned" || contract.files.some((f) => f.path === path)) continue;
+    // On a case-insensitive filesystem the old and the new name are one file, and deleting the orphan would delete the render.
+    const renamed = contract.files.find((f) => f.path.toLowerCase() === path.toLowerCase());
+    if (renamed) {
+      out.refusals.push(`${path} and ${renamed.path} differ only by case, which is one file on a case-insensitive filesystem. Rename it by hand and render again`);
+      continue;
+    }
     const current = read(resolveInside(root, path));
     if (current === null) out.actions.push({ kind: "forget", path });
     else if (entry.hash !== undefined && sha256(current) !== entry.hash && !opts.force)

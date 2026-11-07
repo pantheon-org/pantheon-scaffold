@@ -17,7 +17,7 @@ A package URI with no readable version is an error, never ignored. After every r
 | The package version is on the known-bad list | Warning with the reason. With `--strict`, exit 3 before anything is written. |
 | A required Security builtin is disabled (`securityBuiltins` in the contract) | Warning for each one. `--strict` does not change it. |
 
-Versions are compared as semantic versions, not as text. `--repair` skips reading the manifest first, because it exists to fix one that cannot be read.
+Versions are compared as semantic versions, not as text. A pre-release ranks below its release, so a runner `0.1.0-rc.1` is older than a requirement of `0.1.0`. Keep `requires.runner` at a version that pre-releases of the next release can meet: CI builds `0.0.1-ci.N` against the current requirement of `0.0.0`, and the smoke suite fails if it does not. `--repair` skips reading the manifest first, because it exists to fix one that cannot be read.
 
 ## The package cache
 

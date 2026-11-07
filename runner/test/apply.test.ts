@@ -423,3 +423,35 @@ test("--repair keeps the package version and the detach flag", async () => {
   expect(m.packageVersion).toBe("0.2.0");
   expect(m.files["up.yml"].removeOnDetach).toBe(true);
 });
+
+// Case-only renames: on a case-insensitive filesystem the old and new name are one file, so deleting the orphan would delete the render.
+test("a case-only rename is refused, with nothing written and the old file intact", async () => {
+  const root = tempRepo();
+  await apply(contractOf(owned("readme.md", "one\n")), root);
+  const r = await apply(contractOf(owned("README.md", "two\n")), root);
+  expect(r.refusals.join("\n")).toContain("readme.md and README.md differ only by case");
+  expect(get(root, "readme.md")).toBe("one\n");
+  expect(r.written).toBe(0);
+});
+
+test("--force does not override a case-only rename", async () => {
+  const root = tempRepo();
+  await apply(contractOf(owned("readme.md", "one\n")), root);
+  const r = await apply(contractOf(owned("README.md", "two\n")), root, { force: true });
+  expect(r.refusals.join("\n")).toContain("differ only by case");
+  expect(get(root, "readme.md")).toBe("one\n");
+});
+
+test("--dry-run reports a case-only rename as a refusal too", async () => {
+  const root = tempRepo();
+  await apply(contractOf(owned("readme.md", "one\n")), root);
+  const r = await apply(contractOf(owned("README.md", "two\n")), root, { dryRun: true });
+  expect(r.refusals.join("\n")).toContain("differ only by case");
+});
+
+test("a rename to a different name is still an ordinary orphan", async () => {
+  const root = await rendered([owned("readme.md", "one\n")]);
+  const r = await apply(contractOf(owned("docs/readme.md", "one\n")), root);
+  expect(r.refusals).toEqual([]);
+  expect(kinds(r)).toContain("delete:readme.md");
+});

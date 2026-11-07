@@ -12,6 +12,7 @@ An orphan is an owned file listed in `.pkl-gen/manifest.json` that the contract 
 | The file is unchanged since the last render | Deleted, action `delete`. |
 | The file was edited by hand | Refused, unless `--force`. |
 | The class is seed or external | Never deleted, only dropped from the manifest. |
+| The contract renders the same name in a different case (`readme.md` to `README.md`) | Refused, and `--force` does not override it: on a case-insensitive filesystem it is one file, and deleting the orphan would delete the render. See [runner-binary.md](runner-binary.md). |
 
 Before anything is written, the delete guard runs once. It refuses all deletion, and so the whole run, when:
 

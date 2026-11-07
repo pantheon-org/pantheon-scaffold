@@ -16,6 +16,7 @@ Needs bun, pkl, gh (logged in, read-only calls), and a clone of `pantheon-org/pa
 | `p6-projen-spike` | Projen evidence (P.6), both styles | `cd p6-projen-spike && npm install`, then `bash test.sh` |
 | `p6-pkl-typed-refresh` | pkl typed builtin refreshed to current upstream | `bash p6-pkl-typed-refresh/test.sh` (compares with the current main) |
 | `p6-drift-baseline` | Do-nothing baseline and the SP-0.1 snapshot | `cd p6-drift-baseline && bun drift.ts`, `bun baseline.ts baseline.json` |
+| `phase-2b-wave-a` | Mutation check of the wave A runner behaviours | `cd runner && bun ../tmp/phase-2b-wave-a/mutate.ts` |
 | `apply-fourth-review`, `edit-roles` | One-off plan editing helpers, kept for the record | not meant to be re-run |
 
 Tests that read the current upstream (`p6-*`, `pkl-s3-spike`, `pkl-yaml-trial`'s real workflows) can change result when upstream changes. The two original tests are pinned.

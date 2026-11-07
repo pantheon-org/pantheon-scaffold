@@ -129,3 +129,26 @@ test("check fails closed with exit 1 when pkl cannot evaluate", async () => {
 });
 
 test("a bad --attempts value is a usage error", async () => expect((await run("check", slice, "--attempts", "0")).code).toBe(2));
+
+test("a render while another run holds the lock fails with exit 1 and writes nothing", async () => {
+  const repo = tempRepo();
+  put(repo, ".pkl-gen/lock", JSON.stringify({ pid: process.pid, started: new Date().toISOString() }));
+  const r = await render(repo);
+  expect(r.code).toBe(1);
+  expect(r.err).toContain(".pkl-gen/lock is held");
+  expect(r.err).not.toContain("    at ");
+  expect(has(repo, "deny.toml")).toBe(false);
+});
+
+test("--dry-run takes no lock and a check runs while the lock is held", async () => {
+  const repo = tempRepo();
+  await render(repo);
+  put(repo, ".pkl-gen/lock", JSON.stringify({ pid: process.pid, started: new Date().toISOString() }));
+  expect((await render(repo, "--dry-run")).code).toBe(0);
+  expect((await run("check", slice, "--root", repo, "--allow-local-package", pkgDir)).code).toBe(0);
+});
+
+test("the usage text names the exit codes", async () => {
+  const r = await run("nope");
+  expect(r.err).toContain("exit codes: 0 ok, 1 error, 2 usage, 3 refused, 4 drift");
+});

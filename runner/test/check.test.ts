@@ -52,3 +52,13 @@ test("check uses the text with version comments, so a rendered repo is clean", a
   expect(get(root, ".github/workflows/x.yml")).toContain("# v7.0.1");
   expect(check(c, root).drift).toEqual([]);
 });
+
+test("a missing exec bit is drift, and so is an exec bit the contract does not ask for", async () => {
+  const root = tempRepo();
+  await apply(contractOf(owned("run.sh", "#!/bin/sh\n")), root);
+  const wantsExec = contractOf(owned("run.sh", "#!/bin/sh\n", "0755"));
+  expect(check(wantsExec, root).drift).toEqual([{ path: "run.sh", reason: "mode", diff: "    expected executable, found not executable" }]);
+  await apply(wantsExec, root);
+  expect(check(wantsExec, root).drift).toEqual([]);
+  expect(check(contractOf(owned("run.sh", "#!/bin/sh\n")), root).drift).toEqual([{ path: "run.sh", reason: "mode", diff: "    expected not executable, found executable" }]);
+});

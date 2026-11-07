@@ -2,6 +2,7 @@ import { join, resolve } from "node:path";
 import { apply } from "./apply";
 import { check } from "./check";
 import { ContractError, parseContract } from "./contract";
+import { LockError } from "./lock";
 import { ManifestError } from "./manifest";
 import { PathError } from "./paths";
 import { evalContractJson } from "./pkl";
@@ -13,7 +14,7 @@ const SCHEMA_PATH = join(import.meta.dir, "../../contract.schema.json");
 // Exit codes: 0 ok, 1 error, 2 usage, 3 refused (a hand edit or an existing file would be overwritten), 4 drift (check found a difference).
 export const EXIT = { ok: 0, error: 1, usage: 2, refused: 3, drift: 4 } as const;
 
-const usage = `usage:
+const usage = `usage (exit codes: 0 ok, 1 error, 2 usage, 3 refused, 4 drift; --dry-run exits 3 when the render would be refused, otherwise 0):
   pantheon-scaffold --version
   pantheon-scaffold contract <pantheon.pkl>
   pantheon-scaffold render <pantheon.pkl> [--root <dir>] [--dry-run] [--force] [--repair] [--allow-local-package <dir>]... [--attempts <n>]
@@ -81,10 +82,15 @@ export async function main(argv: string[]): Promise<number> {
         console.error(`refused ${report.refusals.length} file(s), nothing was written:\n${report.refusals.map((r) => `  ${r}`).join("\n")}`);
         return flags.repair ? EXIT.ok : EXIT.refused;
       }
-      console.log(`${report.dryRun ? "dry run: would write" : "written"} ${report.dryRun ? report.actions.filter((a) => ["create", "update", "seed"].includes(a.kind)).length : report.written} file(s)`);
+      const count = (kinds: string[]) => report.actions.filter((a) => kinds.includes(a.kind)).length;
+      console.log(
+        report.dryRun
+          ? `dry run: would write ${count(["create", "update", "seed"])} file(s), delete ${count(["delete"])}`
+          : `written ${report.written} file(s), deleted ${report.deleted}`,
+      );
       return EXIT.ok;
     } catch (e) {
-      if (e instanceof ContractError || e instanceof PathError || e instanceof ManifestError) {
+      if (e instanceof ContractError || e instanceof PathError || e instanceof ManifestError || e instanceof LockError) {
         console.error(e.message);
         return EXIT.error;
       }

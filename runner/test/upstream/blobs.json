@@ -1,0 +1,7 @@
+{
+  "deny.toml": "d3bc0a4ff1186153a516d9687c85ce5348f09004",
+  "rust-toolchain.toml": "ea14c7edaf73d48f57ee5d007671daf3b50751e3",
+  ".github/scripts/cargo-deny.sh": "50f2eae76a3ec5059ef0155b0363f41edff5b08e",
+  ".github/scripts/check-inline-scripts.sh": "0d0c51457df1dba0b3053b1687e914437ab483cc",
+  ".github/scripts/check-toolchain-version.sh": "4bf0262a27ad5cef77a54c20c53231fd9646b5d2"
+}

@@ -43,3 +43,7 @@ test("the ContractError type is exported", () => expect(new ContractError("x")).
 test("a pantheon.pkl cannot read arbitrary files (restricted resources)", async () => {
   await expect(evalContractJson(fixture("read-file"), root)).rejects.toThrow(/Refusing to read resource/);
 });
+
+test("allowing files under the package folder does not open the rest of the disk", async () => {
+  await expect(evalContractJson(fixture("read-file"), root, { allowFilesUnder: [join(root, "pkl")] })).rejects.toThrow(/Refusing to read resource/);
+});

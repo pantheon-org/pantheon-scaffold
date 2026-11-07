@@ -1,0 +1,15 @@
+amends "../../../../pkl/Config.pkl"
+
+import "../../../../pkl/Builtins.pkl"
+
+options { toolchain = "1.96.1" }
+
+workflows {
+  ["cargo-deny"] = Builtins.cargoDeny(options)
+  ["rust-ci"] = Builtins.rustCi(options)
+  ["inline-scripts"] = Builtins.inlineScripts()
+}
+
+files {
+  ...Builtins.baseFiles(options)
+}

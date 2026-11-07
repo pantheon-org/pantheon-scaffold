@@ -6,9 +6,21 @@ export const ALLOWED_MODULES = "pkl:,file:,package:,projectpackage:";
 // There is no file: here, so a pantheon.pkl cannot read arbitrary files.
 export const ALLOWED_RESOURCES = "package:,projectpackage:,https:";
 
-export async function evalContractJson(configPath: string, cwd: string): Promise<unknown> {
+export type EvalOptions = {
+  /** Absolute folders whose files a local (file:) package may read, for working on a checkout of the package. */
+  allowFilesUnder?: string[];
+};
+
+const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+export function allowedResources(opts: EvalOptions = {}): string {
+  const local = (opts.allowFilesUnder ?? []).map((dir) => `^file://${escapeRegex(dir.endsWith("/") ? dir : dir + "/")}`);
+  return [ALLOWED_RESOURCES, ...local].join(",");
+}
+
+export async function evalContractJson(configPath: string, cwd: string, opts: EvalOptions = {}): Promise<unknown> {
   const proc = Bun.spawn(
-    ["pkl", "eval", "-f", "json", "--allowed-modules", ALLOWED_MODULES, "--allowed-resources", ALLOWED_RESOURCES, configPath],
+    ["pkl", "eval", "-f", "json", "--allowed-modules", ALLOWED_MODULES, "--allowed-resources", allowedResources(opts), configPath],
     { cwd, stdout: "pipe", stderr: "pipe" },
   );
   const [out, err, code] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text(), proc.exited]);

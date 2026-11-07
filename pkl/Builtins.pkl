@@ -1,0 +1,128 @@
+/// Reusable builtin workflows and files. A repository's pantheon.pkl calls these with its options,
+/// and may override anything in the result. Pins live in Pins.pkl.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.Builtins
+
+import "Config.pkl"
+import "Pins.pkl"
+
+local function mainTriggers(): Mapping<String, Any?> = new Mapping<String, Any?> {
+  ["pull_request"] = new Mapping {
+    ["types"] = new Listing { "opened"; "synchronize"; "reopened" }
+    ["branches"] = new Listing { "main" }
+  }
+  ["push"] = new Mapping { ["branches"] = new Listing { "main" } }
+}
+
+local concurrencyPerRef: Mapping<String, Any> = new Mapping {
+  ["group"] = "${{ github.workflow }}-${{ github.ref }}"
+  ["cancel-in-progress"] = true
+}
+
+local readOnly: Mapping<String, String> = new Mapping { ["contents"] = "read" }
+
+local checkout: Config.Step = new {
+  uses = Pins.checkout
+  `with` = new Mapping { ["persist-credentials"] = false }
+}
+
+local function installToolchain(toolchain: String, components: String?): Config.Step = new {
+  name = "Install Rust toolchain"
+  run =
+    if (components == null)
+      "rustup toolchain install \(toolchain) --profile minimal\nrustup default \(toolchain)\n"
+    else
+      "rustup toolchain install \(toolchain) --profile minimal --component \(components)\nrustup default \(toolchain)\n"
+}
+
+/// Checks the dependency tree against deny.toml.
+function cargoDeny(opts: Config.Options): Config.Workflow = new {
+  header = """
+    Checks the dependency tree against deny.toml: RustSec advisories (including
+    yanked and unmaintained crates), licences, banned or duplicate crates, and
+    allowed registries and git sources. The advisory database changes without a
+    commit here, so a weekly run catches new advisories on an idle repository.
+    """
+  name = "Cargo Deny"
+  on = new Mapping<String, Any?> {
+    ...mainTriggers()
+    ["schedule"] = new Listing { new Mapping { ["cron"] = "17 5 * * 1" } }
+    ["workflow_dispatch"] = new Mapping {}
+  }
+  permissions = readOnly
+  concurrency = concurrencyPerRef
+  jobs {
+    ["cargo-deny"] {
+      name = "Cargo Deny"
+      `timeout-minutes` = 10
+      steps {
+        checkout
+        installToolchain(opts.toolchain, null)
+        new { name = "Check dependencies"; run = "bash .github/scripts/cargo-deny.sh" }
+      }
+    }
+  }
+}
+
+/// Format, lint, build and test the Rust workspace.
+function rustCi(opts: Config.Options): Config.Workflow = new {
+  name = "Rust CI"
+  on = mainTriggers()
+  permissions = readOnly
+  concurrency = concurrencyPerRef
+  jobs {
+    ["build-test"] {
+      name = "Build, test, lint"
+      `timeout-minutes` = 15
+      steps {
+        checkout
+        new { name = "Check toolchain versions"; run = "bash .github/scripts/check-toolchain-version.sh" }
+        installToolchain(opts.toolchain, "rustfmt,clippy")
+        new { name = "Format check"; run = "cargo fmt --all --check" }
+        new { name = "Clippy"; run = "cargo clippy --workspace --all-targets --locked -- -D warnings" }
+        new { name = "Build"; run = "cargo build --workspace --locked" }
+        new { name = "Test"; run = "cargo test --workspace --locked" }
+      }
+    }
+  }
+}
+
+/// A run block in a workflow or composite action may hold at most 15 lines of code.
+function inlineScripts(): Config.Workflow = new {
+  header = """
+    Rule: a `run:` block in a workflow or composite action may hold at most 15 lines
+    of code (blank and comment lines excluded). Longer logic belongs in a script under
+    .github/scripts/, where it can be run locally, shellchecked and tested; the step
+    then calls it. Values reach the script through `env:`, never by pasting `${{ }}`
+    into its text. A block that must stay long can opt out with a line
+    `# inline-ok: <reason>` inside it. Ported from pantheon-org/tekhne.
+
+    No path filter, so the check always reports a conclusion; also runs on push to
+    main as a post-merge safety net. Deterministic and offline.
+    """
+  name = "Inline Scripts"
+  on = mainTriggers()
+  permissions = readOnly
+  concurrency = concurrencyPerRef
+  jobs {
+    ["inline-scripts"] {
+      name = "Inline Scripts"
+      `timeout-minutes` = 5
+      steps {
+        checkout
+        new { name = "Check run blocks are short"; run = "bash .github/scripts/check-inline-scripts.sh" }
+      }
+    }
+  }
+}
+
+/// The verbatim files the three builtins depend on.
+function baseFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
+  ["rust-toolchain.toml"] = new Config.GenFile {
+    content = read("assets/rust-toolchain.toml.tmpl").text.replaceAll("@@TOOLCHAIN@@", opts.toolchain)
+  }
+  ["deny.toml"] = new Config.GenFile { content = read("assets/deny.toml").text }
+  [".github/scripts/cargo-deny.sh"] = new Config.GenFile { content = read("assets/cargo-deny.sh").text; executable = true }
+  [".github/scripts/check-inline-scripts.sh"] = new Config.GenFile { content = read("assets/check-inline-scripts.sh").text; executable = true }
+  [".github/scripts/check-toolchain-version.sh"] = new Config.GenFile { content = read("assets/check-toolchain-version.sh").text; executable = true }
+}

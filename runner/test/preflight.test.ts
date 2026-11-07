@@ -86,3 +86,10 @@ test("a disabled Security builtin is a warning for each one, and an enabled one 
   expect(r.refusals).toEqual([]);
   expect(preflight(c, emptyManifest(), { ...base, strict: true }).refusals).toEqual([]);
 });
+
+test("a pre-release runner of the required version is older than the requirement, so a requirement must be a version pre-releases of the next release can meet", () => {
+  const r = preflight(withUri("0.2.0", { requires: { runner: "0.1.0" } }), emptyManifest(), { ...base, runnerVersion: "0.1.0-rc.1" });
+  expect(r.errors.join()).toContain("runner 0.1.0-rc.1 is older than the 0.1.0 this package requires");
+  const next = preflight(withUri("0.2.0", { requires: { runner: "0.1.0" } }), emptyManifest(), { ...base, runnerVersion: "0.1.1-rc.1" });
+  expect(next.errors).toEqual([]);
+});

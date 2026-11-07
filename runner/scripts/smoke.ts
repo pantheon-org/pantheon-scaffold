@@ -41,7 +41,7 @@ const render = (config: string, repo: string, ...extra: string[]) => bin(["rende
 const check = (config: string, repo: string) => bin(["check", fixture(config), "--root", repo, "--allow-local-package", pkg]);
 const git = (dir: string, ...args: string[]): void => {
   const r = Bun.spawnSync(["git", "-C", dir, "-c", "user.name=smoke", "-c", "user.email=smoke@example.invalid", "-c", "commit.gpgsign=false", ...args], { env: cleanEnv(), stdout: "pipe", stderr: "pipe" });
-  if (r.exitCode !== 0) throw new Error(`git ${args.join(" ")}: ${r.stderr.toString()}`);
+  if (r.exitCode !== 0) throw new Error(`git ${args.join(" ")}: ${r.stderr.toString()}${r.stdout.toString()}`.trim());
 };
 const commitAll = (dir: string): void => {
   git(dir, "add", "-A");
@@ -109,23 +109,40 @@ console.log(`binary ${binary}\nfilesystem: ${caseInsensitive ? "case-insensitive
   ok("a case-only rename is refused (exit 3) and the old file is kept", rn.code === 3 && rn.err.includes("differ only by case") && readFileSync(join(repo, "readme.md"), "utf8") === "one\n", show(rn));
 }
 
-{
+/** A scenario whose setup can fail: a thrown error is reported as one failed check, not a crash that hides the others. */
+const scenario = async (name: string, body: () => Promise<void>): Promise<void> => {
+  try {
+    await body();
+  } catch (e) {
+    ok(name, false, (e as Error).message);
+  }
+};
+/** Renders a fixture and stops the scenario, with the output, when the render did not succeed. */
+const mustRender = async (config: string, repo: string): Promise<void> => {
+  const r = await render(config, repo);
+  if (r.code !== 0) throw new Error(`setup render of ${config} failed: ${show(r)}`);
+};
+
+await scenario("orphan deletion in a clean git repository", async () => {
   const repo = fresh("orphan");
   git(repo, "init", "-q", "-b", "main");
-  await render("smoke-orphan-a", repo);
+  await mustRender("smoke-orphan-a", repo);
   commitAll(repo);
   const r = await render("smoke-orphan-b", repo);
   ok("an orphan is deleted in a clean git repository, so git works inside the binary", r.code === 0 && r.out.includes("deleted 1") && !existsSync(join(repo, "b.txt")) && existsSync(join(repo, "a.txt")), show(r));
 
+});
+
+await scenario("a dirty tracked tree refuses the deletion", async () => {
   const dirty = fresh("orphan-dirty");
   git(dirty, "init", "-q", "-b", "main");
-  await render("smoke-orphan-a", dirty);
+  await mustRender("smoke-orphan-a", dirty);
   writeFileSync(join(dirty, "notes.md"), "n\n");
   commitAll(dirty);
   writeFileSync(join(dirty, "notes.md"), "changed\n");
   const d = await render("smoke-orphan-b", dirty);
   ok("a dirty tracked tree refuses the deletion (exit 3) and keeps the file", d.code === 3 && d.err.includes("not clean") && existsSync(join(dirty, "b.txt")), show(d));
-}
+});
 
 if (base.startsWith(tmpdir()) && base.includes("scaffold-smoke-")) rmSync(base, { recursive: true, force: true });
 console.log(failures ? `\n${failures} failing` : "\nall passed");

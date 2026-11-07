@@ -55,7 +55,7 @@ jobs:
       contents: read
     env:
       GITHUB_TOKEN: ${{ github.token }}
-      BUILD_VERSION: 0.0.0-ci.${{ github.run_number }}
+      BUILD_VERSION: 0.0.1-ci.${{ github.run_number }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -92,7 +92,7 @@ jobs:
       contents: read
     env:
       GITHUB_TOKEN: ${{ github.token }}
-      BUILD_VERSION: 0.0.0-ci.${{ github.run_number }}
+      BUILD_VERSION: 0.0.1-ci.${{ github.run_number }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

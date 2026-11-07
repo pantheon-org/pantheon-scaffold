@@ -21,3 +21,8 @@ test("every action is pinned by a 40 character SHA", () => {
 });
 test("checkout does not persist credentials", () => expect(text).toContain("persist-credentials: false"));
 test("the tools come from the lock file", () => expect(text).toContain("mise install --locked"));
+
+test("the package cache is kept between runs, so an outage does not block the check", () => {
+  expect(text).toContain("path: .pkl-gen/cache");
+  expect(text).toMatch(/uses: actions\/cache@[0-9a-f]{40} # v\d+\.\d+\.\d+/);
+});

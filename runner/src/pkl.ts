@@ -13,6 +13,8 @@ export type EvalOptions = {
   attempts?: number;
   /** Milliseconds to wait between attempts (default 2000). */
   delayMs?: number;
+  /** Where pkl keeps downloaded packages. A warm cache lets an offline run render (spike S.1). */
+  cacheDir?: string;
   /** Environment for the pkl process, for tests. */
   env?: Record<string, string>;
 };
@@ -32,7 +34,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function once(configPath: string, cwd: string, opts: EvalOptions): Promise<{ out: string; err: string; code: number }> {
   const proc = Bun.spawn(
-    ["pkl", "eval", "-f", "json", "--allowed-modules", ALLOWED_MODULES, "--allowed-resources", allowedResources(opts), configPath],
+    ["pkl", "eval", "-f", "json", ...(opts.cacheDir ? ["--cache-dir", opts.cacheDir] : []), "--allowed-modules", ALLOWED_MODULES, "--allowed-resources", allowedResources(opts), configPath],
     { cwd, stdout: "pipe", stderr: "pipe", env: opts.env ? { ...process.env, ...opts.env } : process.env },
   );
   const [out, err, code] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text(), proc.exited]);

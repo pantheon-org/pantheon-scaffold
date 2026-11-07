@@ -394,3 +394,32 @@ test("--dry-run does not take the lock", async () => {
   const r = await apply(contractOf(owned("a.txt", "one\n")), root, { dryRun: true });
   expect(kinds(r)).toEqual(["create:a.txt"]);
 });
+
+// Lifecycle bookkeeping in the manifest.
+test("the package version is recorded in the manifest and kept when a later run has none", async () => {
+  const root = tempRepo();
+  await apply(contractOf(owned("a.txt", "one\n")), root, { packageVersion: "0.2.0" });
+  expect((await readManifest(root)).packageVersion).toBe("0.2.0");
+  await apply(contractOf(owned("a.txt", "one\n")), root);
+  expect((await readManifest(root)).packageVersion).toBe("0.2.0");
+  await apply(contractOf(owned("a.txt", "one\n")), root, { packageVersion: "0.3.0" });
+  expect((await readManifest(root)).packageVersion).toBe("0.3.0");
+});
+
+test("the detach flag of an owned file is recorded in the manifest", async () => {
+  const root = tempRepo();
+  await apply(contractOf({ ...owned("up.yml", "x\n"), removeOnDetach: true }, owned("a.txt", "one\n")), root);
+  const m = await readManifest(root);
+  expect(m.files["up.yml"]).toEqual({ class: "owned", hash: sha256("x\n"), removeOnDetach: true });
+  expect(m.files["a.txt"]).toEqual({ class: "owned", hash: sha256("one\n") });
+});
+
+test("--repair keeps the package version and the detach flag", async () => {
+  const root = tempRepo();
+  const c = contractOf({ ...owned("up.yml", "x\n"), removeOnDetach: true });
+  await apply(c, root, { packageVersion: "0.2.0" });
+  await apply(c, root, { repair: true, packageVersion: "0.2.0" });
+  const m = await readManifest(root);
+  expect(m.packageVersion).toBe("0.2.0");
+  expect(m.files["up.yml"].removeOnDetach).toBe(true);
+});

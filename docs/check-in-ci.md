@@ -11,4 +11,6 @@ The sample job is `runner/test/fixtures/consumer-check.yml`. A test asserts the 
 
 When the package or a pin cannot be fetched, `check` retries (3 attempts by default, `--attempts`) and then fails closed with exit 1. It never reports a pass it could not verify. A newly created release can answer 404 for several minutes, which is why a fetch failure is retried.
 
+The sample job keeps `.pkl-gen/cache` with `actions/cache` (pinned by SHA), so a warm cache lets `check` render when GitHub is unreachable. Add `.pkl-gen/cache/` to the repository's `.gitignore`. The runner also warns when the package version is on the known-bad list, and `--strict` turns that warning into exit 3. See [runner-lifecycle.md](runner-lifecycle.md).
+
 Detection only covers repositories that run this job. A repository that never adds it, or edits the workflow, is not checked (decision 62 of the plan).

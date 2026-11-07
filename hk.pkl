@@ -1,0 +1,35 @@
+amends "package://github.com/jdx/hk/releases/download/v1.49.0/hk@1.49.0#/Config.pkl"
+import "package://github.com/jdx/hk/releases/download/v1.49.0/hk@1.49.0#/Builtins.pkl"
+
+// Tools are pinned in mise.toml. `check` is the non-mutating verification (used by `hk check`);
+// `fix` is the mutating variant (used by the pre-commit hook, which stages results).
+
+local preCommit = new Mapping<String, Step> {
+    // Workflow mistakes: unknown keys, bad expressions, `needs:` references, shell problems in `run:`.
+    ["actionlint"] {
+        glob = List(".github/workflows/*.yml", ".github/workflows/*.yaml")
+        shell = "sh -c"
+        check = "command -v actionlint >/dev/null 2>&1 && actionlint {{files}}"
+    }
+    // Every pkl module of the package must evaluate.
+    ["pkl-eval"] {
+        glob = List("pkl/*.pkl")
+        shell = "sh -c"
+        check = "command -v pkl >/dev/null 2>&1 && for f in {{files}}; do pkl eval \"$f\" > /dev/null || exit 1; done"
+    }
+}
+
+hooks {
+    ["pre-commit"] {
+        fix = true
+        stash = "git"
+        steps = preCommit
+    }
+    ["fix"] {
+        fix = true
+        steps = preCommit
+    }
+    ["check"] {
+        steps = preCommit
+    }
+}

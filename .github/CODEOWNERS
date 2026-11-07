@@ -1,0 +1,3 @@
+# Code owners. Until the Security reviewer is named (task P.3 of the pkl plan) the maintainer owns everything.
+# When P.3 names one, give them the release, permissions, token and settings builtins, and keep the maintainer on pins.
+* @thoroc

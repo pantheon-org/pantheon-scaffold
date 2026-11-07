@@ -1,0 +1,4 @@
+/// Entry module of the pantheon-scaffold package. The typed workflow, job and step classes
+/// and the options arrive in phase 2a of the plan; this stub only holds the package together.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.Config

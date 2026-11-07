@@ -1,0 +1,9 @@
+[settings]
+lockfile = true
+locked_verify_provenance = true
+
+[tools]
+actionlint = "1.7.12"
+bun = "1.4.2"
+hk = "2.10.0"
+pkl = "0.32.2"

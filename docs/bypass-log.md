@@ -1,0 +1,6 @@
+# Bypass log
+
+Every merge made with the maintainer bypass of the pull request approval rule is listed here (decision 69 of the pkl plan). The bypass ends when a real second reviewer is named.
+
+| Date | Pull request | Why the bypass was used |
+|---|---|---|

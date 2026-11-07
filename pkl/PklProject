@@ -1,0 +1,14 @@
+@ModuleInfo { minPklVersion = "0.32.0" }
+amends "pkl:Project"
+
+package {
+  name = "pantheon-scaffold"
+  baseUri = "package://github.com/pantheon-org/pantheon-scaffold/releases/download/v\(version)/pantheon-scaffold"
+  version = "0.0.0"
+  packageZipUrl = "https://github.com/pantheon-org/pantheon-scaffold/releases/download/v\(version)/pantheon-scaffold@\(version).zip"
+  description = "Shared scaffold for the Pantheon Rust repositories, rendered from one pantheon.pkl per repository."
+  authors { "thoroc <2297889+thoroc@users.noreply.github.com>" }
+  license = "MIT"
+  sourceCode = "https://github.com/pantheon-org/pantheon-scaffold"
+  issueTracker = "https://github.com/pantheon-org/pantheon-scaffold/issues"
+}

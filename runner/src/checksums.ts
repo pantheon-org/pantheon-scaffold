@@ -23,3 +23,12 @@ export function findChecksum(text: string, name: string): string {
 }
 
 export const checksumAssetUrl = (base: string, version: string): string => `${base.replace(/\/+$/, "")}/v${version}/checksums.txt`;
+
+/** The inverse of parseChecksums, sorted by name so the file is the same however it was assembled. */
+export function formatChecksums(list: Checksum[]): string {
+  for (const c of list) {
+    if (!/^[0-9a-f]{64}$/.test(c.sha256)) throw new Error(`${JSON.stringify(c.sha256)} is not a sha256`);
+    if (c.name === "" || /[\n\r]/.test(c.name) || c.name !== c.name.trim()) throw new Error(`${JSON.stringify(c.name)} is not a valid file name`);
+  }
+  return [...list].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0)).map((c) => `${c.sha256}  ${c.name}\n`).join("");
+}

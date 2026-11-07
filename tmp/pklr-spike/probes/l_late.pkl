@@ -1,0 +1,2 @@
+amends "l_base.pkl"
+a = 10

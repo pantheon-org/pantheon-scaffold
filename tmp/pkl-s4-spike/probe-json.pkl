@@ -1,0 +1,7 @@
+output {
+  renderer = new JsonRenderer { omitNullProperties = false }
+}
+
+on {
+  workflow_dispatch = null
+}

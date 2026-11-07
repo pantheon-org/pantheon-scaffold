@@ -1,0 +1,8 @@
+{
+  "name": "p6-projen-spike",
+  "private": true,
+  "version": "0.0.0",
+  "devDependencies": {
+    "projen": "0.103.21"
+  }
+}

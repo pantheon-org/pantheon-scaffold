@@ -1,0 +1,11 @@
+// Same data, but with omitNullProperties as the real runner design uses.
+output {
+  renderer = new YamlRenderer { omitNullProperties = true }
+}
+
+on {
+  workflow_dispatch = null
+  schedule {
+    new { cron = "*/15 * * * *" }
+  }
+}

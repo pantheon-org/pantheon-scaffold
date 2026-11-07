@@ -1,0 +1,2 @@
+class Job { name: String?; runner: String = "ubuntu-latest" }
+a: Mapping<String, Job> = new { ["x"] { name = "X" } ["y"] {} }

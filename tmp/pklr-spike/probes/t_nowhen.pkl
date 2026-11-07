@@ -1,0 +1,30 @@
+/// Spike: a projen-like template in pkl. Consumers amend this module and set `opts`.
+open module Template
+
+class Options {
+  /// Single source for rust-toolchain.toml and the CI workflow.
+  toolchain: String
+  /// Toggle: adds the agnix script (an executable file) when on.
+  agnix: Boolean = false
+}
+
+class GenFile {
+  content: String
+  /// true = written once, never overwritten or deleted.
+  seed: Boolean = false
+  executable: Boolean = false
+}
+
+opts: Options
+
+local function tmpl(path: String): String =
+  read(path).text.replaceAll("@@TOOLCHAIN@@", opts.toolchain)
+
+generated: Mapping<String, GenFile> = new {
+  ["rust-toolchain.toml"] = new GenFile { content = tmpl("assets/rust-toolchain.toml.tmpl") }
+  ["deny.toml"] = new GenFile { content = read("assets/deny.toml").text }
+  [".github/workflows/cargo-deny.yml"] = new GenFile { content = tmpl("assets/cargo-deny.yml.tmpl") }
+  [".github/scripts/cargo-deny.sh"] = new GenFile { content = read("assets/cargo-deny.sh").text; executable = true }
+  ["README.md"] = new GenFile { content = "# Seeded once\n\nEdit freely; the generator never touches this again.\n"; seed = true }
+}
+

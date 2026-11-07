@@ -1,0 +1,6 @@
+open module L2
+class O { t: String }
+o: O
+r = o.t
+local function f(): String = o.t
+s = f()

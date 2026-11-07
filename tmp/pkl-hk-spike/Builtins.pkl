@@ -1,0 +1,49 @@
+// Reusable builtin workflows. Pins live here, in one place.
+import "Config.pkl"
+
+/// Mirrors pantheon-adr's cargo-deny.yml. `toolchain` is the one value a consumer supplies.
+function cargoDeny(toolchain: String): Config.Workflow = new Config.Workflow {
+  header = """
+    Checks the dependency tree against deny.toml: RustSec advisories (including
+    yanked and unmaintained crates), licences, banned or duplicate crates, and
+    allowed registries and git sources. The advisory database changes without a
+    commit here, so a weekly run catches new advisories on an idle repository.
+    """
+  name = "Cargo Deny"
+  on {
+    pull_request {
+      types = new Listing { "opened"; "synchronize"; "reopened" }
+      branches = new Listing { "main" }
+    }
+    push {
+      branches = new Listing { "main" }
+    }
+    schedule = new Listing {
+      new Dynamic { cron = "17 5 * * 1" }
+    }
+    workflow_dispatch = new Dynamic {}
+  }
+  permissions {
+    ["contents"] = "read"
+  }
+  concurrency {
+    group = "${{ github.workflow }}-${{ github.ref }}"
+    `cancel-in-progress` = true
+  }
+  jobs {
+    ["cargo-deny"] {
+      name = "Cargo Deny"
+      steps {
+        new Config.Step { uses = "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" }
+        new Config.Step {
+          name = "Install Rust toolchain"
+          run = "rustup toolchain install \(toolchain) --profile minimal\nrustup default \(toolchain)\n"
+        }
+        new Config.Step {
+          name = "Check dependencies"
+          run = "bash .github/scripts/cargo-deny.sh"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,9 @@
+[package]
+name = "pklr-spike"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+pklr = "5"
+serde_json = "1"

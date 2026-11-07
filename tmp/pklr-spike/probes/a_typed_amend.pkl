@@ -1,0 +1,4 @@
+class O { t: String }
+o: O
+o { t = "x" }
+r = o.t

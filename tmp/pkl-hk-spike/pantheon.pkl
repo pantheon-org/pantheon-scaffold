@@ -1,0 +1,38 @@
+amends "Config.pkl"
+
+import "Builtins.pkl"
+
+local toolchain = "1.96.1"
+
+workflows {
+  // A builtin, reused with the one value this repo supplies.
+  ["cargo-deny"] = Builtins.cargoDeny(toolchain)
+
+  // A custom workflow, defined inline.
+  ["docs-check"] = new Workflow {
+    name = "Docs Check"
+    on {
+      pull_request {
+        branches = new Listing { "main" }
+      }
+    }
+    permissions {
+      ["contents"] = "read"
+    }
+    jobs {
+      ["rumdl"] {
+        steps {
+          new Step { uses = "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" }
+          new Step { name = "Lint markdown"; run = "rumdl check --config .rumdl.toml ." }
+        }
+      }
+    }
+  }
+}
+
+extraFiles {
+  ["README.md"] = new GenFile {
+    content = "# Seeded once\n\nEdit freely; the generator never touches this again.\n"
+    seed = true
+  }
+}

@@ -1,0 +1,9 @@
+// Can a null value survive as a Mapping entry (rather than an object property)?
+output {
+  renderer = new YamlRenderer {}
+}
+
+on = new Mapping<String, Any?> {
+  ["workflow_dispatch"] = null
+  ["push"] = new Mapping<String, Any?> { ["branches"] = new Listing { "main" } }
+}

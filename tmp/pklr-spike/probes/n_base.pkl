@@ -1,0 +1,5 @@
+open module N
+class O { t: String; a: Boolean }
+o: O
+local function f(p: String): String = p + o.t
+g: Mapping<String, String> = new { ["k"] = f("x") }

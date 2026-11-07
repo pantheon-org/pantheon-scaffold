@@ -1,14 +1,17 @@
 import { afterEach, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { packageVersionOf } from "../src/preflight";
+import { pklProjectVersion } from "../src/release";
 import { evalContractJson } from "../src/pkl";
 import { cleanupRepos, tempRepo } from "./helpers";
 
 afterEach(cleanupRepos);
 
 const root = join(import.meta.dir, "../..");
-const URI = "package://github.com/pantheon-org/pantheon-scaffold/releases/download/v0.0.0/pantheon-scaffold@0.0.0#/Config.pkl";
+// The version comes from pkl/PklProject, so this holds for every release.
+const VERSION = pklProjectVersion(readFileSync(join(root, "pkl/PklProject"), "utf8"));
+const URI = `package://github.com/pantheon-org/pantheon-scaffold/releases/download/v${VERSION}/pantheon-scaffold@${VERSION}#/Config.pkl`;
 
 /** Builds the real package, serves it locally in place of GitHub (as spike S.1 did) and renders a consumer file through it. */
 async function renderThroughPackage(consumerBody: string) {
@@ -36,7 +39,7 @@ async function renderThroughPackage(consumerBody: string) {
 test("a package loaded from a package URI reports that URI, and the runner reads its version from it", async () => {
   const json = await renderThroughPackage(`options { toolchain = "1.96.1" }`);
   expect(json.packageUri).toBe(URI);
-  expect(packageVersionOf(json.packageUri)).toBe("0.0.0");
+  expect(packageVersionOf(json.packageUri)).toBe(VERSION);
   expect(json.requires).toEqual({ runner: "0.0.0" });
 });
 

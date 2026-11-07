@@ -2,7 +2,7 @@
 
 `pantheon-scaffold upgrade <version> [--root <dir>] [--config <file>] [--dry-run] [--force] [--no-render]`
 
-Added in phase 2b, wave B2. The release it reads from does not exist yet: it was built and tested against a faked release (a local server, plus fake `mise` and `gh` programs). The real download and the real attestation check are exercised for the first time with the release pipeline (wave D).
+Added in phase 2b, wave B2. It was built and tested against a faked release (a local server, plus fake `mise` and `gh` programs). The release pipeline's `verify-release` job runs `upgrade --dry-run` against the real release, which is the first time the real download and the real attestation check are used. See [release-process.md](release-process.md).
 
 ## What it does, in order
 

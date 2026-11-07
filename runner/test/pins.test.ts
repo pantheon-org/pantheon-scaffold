@@ -77,3 +77,39 @@ test("a version or checksum that is not valid is refused before anything is writ
   expect(() => writePins(root, "pantheon.pkl", { version: "latest", checksum: h("c") })).toThrow("not a version");
   expect(() => writePins(root, "pantheon.pkl", { version: "0.2.0", checksum: "abc" })).toThrow("checksum");
 });
+
+// The form mise itself writes when a tool has options: a section with a version line.
+const section = (v: string, extra = "") => `[settings]\nlockfile = true\n\n[tools]\npkl = "0.32.2"\n\n[tools."${RUNNER_TOOL}"]\n${extra}version = "${v}"\n\n[env]\nX = "1"\nversion = "9.9.9"\n`;
+
+test("the section form of the runner pin is read and rewritten, and nothing else with a version line is touched", () => {
+  const root = repo();
+  put(root, "mise.toml", section("0.1.0"));
+  expect(readPins(root, "pantheon.pkl").runnerVersion).toBe("0.1.0");
+  writePins(root, "pantheon.pkl", { version: "0.2.0", checksum: h("c") });
+  expect(get(root, "mise.toml")).toBe(section("0.2.0"));
+});
+test("a section with other options before the version is handled", () => {
+  const root = repo();
+  put(root, "mise.toml", section("0.1.0", 'version_prefix = "v"\n'));
+  writePins(root, "pantheon.pkl", { version: "0.2.0", checksum: h("c") });
+  expect(get(root, "mise.toml")).toBe(section("0.2.0", 'version_prefix = "v"\n'));
+});
+test("the pin in a section that is the last thing in the file is handled", () => {
+  const root = repo();
+  put(root, "mise.toml", `[tools."${RUNNER_TOOL}"]\nversion = "0.1.0"`);
+  writePins(root, "pantheon.pkl", { version: "0.2.0", checksum: h("c") });
+  expect(get(root, "mise.toml")).toBe(`[tools."${RUNNER_TOOL}"]\nversion = "0.2.0"`);
+});
+test("a section with no version line is an error, and so is a section plus a one-line entry", () => {
+  const none = repo();
+  put(none, "mise.toml", `[tools."${RUNNER_TOOL}"]\nversion_prefix = "v"\n\n[env]\nversion = "9.9.9"\n`);
+  expect(() => readPins(none, "pantheon.pkl")).toThrow(`no ${RUNNER_TOOL}`);
+  const two = repo();
+  put(two, "mise.toml", `${section("0.1.0")}\n[tools]\n"${RUNNER_TOOL}" = "0.1.0"\n`);
+  expect(() => readPins(two, "pantheon.pkl")).toThrow("more than one");
+});
+test("a section for a different tool is not mistaken for the runner", () => {
+  const root = repo();
+  put(root, "mise.toml", `[tools."github:other/tool"]\nversion = "1.0.0"\n`);
+  expect(() => readPins(root, "pantheon.pkl")).toThrow(`no ${RUNNER_TOOL}`);
+});

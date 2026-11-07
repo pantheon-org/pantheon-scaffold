@@ -9,7 +9,8 @@ export type Preflight = { packageVersion?: string; errors: string[]; refusals: s
 /** The version the package was loaded as, read from its package:// URI. A local package has none. */
 export function packageVersionOf(uri: string | undefined): string | undefined {
   if (!uri || !uri.startsWith("package://")) return undefined;
-  const version = /@([^@#/]+)#/.exec(uri)?.[1];
+  // A consumer pins the package with its checksum, so the URI can read ...@0.1.0::sha256:<64 hex>#/Config.pkl.
+  const version = /@([^@#/:]+)(?:::sha256:[0-9a-f]{64})?#/.exec(uri)?.[1];
   if (!version || !parseSemver(version)) throw new Error(`${uri}: the package URI has no readable version`);
   return version;
 }

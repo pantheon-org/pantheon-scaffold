@@ -1,1 +1,8 @@
-{ "versions": [] }
+{
+  "versions": [
+    {
+      "version": "0.1.0",
+      "reason": "the runner cannot read the version of a package pinned with its checksum, so it fails on every real consumer. Use 0.1.1 or later"
+    }
+  ]
+}

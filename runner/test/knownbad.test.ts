@@ -1,4 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { CACHE_FILE, KNOWN_BAD_URL, loadKnownBad, parseKnownBad } from "../src/knownbad";
 import { cleanupRepos, get, has, put, tempRepo } from "./helpers";
@@ -89,4 +90,22 @@ test("the default fetch gives up after the timeout", async () => {
 test("the default URL is the list on the package repo's main branch", () => {
   expect(KNOWN_BAD_URL).toBe("https://raw.githubusercontent.com/pantheon-org/pantheon-scaffold/main/known-bad.json");
   expect(join(CACHE_FILE)).toBe(".pkl-gen/cache/known-bad.json");
+});
+
+// known-bad.json on main is what the runner fetches, and the bundled snapshot is its last fallback.
+const rootList = readFileSync(join(import.meta.dir, "../../known-bad.json"), "utf8");
+const bundledText = readFileSync(join(import.meta.dir, "../src/known-bad.bundled.json"), "utf8");
+
+test("known-bad.json on main is a valid list and names v0.1.0, which cannot read a checksum-pinned package URI", () => {
+  const parsed = parseKnownBad(rootList);
+  expect(parsed).not.toBeNull();
+  const entry = parsed!.versions.find((v) => v.version === "0.1.0");
+  expect(entry?.reason).toContain("checksum");
+});
+
+test("the bundled snapshot is a valid list, and everything in it is also in known-bad.json", () => {
+  const bundledList = parseKnownBad(bundledText);
+  const published = parseKnownBad(rootList);
+  expect(bundledList).not.toBeNull();
+  for (const v of bundledList!.versions) expect(published!.versions).toContainEqual(v);
 });

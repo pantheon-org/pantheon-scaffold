@@ -14,7 +14,7 @@ const VERSION = pklProjectVersion(readFileSync(join(root, "pkl/PklProject"), "ut
 const URI = `package://github.com/pantheon-org/pantheon-scaffold/releases/download/v${VERSION}/pantheon-scaffold@${VERSION}#/Config.pkl`;
 
 /** Builds the real package, serves it locally in place of GitHub (as spike S.1 did) and renders a consumer file through it. */
-async function renderThroughPackage(consumerBody: string) {
+async function renderThroughPackage(consumerBody: string, opts: { pinChecksum?: boolean } = {}) {
   const work = tempRepo();
   const out = join(work, "out");
   const build = Bun.spawnSync(["pkl", "project", "package", join(root, "pkl"), "--output-path", out], { stdout: "pipe", stderr: "pipe" });
@@ -22,7 +22,10 @@ async function renderThroughPackage(consumerBody: string) {
   const server = Bun.serve({ port: 0, fetch: (req) => new Response(Bun.file(join(out, decodeURIComponent(basename(new URL(req.url).pathname))))) });
   try {
     mkdirSync(join(work, "consumer"));
-    writeFileSync(join(work, "consumer/pantheon.pkl"), `amends "${URI}"\n${consumerBody}\n`);
+    // A real consumer pins the package with the checksum of its metadata file, which lands in the URI before the #.
+    const metaSha = new Bun.CryptoHasher("sha256").update(readFileSync(join(out, `pantheon-scaffold@${VERSION}`))).digest("hex");
+    const uri = opts.pinChecksum ? URI.replace("#/Config.pkl", `::sha256:${metaSha}#/Config.pkl`) : URI;
+    writeFileSync(join(work, "consumer/pantheon.pkl"), `amends "${uri}"\n${consumerBody}\n`);
     // Async on purpose: a blocking spawn would stop this process from answering pkl's download request.
     const p = Bun.spawn(
       ["pkl", "eval", "-f", "json", "--cache-dir", join(work, "cache"), "--http-rewrite", `https://github.com/=http://localhost:${server.port}/`, "--allowed-resources", "package:,https:,http:", join(work, "consumer/pantheon.pkl")],
@@ -54,4 +57,10 @@ test("a file marked removeOnDetach reaches the contract, and an unmarked one doe
   const byPath = Object.fromEntries(json.files.map((f: { path: string }) => [f.path, f]));
   expect(byPath["up.txt"].removeOnDetach).toBe(true);
   expect("removeOnDetach" in byPath["b.txt"]).toBe(false);
+});
+
+test("a consumer that pins the package with its checksum still gets a packageUri the runner can read the version from", async () => {
+  const json = await renderThroughPackage(`options { toolchain = "1.96.1" }`, { pinChecksum: true });
+  expect(json.packageUri).toMatch(/::sha256:[0-9a-f]{64}#\/Config\.pkl$/);
+  expect(packageVersionOf(json.packageUri)).toBe(VERSION);
 });

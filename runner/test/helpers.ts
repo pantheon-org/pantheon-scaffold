@@ -27,3 +27,25 @@ export const owned = (path: string, content: string, mode: "0644" | "0755" = "06
 export const seed = (path: string, content: string): ContractFile => ({ path, class: "seed", mode: "0644", content });
 export const external = (path: string): ContractFile => ({ path, class: "external", mode: "0644" });
 export const contractOf = (...files: ContractFile[]): Contract => ({ schemaVersion: 1, files, pins: [], escapeHatch: { uses: 0, constructs: 0 } });
+
+/** Runs git in a directory with the GIT_* variables removed, so a hook or worktree environment cannot redirect it. */
+export function git(dir: string, ...args: string[]): string {
+  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("GIT_")));
+  const r = Bun.spawnSync(["git", "-C", dir, "-c", "user.name=test", "-c", "user.email=test@example.invalid", "-c", "commit.gpgsign=false", ...args], { env, stdout: "pipe", stderr: "pipe" });
+  if (r.exitCode !== 0) throw new Error(`git ${args.join(" ")} failed: ${r.stderr.toString()}`);
+  return r.stdout.toString();
+}
+
+/** A temp directory that is a git repository with one commit of every file written so far. */
+export function gitRepo(files: Record<string, string> = { "README.md": "x\n" }): string {
+  const root = tempRepo();
+  git(root, "init", "-q", "-b", "main");
+  for (const [rel, text] of Object.entries(files)) put(root, rel, text);
+  commitAll(root, "init");
+  return root;
+}
+
+export const commitAll = (root: string, message: string): void => {
+  git(root, "add", "-A");
+  git(root, "commit", "-q", "-m", message);
+};

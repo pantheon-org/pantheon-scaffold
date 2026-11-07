@@ -3,7 +3,8 @@ import { chmodSync, readdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { apply, shortDiff } from "../src/apply";
 import { readManifest, sha256 } from "../src/manifest";
-import { cleanupRepos, contractOf, external, get, has, modeOf, owned, put, seed, tempRepo } from "./helpers";
+import { LockError } from "../src/lock";
+import { cleanupRepos, commitAll, contractOf, external, get, git, gitRepo, has, modeOf, owned, put, seed, tempRepo } from "./helpers";
 
 afterEach(cleanupRepos);
 
@@ -137,14 +138,6 @@ test("an external file is listed, never written, hashed or touched", async () =>
   expect((await readManifest(root)).files["mise.lock"]).toEqual({ class: "external" });
 });
 
-test("a file dropped from the contract is reported as an orphan and not deleted in 2a", async () => {
-  const root = tempRepo();
-  await apply(contractOf(owned("a.txt", "one\n"), owned("b.txt", "two\n")), root);
-  const r = await apply(contractOf(owned("a.txt", "one\n")), root);
-  expect(kinds(r)).toContain("orphan:b.txt");
-  expect(get(root, "b.txt")).toBe("two\n");
-});
-
 test("--dry-run plans and writes nothing", async () => {
   const root = tempRepo();
   const r = await apply(contractOf(owned("a.txt", "one\n")), root, { dryRun: true });
@@ -223,4 +216,181 @@ test("version comments are not added to files outside workflows", async () => {
   const sha = "3d3c42e5aac5ba805825da76410c181273ba90b1";
   await apply(contractOf(owned("notes.md", `  - uses: actions/checkout@${sha}\n`)), root);
   expect(get(root, "notes.md")).not.toContain("#");
+});
+
+// Orphan deletion and the delete guard (task 2.3, decision 47).
+const rendered = async (files: ReturnType<typeof owned>[]) => {
+  const root = gitRepo({ ".gitignore": ".pkl-gen/lock\n.pkl-gen/stage/\n" });
+  await apply(contractOf(...files), root);
+  commitAll(root, "render");
+  return root;
+};
+
+test("a file dropped from the contract is deleted when the tree is clean and the file is tracked", async () => {
+  const root = await rendered([owned("a.txt", "one\n"), owned("b.txt", "two\n")]);
+  const r = await apply(contractOf(owned("a.txt", "one\n")), root);
+  expect(kinds(r)).toContain("delete:b.txt");
+  expect(has(root, "b.txt")).toBe(false);
+  expect(Object.keys((await readManifest(root)).files)).toEqual(["a.txt"]);
+  expect(r.deleted).toBe(1);
+});
+
+test("--dry-run shows the deletion and removes nothing", async () => {
+  const root = await rendered([owned("a.txt", "one\n"), owned("b.txt", "two\n")]);
+  const r = await apply(contractOf(owned("a.txt", "one\n")), root, { dryRun: true });
+  expect(kinds(r)).toContain("delete:b.txt");
+  expect(has(root, "b.txt")).toBe(true);
+  expect(r.deleted).toBe(0);
+});
+
+test("a dirty tracked tree refuses the deletion and nothing else is written", async () => {
+  const root = await rendered([owned("a.txt", "one\n"), owned("b.txt", "two\n")]);
+  put(root, "other.md", "dirty\n");
+  git(root, "add", "other.md");
+  const r = await apply(contractOf(owned("a.txt", "NEW\n"), owned("c.txt", "three\n")), root);
+  expect(r.refusals.join("\n")).toContain("not clean");
+  expect(has(root, "b.txt")).toBe(true);
+  expect(has(root, "c.txt")).toBe(false);
+  expect(get(root, "a.txt")).toBe("one\n");
+});
+
+test("--dry-run reports a guard refusal too", async () => {
+  const root = await rendered([owned("a.txt", "one\n"), owned("b.txt", "two\n")]);
+  put(root, "a.txt", "edited\n");
+  const r = await apply(contractOf(owned("a.txt", "one\n")), root, { dryRun: true, force: true });
+  expect(r.refusals.join("\n")).toContain("not clean");
+});
+
+test("an untracked orphan is never deleted", async () => {
+  const root = gitRepo({ ".gitignore": ".pkl-gen/lock\n.pkl-gen/stage/\n" });
+  await apply(contractOf(owned("a.txt", "one\n"), owned("b.txt", "two\n")), root);
+  git(root, "add", "a.txt", ".gitignore");
+  git(root, "commit", "-qm", "only a");
+  const r = await apply(contractOf(owned("a.txt", "one\n")), root);
+  expect(r.refusals.join("\n")).toContain("b.txt: not tracked by git");
+  expect(has(root, "b.txt")).toBe(true);
+});
+
+test("an orphan edited by hand and committed is refused, and --force deletes it", async () => {
+  const root = await rendered([owned("a.txt", "one\n"), owned("b.txt", "two\n")]);
+  put(root, "b.txt", "mine\n");
+  commitAll(root, "hand edit");
+  const refused = await apply(contractOf(owned("a.txt", "one\n")), root);
+  expect(refused.refusals.join("\n")).toContain("b.txt: no longer rendered, but it was edited by hand");
+  expect(has(root, "b.txt")).toBe(true);
+  const forced = await apply(contractOf(owned("a.txt", "one\n")), root, { force: true });
+  expect(kinds(forced)).toContain("delete:b.txt");
+  expect(has(root, "b.txt")).toBe(false);
+});
+
+test("an orphan that is already gone is simply dropped from the manifest", async () => {
+  const root = await rendered([owned("a.txt", "one\n"), owned("b.txt", "two\n")]);
+  git(root, "rm", "-q", "b.txt");
+  git(root, "commit", "-qm", "removed by hand");
+  const r = await apply(contractOf(owned("a.txt", "one\n")), root);
+  expect(r.refusals).toEqual([]);
+  expect(kinds(r)).toContain("forget:b.txt");
+  expect(Object.keys((await readManifest(root)).files)).toEqual(["a.txt"]);
+});
+
+test("a seed or external file dropped from the contract is left alone and dropped from the manifest", async () => {
+  const root = await rendered([owned("a.txt", "one\n")]);
+  await apply(contractOf(owned("a.txt", "one\n"), seed("s.txt", "seed\n"), external("mise.lock")), root);
+  put(root, "mise.lock", "lock\n");
+  commitAll(root, "seed and lock");
+  const r = await apply(contractOf(owned("a.txt", "one\n")), root);
+  expect(kinds(r).filter((k) => k.startsWith("delete"))).toEqual([]);
+  expect(get(root, "s.txt")).toBe("seed\n");
+  expect(get(root, "mise.lock")).toBe("lock\n");
+  expect(Object.keys((await readManifest(root)).files)).toEqual(["a.txt"]);
+});
+
+test("without orphans git is not needed at all", async () => {
+  const root = tempRepo();
+  const r = await apply(contractOf(owned("a.txt", "one\n")), root);
+  expect(r.refusals).toEqual([]);
+});
+
+test("an orphan in a directory that is not a git repository is refused", async () => {
+  const root = tempRepo();
+  await apply(contractOf(owned("a.txt", "one\n"), owned("b.txt", "two\n")), root);
+  const r = await apply(contractOf(owned("a.txt", "one\n")), root);
+  expect(r.refusals.join("\n")).toContain("not a git repository");
+  expect(has(root, "b.txt")).toBe(true);
+});
+
+test("a file outside the repo cannot be deleted through a path in the manifest", async () => {
+  const root = await rendered([owned("a.txt", "one\n")]);
+  const m = JSON.parse(get(root, ".pkl-gen/manifest.json"));
+  m.files["../evil.txt"] = { class: "owned", hash: sha256("x") };
+  put(root, ".pkl-gen/manifest.json", JSON.stringify(m));
+  commitAll(root, "tampered manifest");
+  await expect(apply(contractOf(owned("a.txt", "one\n")), root)).rejects.toThrow();
+});
+
+// The executable bit (task 2.3).
+test("the exec bit is set when the manifest's contract says so and the content is unchanged", async () => {
+  const root = tempRepo();
+  await apply(contractOf(owned("run.sh", "#!/bin/sh\n")), root);
+  const r = await apply(contractOf(owned("run.sh", "#!/bin/sh\n", "0755")), root);
+  expect(kinds(r)).toEqual(["chmod:run.sh"]);
+  expect(modeOf(root, "run.sh")).toBe("0755");
+  expect(kinds(await apply(contractOf(owned("run.sh", "#!/bin/sh\n", "0755")), root))).toEqual(["unchanged:run.sh"]);
+});
+
+test("the exec bit is cleared when the contract drops it", async () => {
+  const root = tempRepo();
+  await apply(contractOf(owned("run.sh", "#!/bin/sh\n", "0755")), root);
+  const r = await apply(contractOf(owned("run.sh", "#!/bin/sh\n")), root);
+  expect(kinds(r)).toEqual(["chmod:run.sh"]);
+  expect(modeOf(root, "run.sh")).toBe("0644");
+});
+
+test("an exec bit removed by hand is restored on the next render", async () => {
+  const root = tempRepo();
+  await apply(contractOf(owned("run.sh", "#!/bin/sh\n", "0755")), root);
+  chmodSync(join(root, "run.sh"), 0o644);
+  await apply(contractOf(owned("run.sh", "#!/bin/sh\n", "0755")), root);
+  expect(modeOf(root, "run.sh")).toBe("0755");
+});
+
+test("--dry-run reports the mode change and does not make it", async () => {
+  const root = tempRepo();
+  await apply(contractOf(owned("run.sh", "#!/bin/sh\n")), root);
+  const r = await apply(contractOf(owned("run.sh", "#!/bin/sh\n", "0755")), root, { dryRun: true });
+  expect(kinds(r)).toEqual(["chmod:run.sh"]);
+  expect(modeOf(root, "run.sh")).toBe("0644");
+});
+
+test("a seed file keeps the mode the user gave it", async () => {
+  const root = tempRepo();
+  await apply(contractOf(seed("s.sh", "#!/bin/sh\n")), root);
+  chmodSync(join(root, "s.sh"), 0o755);
+  const r = await apply(contractOf(seed("s.sh", "#!/bin/sh\n")), root);
+  expect(kinds(r)).toEqual(["seed-kept:s.sh"]);
+  expect(modeOf(root, "s.sh")).toBe("0755");
+});
+
+// Locking (task 2.3).
+test("a render refuses to run while another run holds the lock, and writes nothing", async () => {
+  const root = tempRepo();
+  put(root, ".pkl-gen/lock", JSON.stringify({ pid: process.pid, started: new Date().toISOString() }));
+  await expect(apply(contractOf(owned("a.txt", "one\n")), root)).rejects.toThrow(LockError);
+  expect(has(root, "a.txt")).toBe(false);
+});
+
+test("the lock is released after a run and after a refusal", async () => {
+  const root = tempRepo();
+  await apply(contractOf(owned("a.txt", "one\n")), root);
+  expect(has(root, ".pkl-gen/lock")).toBe(false);
+  put(root, "a.txt", "hand\n");
+  await apply(contractOf(owned("a.txt", "two\n")), root);
+  expect(has(root, ".pkl-gen/lock")).toBe(false);
+});
+
+test("--dry-run does not take the lock", async () => {
+  const root = tempRepo();
+  put(root, ".pkl-gen/lock", JSON.stringify({ pid: process.pid, started: new Date().toISOString() }));
+  const r = await apply(contractOf(owned("a.txt", "one\n")), root, { dryRun: true });
+  expect(kinds(r)).toEqual(["create:a.txt"]);
 });

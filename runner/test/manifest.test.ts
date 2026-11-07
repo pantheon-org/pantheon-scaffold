@@ -35,3 +35,20 @@ test("a manifest with merge conflict markers points at --repair", async () => {
 });
 test("sha256 matches a known value", () => expect(sha256("abc")).toBe("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"));
 test("the ManifestError type is exported", () => expect(new ManifestError("x")).toBeInstanceOf(Error));
+
+test("the package version and the detach flag are kept, and the package version is written right after the manifest version", () => {
+  const m = emptyManifest();
+  m.packageVersion = "0.2.0";
+  m.files["w.yml"] = { class: "owned", hash: "h", removeOnDetach: true };
+  const text = serialiseManifest(m);
+  expect(text).toBe(`{\n  "manifestVersion": 1,\n  "packageVersion": "0.2.0",\n  "files": {\n    "w.yml": {\n      "class": "owned",\n      "hash": "h",\n      "removeOnDetach": true\n    }\n  }\n}\n`);
+  expect(JSON.parse(text)).toEqual(m);
+});
+test("a manifest without a package version serialises exactly as before", () => {
+  expect(serialiseManifest(emptyManifest())).toBe(`{\n  "manifestVersion": 1,\n  "files": {}\n}\n`);
+});
+test("a package version that is not a string is refused", async () => {
+  const root = tempRepo();
+  put(root, ".pkl-gen/manifest.json", '{"manifestVersion":1,"packageVersion":3,"files":{}}');
+  await expect(readManifest(root)).rejects.toThrow(/packageVersion/);
+});

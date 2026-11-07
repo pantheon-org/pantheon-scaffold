@@ -30,5 +30,11 @@ jobs:
           cache: false
       - name: Install the pinned tools from the lock file
         run: mise install --locked
+      - name: Keep the package cache so an outage does not block the check
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .pkl-gen/cache
+          key: pantheon-scaffold-${{ hashFiles('pantheon.pkl') }}
+          restore-keys: pantheon-scaffold-
       - name: Check that the scaffold files match the render
         run: mise x -- pantheon-scaffold check pantheon.pkl --attempts 3

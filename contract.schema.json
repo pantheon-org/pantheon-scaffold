@@ -18,7 +18,8 @@
           "path": { "type": "string", "minLength": 1 },
           "class": { "enum": ["owned", "seed", "external"] },
           "mode": { "enum": ["0644", "0755"] },
-          "content": { "type": "string" }
+          "content": { "type": "string" },
+          "removeOnDetach": { "type": "boolean" }
         }
       }
     },
@@ -32,6 +33,25 @@
           "action": { "type": "string", "minLength": 1 },
           "sha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
           "version": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "packageUri": { "type": "string", "minLength": 1 },
+    "requires": {
+      "type": "object",
+      "required": ["runner"],
+      "additionalProperties": false,
+      "properties": { "runner": { "type": "string", "minLength": 1 } }
+    },
+    "securityBuiltins": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "enabled"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "enabled": { "type": "boolean" }
         }
       }
     },

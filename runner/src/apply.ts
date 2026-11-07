@@ -7,7 +7,7 @@ import { acquireLock, type LockOptions } from "./lock";
 import { PathError, findCaseCollisions, resolveInside } from "./paths";
 import { appendVersions } from "./versions";
 
-export type Options = { force?: boolean; dryRun?: boolean; repair?: boolean; lock?: LockOptions };
+export type Options = { force?: boolean; dryRun?: boolean; repair?: boolean; lock?: LockOptions; packageVersion?: string };
 
 export type Action =
   | { kind: "create"; path: string }
@@ -66,6 +66,8 @@ export function plan(contract: Contract, root: string, manifest: Manifest, opts:
   const writes: ContractFile[] = [];
   const chmods: ContractFile[] = [];
   const next: Manifest = emptyManifest();
+  const packageVersion = opts.packageVersion ?? manifest.packageVersion;
+  if (packageVersion !== undefined) next.packageVersion = packageVersion;
 
   /** The content is already right: only the executable bit may still differ (set and cleared as the contract says). */
   const settled = (f: ContractFile, abs: string, kind: "unchanged" | "adopt"): void => {
@@ -105,7 +107,7 @@ export function plan(contract: Contract, root: string, manifest: Manifest, opts:
     }
 
     // owned
-    next.files[f.path] = { class: "owned", hash };
+    next.files[f.path] = { class: "owned", hash, ...(f.removeOnDetach ? { removeOnDetach: true as const } : {}) };
     if (prev?.class === "seed" && current !== null && prev.hash !== undefined && sha256(current) !== prev.hash && !opts.force) {
       refusals.push(`${f.path}: was seeded and has been edited, turning it into an owned file would overwrite your edits (use --force)`);
       continue;
@@ -190,12 +192,13 @@ async function run(contract: Contract, root: string, opts: Options): Promise<Rep
   if (opts.repair) {
     // Rebuild the manifest from a clean render. Files that differ from the render are left out, never adopted.
     const next = emptyManifest();
+    if (opts.packageVersion !== undefined) next.packageVersion = opts.packageVersion;
     const actions: Action[] = [];
     const refusals: string[] = [];
     for (const f of contract.files) {
       const abs = resolveInside(root, f.path);
       if (f.class === "external") next.files[f.path] = { class: "external" };
-      else if (read(abs) === finalContent(f, contract.pins)) next.files[f.path] = { class: f.class, hash: sha256(finalContent(f, contract.pins)) };
+      else if (read(abs) === finalContent(f, contract.pins)) next.files[f.path] = { class: f.class, hash: sha256(finalContent(f, contract.pins)), ...(f.removeOnDetach ? { removeOnDetach: true as const } : {}) };
       else refusals.push(`${f.path}: ${read(abs) === null ? "missing" : "differs from the render"}, left out of the repaired manifest`);
     }
     if (!opts.dryRun) {

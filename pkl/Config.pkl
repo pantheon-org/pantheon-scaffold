@@ -4,10 +4,14 @@
 @ModuleInfo { minPklVersion = "0.32.0" }
 module pantheon.scaffold.Config
 
+import "pkl:reflect"
 import "Pins.pkl"
 
 /// Version of the JSON document. The runner rejects any other value.
 const schemaVersion: Int = 1
+
+/// The oldest runner that can render this package. Raise it by hand in the release that needs a newer runner.
+const requiresRunner: String = "0.0.0"
 
 class Options {
   /// The Rust toolchain, one source for every file that names it.
@@ -62,6 +66,8 @@ class GenFile {
   /// Absent for an external file.
   content: String?
   executable: Boolean = false
+  /// The runner deletes this owned file on `detach`, for a file that would fail on every run once detached (the consumer upgrade workflow).
+  removeOnDetach: Boolean = false
 }
 
 options: Options
@@ -133,6 +139,9 @@ local escapeUses: Int =
   workflows.toMap().values.filter((w) -> w.raw != null).length +
   allJobs.filter((j) -> j.raw != null).length +
   allSteps.filter((s) -> s.raw != null).length
+/// Where this module was loaded from. For a released package that is its package:// URI, which carries the version.
+local definingUri: String = reflect.Class(Options).enclosingDeclaration.uri
+
 local constructCount: Int = workflows.length + allJobs.length + allSteps.length
 
 local generated: Map<String, GenFile> =
@@ -149,6 +158,7 @@ contract: Dynamic = new Dynamic {
         `class` = f.`class`
         mode = if (f.executable) "0755" else "0644"
         when (f.`class` != "external") { content = f.content }
+        when (f.removeOnDetach) { removeOnDetach = true }
       }
   ).toListing()
   pins = usedPins.sortWith((a, b) -> a.action < b.action).map((p) -> new Dynamic {
@@ -160,6 +170,8 @@ contract: Dynamic = new Dynamic {
     uses = escapeUses
     constructs = constructCount
   }
+  when (definingUri.startsWith("package://")) { packageUri = definingUri }
+  requires = new Dynamic { runner = requiresRunner }
 }
 
 output {

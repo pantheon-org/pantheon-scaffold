@@ -42,4 +42,4 @@ Add `.pkl-gen/lock` and `.pkl-gen/stage/` to the consumer's `.gitignore` if the 
 
 ## Not in this wave
 
-The version-mismatch and downgrade rules need a package version in the contract, so they ship with `upgrade` in wave B. The manifest migration test waits for a manifest v2.
+The manifest migration test waits for a manifest v2. The version-mismatch and downgrade rules are in [runner-lifecycle.md](runner-lifecycle.md).

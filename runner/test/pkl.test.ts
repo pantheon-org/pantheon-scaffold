@@ -62,3 +62,26 @@ test("local package folders are allowed as anchored file: patterns only", () => 
   expect(allowedResources({ allowFilesUnder: ["/a/b.c"] })).toBe("package:,projectpackage:,https:,^file:///a/b\\.c/");
   expect(allowedResources()).toBe("package:,projectpackage:,https:");
 });
+
+/** A fake pkl that writes its arguments, one per line, to a file and prints a valid contract. */
+function argsPkl() {
+  const dir = tempRepo();
+  mkdirSync(join(dir, "bin"));
+  const argsFile = join(dir, "args");
+  writeFileSync(join(dir, "bin/pkl"), `#!/bin/sh\nprintf '%s\\n' "$@" > "${argsFile}"\necho '${contractJson}'\n`);
+  chmodSync(join(dir, "bin/pkl"), 0o755);
+  return { env: { PATH: `${join(dir, "bin")}:${process.env.PATH}` }, args: () => readFileSync(argsFile, "utf8").trim().split("\n") };
+}
+
+test("a cache directory is passed to pkl as --cache-dir, so a warm cache serves an offline run", async () => {
+  const f = argsPkl();
+  await evalContractJson("x.pkl", ".", { env: f.env, cacheDir: "/work/.pkl-gen/cache" });
+  const args = f.args();
+  expect(args[args.indexOf("--cache-dir") + 1]).toBe("/work/.pkl-gen/cache");
+});
+
+test("without a cache directory pkl keeps its own default", async () => {
+  const f = argsPkl();
+  await evalContractJson("x.pkl", ".", { env: f.env });
+  expect(f.args()).not.toContain("--cache-dir");
+});

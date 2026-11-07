@@ -47,3 +47,23 @@ test("a pantheon.pkl cannot read arbitrary files (restricted resources)", async 
 test("allowing files under the package folder does not open the rest of the disk", async () => {
   await expect(evalContractJson(fixture("read-file"), root, { allowFilesUnder: [join(root, "pkl")] })).rejects.toThrow(/Refusing to read resource/);
 });
+
+test("the optional lifecycle fields are accepted", () => {
+  const c: any = base();
+  c.packageUri = "package://github.com/pantheon-org/pantheon-scaffold/releases/download/v0.1.0/pantheon-scaffold@0.1.0#/Config.pkl";
+  c.requires = { runner: "0.1.0" };
+  c.securityBuiltins = [{ name: "cargo-deny", enabled: true }];
+  c.files[0].removeOnDetach = true;
+  expect(parseContract(c, schema).requires).toEqual({ runner: "0.1.0" });
+});
+test("a lifecycle field with the wrong shape is rejected", () => {
+  rejects((c) => (c.packageUri = 3), /packageUri/);
+  rejects((c) => (c.requires = {}), /missing runner/);
+  rejects((c) => (c.requires = { runner: "0.1.0", pkl: "0.32.0" }), /unexpected pkl/);
+  rejects((c) => (c.securityBuiltins = [{ name: "x" }]), /missing enabled/);
+  rejects((c) => (c.securityBuiltins = [{ name: "x", enabled: "yes" }]), /must be boolean/);
+  rejects((c) => (c.files[0].removeOnDetach = "yes"), /must be boolean/);
+});
+test("removeOnDetach is only allowed on owned files", () => {
+  rejects((c) => ((c.files[0].class = "seed"), (c.files[0].removeOnDetach = true)), /removeOnDetach.*owned/);
+});

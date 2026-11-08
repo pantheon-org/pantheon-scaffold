@@ -25,7 +25,9 @@ async function renderThroughPackage(consumerBody: string, opts: { pinChecksum?: 
     // A real consumer pins the package with the checksum of its metadata file, which lands in the URI before the #.
     const metaSha = new Bun.CryptoHasher("sha256").update(readFileSync(join(out, `pantheon-scaffold@${VERSION}`))).digest("hex");
     const uri = opts.pinChecksum ? URI.replace("#/Config.pkl", `::sha256:${metaSha}#/Config.pkl`) : URI;
-    writeFileSync(join(work, "consumer/pantheon.pkl"), `amends "${uri}"\n${consumerBody}\n`);
+    // @@BUILTINS@@ in a consumer body is the package's own Builtins module, loaded from the same package URI.
+    const body = consumerBody.replaceAll("@@BUILTINS@@", uri.replace("#/Config.pkl", "#/Builtins.pkl"));
+    writeFileSync(join(work, "consumer/pantheon.pkl"), `amends "${uri}"\n${body}\n`);
     // Async on purpose: a blocking spawn would stop this process from answering pkl's download request.
     const p = Bun.spawn(
       ["pkl", "eval", "-f", "json", "--cache-dir", join(work, "cache"), "--http-rewrite", `https://github.com/=http://localhost:${server.port}/`, "--allowed-resources", "package:,https:,http:", join(work, "consumer/pantheon.pkl")],
@@ -64,3 +66,12 @@ test("a consumer that pins the package with its checksum still gets a packageUri
   expect(json.packageUri).toMatch(/::sha256:[0-9a-f]{64}#\/Config\.pkl$/);
   expect(packageVersionOf(json.packageUri)).toBe(VERSION);
 });
+
+// The runner pin in the rendered mise.toml is the version of the package that rendered it, with no runnerVersion option set.
+for (const pinChecksum of [false, true]) {
+  test(`the mise builtin pins the runner at the package version when loaded from a package URI${pinChecksum ? " that carries the pinned checksum" : ""}`, async () => {
+    const json = await renderThroughPackage(`import "@@BUILTINS@@"\noptions { toolchain = "1.96.1" }\nfiles { ...Builtins.miseFiles(options) }`, { pinChecksum });
+    const mise = json.files.find((f: { path: string }) => f.path === "mise.toml").content as string;
+    expect(mise).toContain(`"github:pantheon-org/pantheon-scaffold" = "${VERSION}"`);
+  });
+}

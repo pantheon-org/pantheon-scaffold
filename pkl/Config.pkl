@@ -25,6 +25,17 @@ class Options {
   /// The client id of the GitHub App the pr-auto-rebase and release-automerge workflows mint their token from (a public identifier, not a
   /// secret). The default is the org's pantheon-ai-bot App, as the four repositories use it today.
   appClientId: String = "Iv23ligzn16vkDCWfHgc"
+  /// Whether the repository builds a binary released with cargo-dist (the `binary` toggle, phase 5). Without one there is no generated
+  /// release.yml, so release-please does not tag the crate itself and zizmor has no config file to read.
+  binary: Boolean = true
+  /// Whether the repository carries a skill that agnix lints (the `skills` toggle, phase 5). Today it only changes comment wording.
+  skills: Boolean = true
+  /// Whether the repository has its own composite action, action.yml, which zizmor then scans too (the `compositeAction` toggle).
+  compositeAction: Boolean = false
+  /// The crate whose Cargo.toml release-please bumps. Only the header comment of release-please.yml names it.
+  crateName: String?
+  /// Git dependencies pinned by tag that Dependabot cannot resolve, so it must ignore them.
+  gitDependencyIgnore: Listing<String> = new {}
 }
 
 /// A workflow step. Typed keys cover what the workflows use. `raw` is the escape hatch (decision 33):

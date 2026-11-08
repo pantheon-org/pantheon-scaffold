@@ -1,0 +1,23 @@
+amends "../../../../pkl/Config.pkl"
+
+import "../../../../pkl/Builtins.pkl"
+
+// A repository like the library repository (pantheon-agentic-harness-dev-kit): no binary, no skill, all features.
+options {
+  toolchain = "1.96.1"
+  binary = false
+  skills = false
+  features = "all"
+}
+
+workflows {
+  ["release-please"] = Builtins.releasePlease(options)
+  ["zizmor"] = Builtins.zizmor(options)
+  ["agnix"] = Builtins.agnix(options)
+  ["aislop"] = Builtins.aislop()
+  ["rust-ci"] = Builtins.rustCi(options)
+}
+
+files {
+  ...Builtins.analysisFiles(options)
+}

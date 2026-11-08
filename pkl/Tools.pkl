@@ -9,6 +9,13 @@ const zizmor: String = "1.32.0"
 const rumdl: String = "0.2.77"
 const agnix: String = "0.56.6"
 
+/// agnix is downloaded by the agnix workflow from its release URL and checked against this SHA-256, so the digest belongs to the version.
+/// The digest was taken from a tarball whose build attestation verified against agnix's release workflow.
+const agnixSha256: String = "3228e88286c44da93bd591cc6358549c4a3d685b44c9d64625955d668528a155"
+
+/// aislop is run by the aislop workflow as an inline npx version, which Dependabot does not read, so it is bumped here, by hand.
+const aislop: String = "0.17.0"
+
 /// The version of hk's own pkl config package, which hk.pkl amends and the shared steps module imports for its types.
 const hkConfigVersion: String = "1.49.0"
 

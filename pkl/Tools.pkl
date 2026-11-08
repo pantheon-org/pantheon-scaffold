@@ -1,0 +1,17 @@
+/// Versions of the tools the shared mise.toml pins, in one place so that anything else that names the same tool (a workflow, in phase 4)
+/// reads the same value. Tools the four repositories keep at `latest` are not listed: they stay `latest` and mise.lock pins them
+/// (decision q14 of phase 3).
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.Tools
+
+const actionlint: String = "1.7.12"
+const zizmor: String = "1.32.0"
+const rumdl: String = "0.2.77"
+const agnix: String = "0.56.6"
+
+/// mise refuses tool releases younger than this when it resolves a version.
+const minimumReleaseAge: String = "7d"
+
+/// The platforms the runner is built for. mise locks only these: for any other platform it picks whatever release asset it can, and for
+/// this package that is the package zip (found on the published v0.1.1).
+const lockfilePlatforms: List<String> = List("linux-x64", "linux-arm64", "macos-arm64")

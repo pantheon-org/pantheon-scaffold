@@ -16,6 +16,9 @@ const requiresRunner: String = "0.0.0"
 class Options {
   /// The Rust toolchain, one source for every file that names it.
   toolchain: String
+  /// The runner version pinned in mise.toml. Left unset it is read from the version of the package that rendered the file, because the
+  /// runner and the package are released together. A package loaded from a folder has no version, so set this to use the mise builtin there.
+  runnerVersion: String?
 }
 
 /// A workflow step. Typed keys cover what the workflows use. `raw` is the escape hatch (decision 33):

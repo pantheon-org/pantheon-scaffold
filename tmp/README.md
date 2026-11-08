@@ -23,6 +23,7 @@ Needs bun, pkl, gh (logged in, read-only calls), and a clone of `pantheon-org/pa
 | `phase-2b-wave-d` | Mutation check of the release logic and the release workflow properties | `bun tmp/phase-2b-wave-d/mutate.ts` |
 | `phase-2b-lock-platforms` | Mutation check of the lock platform guard | `bun tmp/phase-2b-lock-platforms/mutate.ts` |
 | `phase-3-wave-a` | Mutation check of the verbatim tooling files and the committed modes | `bun tmp/phase-3-wave-a/mutate.ts` |
+| `phase-3-wave-b` | Mutation check of the rendered mise files | `bun tmp/phase-3-wave-b/mutate.ts` |
 | `apply-fourth-review`, `edit-roles` | One-off plan editing helpers, kept for the record | not meant to be re-run |
 
 Tests that read the current upstream (`p6-*`, `pkl-s3-spike`, `pkl-yaml-trial`'s real workflows) can change result when upstream changes. The two original tests are pinned.

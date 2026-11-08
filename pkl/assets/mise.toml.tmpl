@@ -1,0 +1,62 @@
+[tools]
+# Same toolchain as rust-toolchain.toml; .github/scripts/check-toolchain-version.sh
+# fails CI if they differ.
+rust = { version = "@@TOOLCHAIN@@", components = "rustfmt,clippy" }
+# Workflow linter (expressions, `needs:`, shell in `run:` blocks). Pinned exactly,
+# like zizmor, so a new release cannot fail a commit that did not touch a rule.
+actionlint = "@@ACTIONLINT@@"
+# Workflow security linter. Pinned in the scaffold package (Tools.pkl).
+zizmor = "@@ZIZMOR@@"
+hk = "latest"
+pkl = "latest"
+yq = "latest"
+jq = "latest"
+shellcheck = "latest"
+# rumdl is pre-1.0, so a minor bump can add rules and change what the lint gate
+# reports. Pinned exactly (unlike the other linters), bumped on purpose.
+rumdl = "@@RUMDL@@"
+# Lints skill frontmatter and agent files. Pinned in the scaffold package (Tools.pkl).
+"github:agent-sh/agnix" = "@@AGNIX@@"
+# The scaffold runner, released together with the package that rendered this file.
+"github:pantheon-org/pantheon-scaffold" = "@@RUNNER@@"
+
+[settings]
+# Refuse tool releases younger than a week when resolving versions.
+minimum_release_age = "@@MIN_RELEASE_AGE@@"
+# Record every tool in mise.lock with its checksum, and refuse a tool whose provenance
+# attestation does not verify. Limited to the platforms the runner is built for: with no
+# list mise locks every platform and names the package zip for the ones with no runner.
+lockfile = true
+locked_verify_provenance = true
+lockfile_platforms = [@@LOCKFILE_PLATFORMS@@]
+
+[env]
+# Wrap hk-invoked git hooks in `mise x` so pinned tools are on PATH without
+# shell activation.
+HK_MISE = "1"
+
+[hooks]
+# After tools are installed, wire up the git hooks (idempotent).
+postinstall = "hk install"
+# On entering the project, ensure tools are installed. On first run this
+# triggers postinstall (which installs the git hooks); afterwards it is a no-op.
+enter = "mise install -q"
+
+[tasks.setup]
+description = "Install tools and git hooks"
+run = "hk install"
+
+[tasks.lint]
+description = "Lint all markdown (git-independent)"
+run = "rumdl check ."
+
+[tasks.lint-fix]
+run = "rumdl check --fix ."
+
+[tasks.fmt]
+description = "Format Rust sources"
+run = "cargo fmt --all"
+
+[tasks.check]
+description = "Run every hk check (the same steps as the git hooks)"
+run = "hk check --all"

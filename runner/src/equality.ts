@@ -74,3 +74,44 @@ export function compareWorkflows(canonical: string, rendered: string): Compariso
   ];
   return { equal: differences.length === 0 && duplicateKeys.length === 0, differences, duplicateKeys };
 }
+
+// Comments a tool acts on. P.1 ignores comments, so a render that dropped one would pass P.1 and then fail the tool in the real repository.
+// Only zizmor's `ignore[...]` is a YAML comment that matters in these workflows. A directive inside a `run:` script is part of the script,
+// which P.1 already compares byte for byte, so block scalar contents are skipped here.
+const DIRECTIVE = /#\s*zizmor:\s*ignore\[[^\]]*\]/;
+
+/** The lines that carry a directive comment, trimmed and with runs of whitespace collapsed. */
+export function directiveComments(text: string): string[] {
+  const out: string[] = [];
+  let blockKeyColumn = -1;
+  for (const raw of text.split("\n")) {
+    const indent = raw.length - raw.trimStart().length;
+    if (blockKeyColumn >= 0) {
+      if (raw.trim() === "" || indent > blockKeyColumn) continue;
+      blockKeyColumn = -1;
+    }
+    const block = raw.match(BLOCK_START);
+    if (block) {
+      const dash = raw.match(/^(\s*)(?:- +)+/);
+      blockKeyColumn = dash ? dash[0].length : (block.groups?.indent.length ?? 0);
+    }
+    // The renderer quotes the key `on` (it is a YAML 1.1 boolean), so a quoted key is the same line as a bare one.
+    if (DIRECTIVE.test(raw)) out.push(raw.trim().replace(/^(['"])([^'"]+)\1:/, "$2:").replace(/\s+/g, " "));
+  }
+  return out;
+}
+
+/** Differences between the directive comments of the canonical file and of the render, as a multiset. */
+export function compareDirectives(canonical: string, rendered: string): string[] {
+  const want = directiveComments(canonical);
+  const got = directiveComments(rendered);
+  const left = [...got];
+  const out: string[] = [];
+  for (const d of want) {
+    const i = left.indexOf(d);
+    if (i === -1) out.push(`missing in the render: ${d}`);
+    else left.splice(i, 1);
+  }
+  for (const d of left) out.push(`not in the canonical file: ${d}`);
+  return out;
+}

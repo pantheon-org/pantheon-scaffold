@@ -1,0 +1,281 @@
+// Writes the wave A workflow builtins into pkl/Builtins.pkl, between the BEGIN and END markers, from the pinned pantheon-adr copies in
+// runner/test/upstream/workflows. The structure of each workflow is written here by hand. The header comment and every run: script are
+// copied from the upstream file, so a script is never retyped. Run from the repository root: bun tmp/phase-4-generators/workflows-a.ts
+// It is safe to run again: it replaces the block between the markers.
+import { readFileSync, writeFileSync } from "node:fs";
+
+const up = (name: string) => readFileSync(`runner/test/upstream/workflows/${name}.yml`, "utf8");
+const BEGIN = "// BEGIN generated: wave A workflows (tmp/phase-4-generators/workflows-a.ts)";
+const END = "// END generated: wave A workflows";
+
+/** The comment block between the name: line and the on: line, as header text. */
+function header(name: string): string {
+  const lines = up(name).split("\n");
+  const start = lines.findIndex((l) => l.startsWith("name:")) + 1;
+  const end = lines.findIndex((l, i) => i > start && /^on:/.test(l));
+  const block = lines.slice(start, end).filter((l) => l.startsWith("#")).map((l) => l.replace(/^# ?/, ""));
+  return raw(block.join("\n"), 4, false);
+}
+
+/** A multi-line raw string (backslashes stay literal) whose closing delimiter sits at `indent` spaces. */
+function raw(text: string, indent: number, newline: boolean): string {
+  const pad = " ".repeat(indent);
+  const body = text.split("\n").map((l) => (l === "" ? "" : pad + l)).join("\n");
+  return `#"""\n${body}${newline ? "\\#n" : ""}\n${pad}"""#`;
+}
+
+/** The exact text of a run: script, with its final newline. */
+function run(name: string, job: string, step: number, indent: number): string {
+  const doc = Bun.YAML.parse(up(name)) as { jobs: Record<string, { steps: { run?: string }[] }> };
+  const text = doc.jobs[job].steps[step].run!;
+  if (!text.endsWith("\n")) throw new Error(`${name} ${job} step ${step}: run does not end with a newline`);
+  return raw(text.slice(0, -1), indent, true);
+}
+
+const block = `${BEGIN}
+
+local function mintToken(opts: Config.Options): Config.Step = new {
+  name = "Mint pantheon-ai-bot token"
+  id = "app-token"
+  uses = Pins.createGithubAppToken
+  \`with\` = new Mapping {
+    ["client-id"] = opts.appClientId
+    ["private-key"] = "\${{ secrets.GH_APP_PRIVATE_KEY }}"
+    ["permission-contents"] = "write"
+    ["permission-pull-requests"] = "write"
+  }
+}
+
+local checkoutScripts: Config.Step = new {
+  name = "Checkout scripts"
+  uses = Pins.checkout
+  \`with\` = new Mapping {
+    ["persist-credentials"] = false
+    ["sparse-checkout"] = ".github/scripts"
+  }
+}
+
+/// The CI/CD security scan of the repository's workflows (Plumber). Only a Critical finding blocks a pull request.
+function plumber(): Config.Workflow = new {
+  header = ${header("plumber")}
+  name = "Plumber"
+  on = new Mapping<String, Any?> {
+    ...mainTriggers()
+    ["schedule"] = new Listing { new Mapping { ["cron"] = "41 3 * * 1" } }
+  }
+  permissions = readOnly
+  concurrency = concurrencyPerRef
+  jobs {
+    ["plumber"] {
+      name = "Plumber Score"
+      \`runs-on\` = "ubuntu-24.04"
+      \`timeout-minutes\` = 5
+      permissions = new Mapping {
+        ["contents"] = "read"
+        ["security-events"] = "write"
+      }
+      steps {
+        checkout
+        new {
+          id = "plumber"
+          uses = Pins.plumber
+          \`continue-on-error\` = true
+          \`with\` = new Mapping {
+            ["soft-fail"] = "true"
+            ["score-push"] = "false"
+            ["output"] = "results.json"
+          }
+        }
+        new {
+          name = "Gate on Critical findings"
+          run = ${run("plumber", "plumber", 2, 12)}
+        }
+      }
+    }
+  }
+}
+
+/// Creates the labels Dependabot applies, from .github/labels.txt.
+function syncLabels(): Config.Workflow = new {
+  header = ${header("sync-labels")}
+  name = "Sync Labels"
+  on = new Mapping<String, Any?> {
+    ["push"] = new Mapping {
+      ["branches"] = new Listing { "main" }
+      ["paths"] = new Listing { ".github/labels.txt"; ".github/scripts/sync-labels.sh"; ".github/workflows/sync-labels.yml" }
+    }
+    ["workflow_dispatch"] = new Mapping {}
+  }
+  permissions = new Mapping {
+    ["contents"] = "read"
+    ["issues"] = "write"
+  }
+  jobs {
+    ["sync-labels"] {
+      name = "Sync Labels"
+      \`timeout-minutes\` = 5
+      steps {
+        checkout
+        new {
+          name = "Create or update labels"
+          env = new Mapping {
+            ["GH_TOKEN"] = "\${{ github.token }}"
+            ["GH_REPO"] = "\${{ github.repository }}"
+          }
+          run = "bash .github/scripts/sync-labels.sh"
+        }
+      }
+    }
+  }
+}
+
+/// Rebases open pull request branches that are behind main, under the App token so the required checks run again on the new head.
+function prAutoRebase(opts: Config.Options): Config.Workflow = new {
+  header = ${header("pr-auto-rebase")}
+  name = "Auto-rebase PR branches"
+  on = new Mapping<String, Any?> {
+    ["push"] = new Mapping { ["branches"] = new Listing { "main" } }
+    ["workflow_dispatch"] = new Mapping {}
+  }
+  permissions = readOnly
+  concurrency = new Mapping {
+    ["group"] = "pr-auto-rebase"
+    ["cancel-in-progress"] = true
+  }
+  jobs {
+    ["rebase"] {
+      name = "Rebase behind PR branches"
+      \`timeout-minutes\` = 5
+      steps {
+        mintToken(opts)
+        checkoutScripts
+        new {
+          name = "Rebase behind, non-draft PRs"
+          env = new Mapping {
+            ["GH_TOKEN"] = "\${{ steps.app-token.outputs.token }}"
+            ["GH_REPO"] = "\${{ github.repository }}"
+          }
+          run = "bash .github/scripts/auto-rebase.sh"
+        }
+      }
+    }
+  }
+}
+
+/// Mondays: squash-merges the open release-please pull request, under the App token so the push to main starts release-please.
+function releaseAutomerge(opts: Config.Options): Config.Workflow = new {
+  header = ${header("release-automerge")}
+  name = "Release Auto-merge"
+  on = new Mapping<String, Any?> {
+    ["schedule"] = new Listing { new Mapping { ["cron"] = "37 8 * * 1" } }
+    ["workflow_dispatch"] = new Mapping {}
+  }
+  permissions = readOnly
+  concurrency = new Mapping {
+    ["group"] = "release-automerge"
+    ["cancel-in-progress"] = false
+  }
+  jobs {
+    ["automerge"] {
+      name = "Merge open release PR"
+      \`timeout-minutes\` = 5
+      steps {
+        mintToken(opts)
+        checkoutScripts
+        new {
+          name = "Merge open release-please PR"
+          env = new Mapping {
+            ["GH_TOKEN"] = "\${{ steps.app-token.outputs.token }}"
+            ["GH_REPO"] = "\${{ github.repository }}"
+          }
+          run = "bash .github/scripts/release-automerge.sh"
+        }
+      }
+    }
+  }
+}
+
+/// Fails when the commit types copied into the title gate drift from .github/commit-types.txt.
+function commitTypes(): Config.Workflow = new {
+  header = ${header("commit-types")}
+  name = "Commit Types"
+  on = new Mapping<String, Any?> {
+    ["pull_request"] = new Mapping {
+      ["types"] = new Listing { "opened"; "synchronize"; "reopened" }
+      ["branches"] = new Listing { "main" }
+      ["paths"] = commitTypesPaths
+    }
+    ["push"] = new Mapping {
+      ["branches"] = new Listing { "main" }
+      ["paths"] = commitTypesPaths
+    }
+  }
+  permissions = readOnly
+  concurrency = concurrencyPerRef
+  jobs {
+    ["commit-types"] {
+      name = "Commit Types"
+      \`timeout-minutes\` = 5
+      steps {
+        checkout
+        new { name = "Check the gate has not drifted from the canonical list"; run = "bash .github/scripts/check-commit-types.sh" }
+      }
+    }
+  }
+}
+
+local commitTypesPaths: Listing<String> = new {
+  ".github/commit-types.txt"
+  ".github/workflows/conventional-commits.yml"
+  ".github/workflows/commit-types.yml"
+  ".github/scripts/check-commit-types.sh"
+}
+
+/// Checks that the pull request title is a conventional commit. The job name is the required status check, so it must not change.
+function conventionalCommits(): Config.Workflow = new {
+  header = ${header("conventional-commits")}
+  name = "Conventional Commit Title"
+  onComment = "zizmor: ignore[dangerous-triggers] reads only the PR title; checks out and runs no PR code"
+  on = new Mapping<String, Any?> {
+    ["pull_request_target"] = new Mapping {
+      ["types"] = new Listing { "opened"; "edited"; "reopened"; "synchronize" }
+    }
+  }
+  permissions = new Mapping {}
+  concurrency = new Mapping {
+    ["group"] = "\${{ github.workflow }}-\${{ github.event.pull_request.number }}"
+    ["cancel-in-progress"] = true
+  }
+  jobs {
+    ["title"] {
+      name = "Conventional Commit Title"
+      \`timeout-minutes\` = 5
+      steps {
+        new {
+          name = "Check the pull request title"
+          env = new Mapping { ["PR_TITLE"] = "\${{ github.event.pull_request.title }}" }
+          run = ${run("conventional-commits", "title", 0, 12)}
+        }
+      }
+    }
+  }
+}
+
+/// The verbatim config files the wave A workflows use, from pantheon-adr at 1e2fd46.
+function workflowFiles(): Mapping<String, Config.GenFile> = new {
+  [".plumber.yaml"] = new Config.GenFile { content = read("assets/plumber.yaml").text }
+  [".github/labels.txt"] = new Config.GenFile { content = read("assets/labels.txt").text }
+  [".github/commit-types.txt"] = new Config.GenFile { content = read("assets/commit-types.txt").text }
+  [".github/pull_request_template.md"] = new Config.GenFile { content = read("assets/pull_request_template.md").text }
+}
+
+${END}
+`;
+
+let b = readFileSync("pkl/Builtins.pkl", "utf8");
+const i = b.indexOf(BEGIN);
+const j = b.indexOf(END);
+if ((i === -1) !== (j === -1)) throw new Error("only one marker found in pkl/Builtins.pkl");
+b = i === -1 ? b.trimEnd() + "\n\n" + block : b.slice(0, i) + block + b.slice(j + END.length + 1);
+writeFileSync("pkl/Builtins.pkl", b);
+console.log("wrote the wave A workflows into pkl/Builtins.pkl");

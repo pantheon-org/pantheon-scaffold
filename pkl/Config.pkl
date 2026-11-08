@@ -22,6 +22,9 @@ class Options {
   /// `all` builds, lints and tests with `--all-features`, as the library repository does. Read by the hook steps now, and by the Rust CI
   /// workflow when the toggles are wired in (phase 5).
   features: ("default"|"all") = "default"
+  /// The client id of the GitHub App the pr-auto-rebase and release-automerge workflows mint their token from (a public identifier, not a
+  /// secret). The default is the org's pantheon-ai-bot App, as the four repositories use it today.
+  appClientId: String = "Iv23ligzn16vkDCWfHgc"
 }
 
 /// A workflow step. Typed keys cover what the workflows use. `raw` is the escape hatch (decision 33):
@@ -29,6 +32,7 @@ class Options {
 class Step {
   name: String?
   id: String?
+  `continue-on-error`: Boolean?
   uses: (Pins.Pin|String)?
   run: String?
   `with`: Mapping<String, Any>?
@@ -54,6 +58,8 @@ class Job {
 class Workflow {
   /// Rendered as `#` comment lines above the YAML.
   header: String?
+  /// A comment on the `on:` line. A tool can act on it (zizmor's `ignore[...]`), so it has to be in the file.
+  onComment: String?
   name: String
   on: Mapping<String, Any?>
   permissions: Mapping<String, String>?
@@ -94,6 +100,7 @@ local function renderStep(s: Step): Dynamic = new Dynamic {
   when (s.id != null) { id = s.id }
   when (s.uses != null) { uses = pinRef(s.uses!!) }
   when (s.`if` != null) { `if` = s.`if` }
+  when (s.`continue-on-error` != null) { `continue-on-error` = s.`continue-on-error` }
   when (s.run != null) { run = s.run }
   when (s.`with` != null) { `with` = s.`with` }
   when (s.env != null) { env = s.env }
@@ -114,12 +121,20 @@ local function renderJob(j: Job): Dynamic = new Dynamic {
   when (j.raw != null) { ...j.raw }
 }
 
+/// Puts a comment on the `on:` line of the rendered YAML, where the key stands alone on its line. YamlRenderer quotes the key (`on` is a
+/// YAML 1.1 boolean), so the line is `'on':`. Fails if neither form is found, so a comment that matters is never silently dropped.
+local function withOnComment(comment: String?, text: String): String =
+  if (comment == null) text
+  else if (text.contains("\n'on':\n")) text.replaceFirst("\n'on':\n", "\n'on': # \(comment)\n")
+  else if (text.contains("\non:\n")) text.replaceFirst("\non:\n", "\non: # \(comment)\n")
+  else throw("onComment is set but the rendered YAML has no on: line to put it on")
+
 local function commentBlock(text: String?): String =
   if (text == null) ""
   else text.split("\n").map((l) -> if (l == "") "#" else "# \(l)").join("\n") + "\n"
 
 local function renderWorkflow(w: Workflow): String =
-  commentBlock(w.header) + yaml.renderValue(new Dynamic {
+  commentBlock(w.header) + withOnComment(w.onComment, yaml.renderValue(new Dynamic {
     name = w.name
     on = w.on
     when (w.permissions != null) { permissions = w.permissions }
@@ -127,7 +142,7 @@ local function renderWorkflow(w: Workflow): String =
     when (w.env != null) { env = w.env }
     jobs = w.jobs.toMap().mapValues((_, j) -> renderJob(j)).toMapping()
     when (w.raw != null) { ...w.raw }
-  })
+  }))
 
 /// Every pin used by a step, de-duplicated by action and sha.
 local usedPins: List<Pins.Pin> =

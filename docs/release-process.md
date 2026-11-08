@@ -10,6 +10,8 @@ Added in phase 2b, wave D. A release publishes the pkl package and the runner bi
 
 **After a release, the first pull request that changes anything under `pkl/` must bump `version` in `pkl/PklProject`.** `pkl project package` fetches the published package with the same version and refuses to build when the contents differ ("was already published with different contents ... bump the packages version"). The package build in CI and several runner tests fail until it is bumped. The version in `PklProject` is therefore always the next unreleased one, and the next tag is that version.
 
+**A job that fails on a 5xx from GitHub is safe to re-run.** Downloads from GitHub release URLs (the mise download in `mise-action`, or the published-version check that `pkl project package` makes) can return 504 during an outage, which fails the job before any of our code runs. The release workflow publishes nothing until its last two jobs, and it refuses a version that already has a release, so re-running it is safe. This is decision 81 of the plan: no retry code.
+
 A version is never re-published. If a release is bad, cut the next patch version and add the bad version to `known-bad.json` on `main`.
 
 ## What the workflow does

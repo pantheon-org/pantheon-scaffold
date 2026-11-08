@@ -80,3 +80,34 @@ P.1 ignores comments. The header of each workflow is kept, and comments between 
 ### Not built by any task yet
 
 Decision 74 settles how four more files are handled, but no task in the plan builds them: `.gitignore` (the `target/` pick), `.coderabbit.yaml` (the skill folder is a parameter), `SECURITY.md` (seeded once) and `tag-release.sh` (the crate name is a parameter, and the `binary` variant of `release-please.yml` calls it). `audit-skill.yml` and `release.yml` belong to the phase 5 toggles. The owner is asked where these go.
+
+## Wave C: keeping pins current, and proposing upgrades
+
+Wave C is new work with no upstream copy, so it is checked by structure tests (`runner/test/workflows-c.test.ts`, `update-pins-workflow.test.ts`, `update-pins-script.test.ts`) rather than by P.1 equality. The App steps are built and **unverified**: nothing here has run with the App yet.
+
+### In the package repository
+
+`.github/workflows/update-pins.yml` runs weekly (Monday 04:23 UTC), on a push to `main` that changes the workflow or its script, and by hand. It does three things in order:
+
+1. `runner/scripts/update-pins.ts` checks every pin in `pkl/Pins.pkl` against GitHub (the tag is a published release, the commit belongs to the repository) and rewrites the ones that moved to the latest release. Any failed check exits 1, and then nothing is written, the freshness record included.
+2. If `pkl/Pins.pkl` changed, the workflow pushes `chore/update-pins` and opens one pull request, or leaves the open one in place. The pull request is opened with the App token, so the required checks start.
+3. It writes `freshness.json` (`{"schemaVersion":1,"lastSuccessfulPinCheck":"<UTC time>"}`) to the `freshness` branch as a single orphan commit (decision 83). It is written even when no pin moved, because a clean check is a successful check.
+
+Run the script by hand with `bun runner/scripts/update-pins.ts --no-write` (reads GitHub with `GITHUB_TOKEN` or `GH_TOKEN`, writes nothing). The flag is `--no-write` and not `--dry-run` because bun consumes `--dry-run` itself: a "dry run" would have rewritten the file.
+
+A pin pull request changes `pkl/`, so while the version in `pkl/PklProject` is already published it also needs a version bump (`pkl project package` refuses a changed package at a published version). The workflow does not bump it.
+
+### In a consumer repository
+
+`Builtins.upgradeWorkflow(options)` renders `.github/workflows/upgrade-scaffold.yml`, weekly (Monday 05:17 UTC) and by hand:
+
+1. `pantheon-scaffold freshness` fails the run when the record is older than 30 days or cannot be read.
+2. `pantheon-scaffold latest` finds the newest release the known-bad list allows. If the repository is already on it, nothing else runs.
+3. `pantheon-scaffold upgrade <version> --config pantheon.pkl` verifies the release, rewrites the pins and renders.
+4. The workflow pushes `chore/upgrade-pantheon-scaffold-<version>` and opens a pull request with the App token.
+
+The App token asks for `contents`, `pull-requests` and `workflows` write. `workflows: write` is needed because an upgrade can change files under `.github/workflows`; whether the `pantheon-ai-bot` App has it is not confirmed (plan P.4). The file is marked `removeOnDetach`, so `pantheon-scaffold detach` deletes it: once the repository leaves the scaffold the workflow would fail on every run. To support that, `Workflow` has a new `removeOnDetach` option. Each `run:` block is 15 lines or fewer, and every value that comes from an expression goes through `env`.
+
+### How it is checked
+
+Mutation check: `tmp/phase-4-wave-c/mutate.ts` (20 properties, all caught). Both workflows pass `actionlint`.

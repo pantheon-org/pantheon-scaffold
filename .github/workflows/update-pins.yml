@@ -1,0 +1,80 @@
+name: update-pins
+
+# Weekly, and when this workflow or its script changes: moves the pinned actions in pkl/Pins.pkl to their latest published release (one pull request),
+# then records the date of the last successful check on the `freshness` branch. A failed check writes neither, so a failing check never reads as fresh.
+# Writes use the pantheon-ai-bot App token (contents and pull-requests write), so the pull request starts the required checks.
+on:
+  schedule:
+    - cron: "23 4 * * 1"
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/update-pins.yml
+      - runner/scripts/update-pins.ts
+      - runner/src/pinupdate.ts
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: update-pins
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: Update the pins
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Mint pantheon-ai-bot token
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: Iv23ligzn16vkDCWfHgc
+          private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5.2.0
+        with:
+          version: 2026.10.25
+          install: false
+          cache: false
+      - name: Install the pinned tools from the lock file
+        run: mise install --locked
+      - name: Check every pin and rewrite the ones that moved
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          mise x -- bun runner/scripts/update-pins.ts \
+            --freshness-out "$RUNNER_TEMP/freshness.json" --summary "$RUNNER_TEMP/summary.md"
+      - name: Open or update the pin pull request
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          if git diff --quiet pkl/Pins.pkl; then echo "No pin changed."; exit 0; fi
+          branch="chore/update-pins"
+          git switch -c "$branch"
+          git add pkl/Pins.pkl
+          git -c user.name="pantheon-ai-bot[bot]" -c user.email="pantheon-ai-bot[bot]@users.noreply.github.com" \
+            commit --message "chore(deps): update pinned actions"
+          git push --force "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" "$branch"
+          if [ -z "$(gh pr list --repo "$REPO" --head "$branch" --json number --jq '.[].number')" ]; then
+            gh pr create --repo "$REPO" --head "$branch" --title "chore(deps): update pinned actions" --body-file "$RUNNER_TEMP/summary.md"
+          fi
+      - name: Record the successful check on the freshness branch
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          git switch --orphan freshness-record
+          cp "$RUNNER_TEMP/freshness.json" freshness.json
+          git add freshness.json
+          git -c user.name="pantheon-ai-bot[bot]" -c user.email="pantheon-ai-bot[bot]@users.noreply.github.com" \
+            commit --message "chore: record the pin check"
+          git push --force "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" HEAD:refs/heads/freshness

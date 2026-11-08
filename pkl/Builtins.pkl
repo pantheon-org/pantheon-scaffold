@@ -171,3 +171,19 @@ function miseFiles(opts: Config.Options): Mapping<String, Config.GenFile> =
       ["mise.lock"] = new Config.GenFile { `class` = "external" }
       [".mise/conf.d/repo.toml"] = new Config.GenFile { `class` = "seed"; content = read("assets/mise-repo.toml").text }
     }
+
+/// The hook steps the four Rust repositories share (decision 31): `hk.shared.pkl`, owned by the runner, holds the steps, and `hk.pkl` is
+/// seeded once, imports it and holds only the hooks. Each repository adds its own steps in `hk.pkl`. `options.features = "all"` is the
+/// library repository's `--all-features` in the pre-push clippy and test steps. Checked against real hk in hk.test.ts.
+function hkFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
+  ["hk.shared.pkl"] = new Config.GenFile {
+    content =
+      read("assets/hk.shared.pkl.tmpl").text
+        .replaceAll("@@HK_VERSION@@", Tools.hkConfigVersion)
+        .replaceAll("@@FEATURES@@", if (opts.features == "all") "--all-features " else "")
+  }
+  ["hk.pkl"] = new Config.GenFile {
+    `class` = "seed"
+    content = read("assets/hk.pkl.tmpl").text.replaceAll("@@HK_VERSION@@", Tools.hkConfigVersion)
+  }
+}

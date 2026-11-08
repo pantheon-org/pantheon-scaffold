@@ -27,6 +27,7 @@ Needs bun, pkl, gh (logged in, read-only calls), and a clone of `pantheon-org/pa
 | `phase-3-hk-spike` | Does hk accept a seeded hk.pkl that imports a rendered local module? Yes | `tmp/phase-3-hk-spike/spike.sh` |
 | `phase-3-template-generators` | The scripts that made the mise and hk templates from the pinned upstream files | `bun tmp/phase-3-template-generators/mise-template.ts` and `hk-templates.ts` |
 | `phase-3-wave-c` | Mutation check of the hook files | `bun tmp/phase-3-wave-c/mutate.ts` |
+| `phase-3-wave-d` | Mutation check of the real-repository evidence script | `bun tmp/phase-3-wave-d/mutate.ts` (needs network and the tools) |
 | `apply-fourth-review`, `edit-roles` | One-off plan editing helpers, kept for the record | not meant to be re-run |
 
 Tests that read the current upstream (`p6-*`, `pkl-s3-spike`, `pkl-yaml-trial`'s real workflows) can change result when upstream changes. The two original tests are pinned.

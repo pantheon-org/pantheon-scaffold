@@ -1,0 +1,17 @@
+amends "../../../../pkl/Config.pkl"
+
+import "../../../../pkl/Builtins.pkl"
+
+// Everything Phase 3 renders, for the real-repository evidence (runner/scripts/real-repo-tooling.ts). The runner pin only matters for the report.
+options {
+  toolchain = "1.96.1"
+  runnerVersion = "0.1.2"
+  features = "default"
+}
+
+files {
+  ...Builtins.baseFiles(options)
+  ...Builtins.toolingFiles()
+  ...Builtins.miseFiles(options)
+  ...Builtins.hkFiles(options)
+}

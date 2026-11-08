@@ -19,6 +19,9 @@ class Options {
   /// The runner version pinned in mise.toml. Left unset it is read from the version of the package that rendered the file, because the
   /// runner and the package are released together. A package loaded from a folder has no version, so set this to use the mise builtin there.
   runnerVersion: String?
+  /// `all` builds, lints and tests with `--all-features`, as the library repository does. Read by the hook steps now, and by the Rust CI
+  /// workflow when the toggles are wired in (phase 5).
+  features: ("default"|"all") = "default"
 }
 
 /// A workflow step. Typed keys cover what the workflows use. `raw` is the escape hatch (decision 33):

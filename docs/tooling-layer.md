@@ -52,3 +52,40 @@ The rendered file equals the current one except for these lines (asserted exactl
 ### Adopting it
 
 None of the four repositories has a `mise.lock` or a `.mise/` folder today, so adopting this file turns the lock on for them. After the first render, run `mise lock` once and commit `mise.lock`, and CI installs with `mise install --locked`. That is applied in phase 7, not here.
+
+## Wave C: the hook steps
+
+`Builtins.hkFiles(options)` renders two files (decision 31).
+
+| File | Class | What it is |
+|---|---|---|
+| `hk.shared.pkl` | owned | The steps every repository shares, as two functions, `preCommit()` and `prePush()`. Rendered by the runner. Do not edit it. |
+| `hk.pkl` | seed | Written once. Amends the hk config package, imports `hk.shared.pkl` and holds only the hooks. Yours to edit. |
+
+The steps are copied by script from the `hk.pkl` of `pantheon-adr` at `1e2fd46`, and tests compare them byte for byte with it. A spike (`tmp/phase-3-hk-spike/spike.sh`) showed first that hk 2.10.0 accepts a seeded `hk.pkl` that imports a rendered local file and still merges the repository's own steps.
+
+### Adding a step of your own
+
+Edit a hook in `hk.pkl`. A module can define `hooks` only once, so a second `hooks { ... }` block fails to load:
+
+```pkl
+["check"] {
+    steps { ...shared.preCommit(); ["my-step"] { glob = List("*.txt"); check = "my-check {{files}}" } }
+}
+```
+
+### The `features` option
+
+`options.features = "all"` renders `--all-features` in the pre-push clippy and test steps, which is the only difference between the library repository's `hk.pkl` and the other three (apart from one comment). The choice lives in `pantheon.pkl` and the owned file, not in the seeded `hk.pkl`, so changing it updates the shared file. A test checks that the `all` render is byte for byte the library repository's pre-push steps. The pre-commit steps differ from the library repository's by one comment about `.github/actionlint.yaml`, which the other three repositories have and the library repository does not.
+
+### Fixers and generated files
+
+No fixer matches a generated file today. The fixers are `rustfmt` (`*.rs`) and `rumdl` (`*.md`), and the render holds no Rust or Markdown. `yamllint`, `shellcheck` and `actionlint` only check. A test runs `hk fix --all` and `hk check --all` over a fresh render and asserts that both pass and that nothing changed. It needs `shellcheck` on the PATH.
+
+### Migrating an existing `hk.pkl` (one-off, in phase 7)
+
+Each repository already has an `hk.pkl` with the steps inline, so the seed is not written over it. For each repository:
+
+1. Render, then diff the existing `hk.pkl` against the seeded one. The `hooks` block should be identical except that `steps = preCommit` and `steps = prePush` became `steps = shared.preCommit()` and `steps = shared.prePush()`.
+2. Keep any step of your own: move it into the hook that needs it, as shown above.
+3. Replace the repository's `hk.pkl` with the seeded one plus those local steps, delete the inline `local preCommit` and `local prePush`, and run `hk check --all`.

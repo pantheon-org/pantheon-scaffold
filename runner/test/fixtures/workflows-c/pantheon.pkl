@@ -1,0 +1,9 @@
+amends "../../../../pkl/Config.pkl"
+
+import "../../../../pkl/Builtins.pkl"
+
+options { toolchain = "1.96.1" }
+
+workflows {
+  ["upgrade-scaffold"] = Builtins.upgradeWorkflow(options)
+}

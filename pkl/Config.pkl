@@ -71,6 +71,8 @@ class Workflow {
   header: String?
   /// A comment on the `on:` line. A tool can act on it (zizmor's `ignore[...]`), so it has to be in the file.
   onComment: String?
+  /// The runner deletes this workflow on `detach` (the consumer upgrade workflow, which would fail on every run once detached).
+  removeOnDetach: Boolean = false
   name: String
   on: Mapping<String, Any?>
   permissions: Mapping<String, String>?
@@ -178,7 +180,7 @@ local constructCount: Int = workflows.length + allJobs.length + allSteps.length
 
 local generated: Map<String, GenFile> =
   workflows.toMap().mapKeys((k, _) -> ".github/workflows/\(k).yml")
-    .mapValues((_, w) -> new GenFile { content = renderWorkflow(w) })
+    .mapValues((_, w) -> new GenFile { content = renderWorkflow(w); removeOnDetach = w.removeOnDetach })
   + files.toMap()
 
 contract: Dynamic = new Dynamic {

@@ -4,7 +4,9 @@ import { check } from "./check";
 import contractSchema from "../../contract.schema.json";
 import { ContractError, parseContract, type Contract } from "./contract";
 import { detach } from "./detach";
+import { FRESHNESS_URL, FreshnessError, MAX_AGE_DAYS, checkFreshness } from "./freshness";
 import { loadKnownBad } from "./knownbad";
+import { LatestError, fetchReleases, latestVersion } from "./latest";
 import { LockError } from "./lock";
 import { ManifestError, emptyManifest, readManifest } from "./manifest";
 import { PathError } from "./paths";
@@ -26,12 +28,14 @@ const usage = `usage (exit codes: 0 ok, 1 error, 2 usage, 3 refused, 4 drift; --
   pantheon-scaffold render <pantheon.pkl> [--root <dir>] [--dry-run] [--force] [--repair] [--strict] [--cache-dir <dir>] [--allow-local-package <dir>]... [--attempts <n>]
   pantheon-scaffold check <pantheon.pkl> [--root <dir>] [--strict] [--cache-dir <dir>] [--allow-local-package <dir>]... [--attempts <n>]
   pantheon-scaffold detach [--root <dir>] [--dry-run] [--force]
+  pantheon-scaffold latest [--include-prereleases] [--url <url>] [--root <dir>] [--attempts <n>]
+  pantheon-scaffold freshness [--url <url>] [--max-age-days <n>] [--attempts <n>]
   pantheon-scaffold upgrade <version> [--root <dir>] [--config <file>] [--dry-run] [--force] [--no-render]`;
 
-type Flags = { root: string; dryRun: boolean; force: boolean; repair: boolean; strict: boolean; noRender: boolean; config?: string; cacheDir?: string; local: string[]; attempts: number };
+type Flags = { includePrereleases: boolean; url?: string; maxAgeDays: number; root: string; dryRun: boolean; force: boolean; repair: boolean; strict: boolean; noRender: boolean; config?: string; cacheDir?: string; local: string[]; attempts: number };
 
 function parseFlags(args: string[]): Flags | string {
-  const f: Flags = { root: process.cwd(), dryRun: false, force: false, repair: false, strict: false, noRender: false, local: [], attempts: 3 };
+  const f: Flags = { includePrereleases: false, maxAgeDays: MAX_AGE_DAYS, root: process.cwd(), dryRun: false, force: false, repair: false, strict: false, noRender: false, local: [], attempts: 3 };
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === "--dry-run") f.dryRun = true;
@@ -39,7 +43,16 @@ function parseFlags(args: string[]): Flags | string {
     else if (a === "--repair") f.repair = true;
     else if (a === "--strict") f.strict = true;
     else if (a === "--no-render") f.noRender = true;
-    else if (a === "--attempts") {
+    else if (a === "--include-prereleases") f.includePrereleases = true;
+    else if (a === "--max-age-days") {
+      const n = Number(args[++i]);
+      if (!Number.isInteger(n) || n < 1) return "--max-age-days needs a whole number of at least 1";
+      f.maxAgeDays = n;
+    } else if (a === "--url") {
+      const v = args[++i];
+      if (!v) return "--url needs a value";
+      f.url = v;
+    } else if (a === "--attempts") {
       const n = Number(args[++i]);
       if (!Number.isInteger(n) || n < 1) return "--attempts needs a whole number of at least 1";
       f.attempts = n;
@@ -142,8 +155,32 @@ async function runUpgrade(version: string, flags: Flags): Promise<number> {
   return EXIT.ok;
 }
 
+async function runLatest(flags: Flags): Promise<number> {
+  const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN;
+  const releases = await fetchReleases({ url: flags.url, token, attempts: flags.attempts });
+  const knownBad = (await loadKnownBad(flags.root, { url: process.env.PANTHEON_SCAFFOLD_KNOWN_BAD_URL })).list;
+  const version = latestVersion(releases, { includePrereleases: flags.includePrereleases, knownBad });
+  if (version === null) {
+    console.error(`no release found that qualifies (stable, not a draft, not known bad)${flags.includePrereleases ? "" : ". Use --include-prereleases to offer pre-releases"}`);
+    return EXIT.error;
+  }
+  console.log(version);
+  return EXIT.ok;
+}
+
+async function runFreshness(flags: Flags): Promise<number> {
+  const url = flags.url ?? process.env.PANTHEON_SCAFFOLD_FRESHNESS_URL ?? FRESHNESS_URL;
+  const r = await checkFreshness({ url, maxAgeDays: flags.maxAgeDays, attempts: flags.attempts });
+  if (r.state === "stale") {
+    console.error(`stale: the last successful pin check was ${r.ageDays} day(s) ago (${r.checkedAt}), more than ${flags.maxAgeDays}. The pin-update workflow has stopped running or failing.`);
+    return EXIT.refused;
+  }
+  console.log(`fresh: the last successful pin check was ${r.ageDays} day(s) ago (${r.checkedAt})`);
+  return EXIT.ok;
+}
+
 const isKnownError = (e: unknown): boolean =>
-  e instanceof ContractError || e instanceof PathError || e instanceof ManifestError || e instanceof LockError || e instanceof PinError || e instanceof UpgradeError;
+  e instanceof FreshnessError || e instanceof LatestError || e instanceof ContractError || e instanceof PathError || e instanceof ManifestError || e instanceof LockError || e instanceof PinError || e instanceof UpgradeError;
 
 export async function main(argv: string[]): Promise<number> {
   const [cmd, ...rest] = argv;
@@ -151,7 +188,7 @@ export async function main(argv: string[]): Promise<number> {
     console.log(VERSION);
     return EXIT.ok;
   }
-  const isDetach = cmd === "detach";
+  const isDetach = cmd === "detach" || cmd === "freshness" || cmd === "latest";
   const config = isDetach ? undefined : rest[0];
   if (!isDetach && !((cmd === "contract" || cmd === "render" || cmd === "check" || cmd === "upgrade") && config)) {
     console.error(usage);
@@ -163,6 +200,8 @@ export async function main(argv: string[]): Promise<number> {
     return EXIT.usage;
   }
   try {
+    if (cmd === "freshness") return await runFreshness(flags);
+    if (cmd === "latest") return await runLatest(flags);
     if (isDetach) return await runDetach(flags);
     if (cmd === "upgrade") return await runUpgrade(config!, flags);
     const contract = await loadContract(config!, flags);

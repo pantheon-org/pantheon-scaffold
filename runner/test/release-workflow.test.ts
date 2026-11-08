@@ -91,3 +91,22 @@ test("the consumer the release is verified with limits the lock to the supported
   expect(run).toContain('lockfile_platforms = ["linux-x64", "linux-arm64", "macos-arm64"]');
   expect(run).toContain("pantheon-scaffold-(linux-x64|linux-arm64|darwin-arm64)");
 });
+
+// Phase 5 wave E: the consumer smoke test. verify-release renders the whole standard set through the real package, as a consumer would.
+test("verify-release renders the standard workflows and files through the published package, checks them, and renders again with nothing to write", () => {
+  const step = wf.jobs["verify-release"].steps.find((s) => s.run?.includes("standardWorkflows"));
+  expect(step, "a step that renders the standard set").toBeDefined();
+  const run = step!.run!;
+  expect(run).toContain("standardFiles");
+  expect(run).toContain("::sha256:");
+  expect(run).toMatch(/pantheon-scaffold check /);
+  expect(run).toContain("written 0 file(s)");
+  for (const f of [".github/workflows/dist-check.yml", ".github/workflows/audit-skill.yml", ".github/workflows/scaffold-check.yml"]) expect(run, f).toContain(f);
+  expect(run).not.toMatch(/\$\{\{/);
+});
+
+test("verify-release imports Builtins from the same package URI, with the same checksum, as it amends Config", () => {
+  const run = wf.jobs["verify-release"].steps.find((s) => s.run?.includes("standardWorkflows"))!.run!;
+  expect(run).toContain("#/Config.pkl");
+  expect(run).toContain("#/Builtins.pkl");
+});

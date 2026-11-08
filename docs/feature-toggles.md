@@ -67,3 +67,9 @@ Both are new files: no repository has them yet, so the real-repository report li
 Known limit: Dependabot will keep bumping actions inside `release.yml` and cannot edit `dist-workspace.toml`, so the next such bump fails `dist-check.yml` until `dist-workspace.toml` and `release.yml` are regenerated together. The failure is the point of the check, but how to avoid a failing Dependabot pull request each time (an ignore entry for those two actions, or managing their commits in `Pins.pkl`) is not decided.
 
 Checks: `runner/test/phase5-dist.test.ts`, the updated `phase5-verbatim.test.ts`, the mutation check in `tmp/phase-5-wave-d` (11 of 11 caught), actionlint and zizmor 1.32.0 over both workflows, and the real-repository render.
+
+## Wave E: the consumer smoke test
+
+The consumer smoke test is a step of `verify-release` in `release.yml` (moved here from wave D, because only the release candidate contains the Phase 5 builtins). After the release is published, on all three platforms, a scratch consumer loads the package by its package URI with the published checksum, both for `Config.pkl` and for `Builtins.pkl`, renders `standardWorkflows` and `standardFiles` with `skillName` and `crateName` set into an empty folder, runs `check`, and renders again. It fails unless `check` passes, the second render writes nothing, the files of every toggle are there, and the external `release.yml` was not written. It runs with the runner installed through mise with checksums and provenance enforced, so it is the consumer's whole path.
+
+Checks: the two new assertions in `runner/test/release-workflow.test.ts`, the mutation check in `tmp/phase-5-wave-e` (6 of 6 caught), actionlint, and a local rehearsal of the same sequence with the local package (29 files written, `check` ok, second render 0 written).

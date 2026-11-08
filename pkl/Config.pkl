@@ -19,20 +19,21 @@ class Options {
   /// The runner version pinned in mise.toml. Left unset it is read from the version of the package that rendered the file, because the
   /// runner and the package are released together. A package loaded from a folder has no version, so set this to use the mise builtin there.
   runnerVersion: String?
-  /// `all` builds, lints and tests with `--all-features`, as the library repository does. Read by the hook steps now, and by the Rust CI
-  /// workflow when the toggles are wired in (phase 5).
+  /// `all` builds, lints and tests with `--all-features`, as the library repository does. Read by the hook steps and by rust-ci.yml.
   features: ("default"|"all") = "default"
   /// The client id of the GitHub App the pr-auto-rebase and release-automerge workflows mint their token from (a public identifier, not a
   /// secret). The default is the org's pantheon-ai-bot App, as the four repositories use it today.
   appClientId: String = "Iv23ligzn16vkDCWfHgc"
-  /// Whether the repository builds a binary released with cargo-dist (the `binary` toggle, phase 5). Without one there is no generated
-  /// release.yml, so release-please does not tag the crate itself and zizmor has no config file to read.
+  /// Whether the repository builds a binary released with cargo-dist (the `binary` toggle). Needs `crateName`. Owns dist-workspace.toml,
+  /// .github/actionlint.yaml, .github/scripts/tag-release.sh, .github/zizmor.yml and the external release.yml. Without a binary there is no
+  /// generated release.yml, so release-please does not tag the crate itself and zizmor has no config file to read.
   binary: Boolean = true
-  /// Whether the repository carries a skill that agnix lints (the `skills` toggle, phase 5). Today it only changes comment wording.
+  /// Whether the repository carries a skill (the `skills` toggle). Needs `skillName`. Owns audit-skill.yml, the skill lines of .coderabbit.yaml
+  /// and SECURITY.md, and the wording of the agnix files.
   skills: Boolean = true
   /// Whether the repository has its own composite action, action.yml, which zizmor then scans too (the `compositeAction` toggle).
   compositeAction: Boolean = false
-  /// The crate whose Cargo.toml release-please bumps. Only the header comment of release-please.yml names it.
+  /// The crate whose Cargo.toml release-please bumps. Named by the header of release-please.yml, tag-release.sh and SECURITY.md. Needed when `binary` is on.
   crateName: String?
   /// The skill folder name under `skills/`, for the files that refer to it (audit-skill.yml, .coderabbit.yaml, SECURITY.md). Needed when `skills` is on.
   skillName: String?

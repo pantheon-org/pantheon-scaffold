@@ -11,24 +11,9 @@ options {
 }
 
 workflows {
-  ["plumber"] = Builtins.plumber()
-  ["sync-labels"] = Builtins.syncLabels()
-  ["pr-auto-rebase"] = Builtins.prAutoRebase(options)
-  ["release-automerge"] = Builtins.releaseAutomerge(options)
-  ["commit-types"] = Builtins.commitTypes()
-  ["conventional-commits"] = Builtins.conventionalCommits()
-  ["release-please"] = Builtins.releasePlease(options)
-  ["zizmor"] = Builtins.zizmor(options)
-  ["agnix"] = Builtins.agnix(options)
-  ["aislop"] = Builtins.aislop()
-  ["rust-ci"] = Builtins.rustCi(options)
-  ["cargo-deny"] = Builtins.cargoDeny(options)
-  ["inline-scripts"] = Builtins.inlineScripts()
+  ...Builtins.standardWorkflows(options)
 }
 
 files {
-  ...Builtins.workflowFiles()
-  ...Builtins.analysisFiles(options)
-  ...Builtins.verbatimFiles(options)
-  ...Builtins.parameterisedFiles(options)
+  ...Builtins.standardFiles(options)
 }

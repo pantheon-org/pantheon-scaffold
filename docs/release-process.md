@@ -4,9 +4,11 @@ Added in phase 2b, wave D. A release publishes the pkl package and the runner bi
 
 ## Cutting a release
 
-1. In a normal pull request, set `version` in `pkl/PklProject` to the version, and raise `requiresRunner` in `pkl/Config.pkl` only if the package needs a newer runner than the last release. A pre-release ranks below its release, so never require a runner version a pre-release of the same version cannot meet.
+1. In a normal pull request, set `version` in `pkl/PklProject` to the version (it already holds the next unreleased version, see the rule below), and raise `requiresRunner` in `pkl/Config.pkl` only if the package needs a newer runner than the last release. A pre-release ranks below its release, so never require a runner version a pre-release of the same version cannot meet.
 2. Merge it, then run the release workflow by hand once (Actions, release, Run workflow, `dry_run` left on). It tests, builds, smoke tests on three platforms and assembles `checksums.txt`, and attests and publishes nothing. The assembled files are kept for 7 days as the `release-assets` artifact.
 3. Push the tag: `git tag v<version> && git push origin v<version>` from the merged commit. Tags `v[0-9]*` start the real release. The tag ruleset forbids moving or deleting a pushed tag.
+
+**After a release, the first pull request that changes anything under `pkl/` must bump `version` in `pkl/PklProject`.** `pkl project package` fetches the published package with the same version and refuses to build when the contents differ ("was already published with different contents ... bump the packages version"). The package build in CI and several runner tests fail until it is bumped. The version in `PklProject` is therefore always the next unreleased one, and the next tag is that version.
 
 A version is never re-published. If a release is bad, cut the next patch version and add the bad version to `known-bad.json` on `main`.
 

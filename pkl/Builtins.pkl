@@ -1157,6 +1157,8 @@ function standardWorkflows(opts: Config.Options): Mapping<String, Config.Workflo
   ["cargo-deny"] = cargoDeny(opts)
   ["inline-scripts"] = inlineScripts()
   when (opts.skills) { ["audit-skill"] = auditSkill(opts) }
+  ["scaffold-check"] = scaffoldCheck()
+  when (opts.binary) { ["dist-check"] = distCheck() }
 }
 
 /// Every file of the workflow layer for a repository with these options: the config files the workflows read, the verbatim files and the
@@ -1166,4 +1168,106 @@ function standardFiles(opts: Config.Options): Mapping<String, Config.GenFile> = 
   ...analysisFiles(opts)
   ...verbatimFiles(opts)
   ...parameterisedFiles(opts)
+}
+
+// Phase 5, wave D.
+
+local function miseSetup(): List<Config.Step> = List(
+  checkout,
+  new Config.Step {
+    uses = Pins.miseAction
+    `with` = new Mapping {
+      ["version"] = Tools.mise
+      ["install"] = false
+      ["cache"] = false
+    }
+  }
+)
+
+/// The drift check of the generated release.yml (`binary`). `dist generate --check` fails when release.yml is not what cargo-dist would write
+/// from dist-workspace.toml, which catches a hand edit and a Dependabot bump of an action inside the generated file (decision 85).
+function distCheck(): Config.Workflow = new {
+  header = #"""
+    release.yml is written by `dist generate` from dist-workspace.toml and must not be
+    edited by hand. This check fails when the two disagree, for example after a
+    Dependabot bump of an action inside release.yml: update the commit in
+    dist-workspace.toml too, then run `dist generate`.
+    """#
+  name = "Dist check"
+  on = new Mapping<String, Any?> {
+    ["pull_request"] = new Mapping {
+      ["branches"] = new Listing { "main" }
+      ["paths"] = distPaths
+    }
+    ["push"] = new Mapping {
+      ["branches"] = new Listing { "main" }
+      ["paths"] = distPaths
+    }
+    ["workflow_dispatch"] = new Mapping {}
+  }
+  permissions = readOnly
+  concurrency = concurrencyPerRef
+  jobs {
+    ["dist-check"] {
+      name = "Check release.yml against dist-workspace.toml"
+      `timeout-minutes` = 10
+      env = new Mapping { ["DIST_VERSION"] = Tools.dist }
+      steps {
+        ...miseSetup()
+        new {
+          name = "Compare release.yml with what dist generate writes"
+          run = "mise x \"aqua:axodotdev/cargo-dist@${DIST_VERSION}\" -- dist generate --check"
+        }
+      }
+    }
+  }
+}
+
+local distPaths: Listing<String> = new {
+  "dist-workspace.toml"
+  ".github/workflows/release.yml"
+  "Cargo.toml"
+  ".github/workflows/dist-check.yml"
+}
+
+/// `check` in consumer CI (every repository): the sample job of docs/check-in-ci.md. It evaluates a pantheon.pkl, so it runs on
+/// `pull_request` only, with no secrets, and reads the tools from the lock file.
+function scaffoldCheck(): Config.Workflow = new {
+  name = "scaffold-check"
+  on = new Mapping<String, Any?> {
+    ["pull_request"] = new Mapping { ["branches"] = new Listing { "main" } }
+  }
+  permissions = new Mapping {}
+  concurrency = new Mapping {
+    ["group"] = "${{ github.workflow }}-${{ github.ref }}"
+    ["cancel-in-progress"] = true
+  }
+  jobs {
+    ["check"] {
+      name = "Scaffold check"
+      `timeout-minutes` = 10
+      permissions = readOnly
+      env = new Mapping { ["GITHUB_TOKEN"] = "${{ github.token }}" }
+      steps {
+        ...miseSetup()
+        new {
+          name = "Install the pinned tools from the lock file"
+          run = "mise install --locked"
+        }
+        new {
+          name = "Keep the package cache so an outage does not block the check"
+          uses = Pins.cache
+          `with` = new Mapping {
+            ["path"] = ".pkl-gen/cache"
+            ["key"] = "pantheon-scaffold-${{ hashFiles('pantheon.pkl') }}"
+            ["restore-keys"] = "pantheon-scaffold-"
+          }
+        }
+        new {
+          name = "Check that the scaffold files match the render"
+          run = "mise x -- pantheon-scaffold check pantheon.pkl --attempts 3"
+        }
+      }
+    }
+  }
 }

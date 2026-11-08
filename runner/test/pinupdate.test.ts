@@ -55,7 +55,7 @@ test("the real Pins.pkl is read completely", () => {
   const text = readFileSync(join(import.meta.dir, "../../pkl/Pins.pkl"), "utf8");
   const pins = parsePins(text);
   expect(pins.length).toBe(text.split("\n").filter((l) => /: Pin = new \{/.test(l)).length);
-  expect(pins.map((p) => p.name).sort()).toEqual(["checkout", "createGithubAppToken", "createOrUpdateComment", "findComment", "miseAction", "plumber", "releasePleaseAction", "setupNode", "zizmorAction"]);
+  expect(pins.map((p) => p.name).sort()).toEqual(["cache", "checkout", "createGithubAppToken", "createOrUpdateComment", "findComment", "miseAction", "plumber", "releasePleaseAction", "setupNode", "zizmorAction"]);
   for (const p of pins) expect(p.sha).toMatch(/^[0-9a-f]{40}$/);
 });
 

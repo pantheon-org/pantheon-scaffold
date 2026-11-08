@@ -32,7 +32,7 @@ const EXPECTED: [string, Partial<T>, { removed: string[]; changed: string[] }][]
     changed: [".agnix.toml", ".coderabbit.yaml", ".github/workflows/agnix.yml", "SECURITY.md"],
   }],
   ["binary off", { binary: false }, {
-    removed: [".github/actionlint.yaml", ".github/scripts/tag-release.sh", ".github/workflows/release.yml", ".github/zizmor.yml", "dist-workspace.toml"],
+    removed: [".github/actionlint.yaml", ".github/scripts/tag-release.sh", ".github/workflows/dist-check.yml", ".github/workflows/release.yml", ".github/zizmor.yml", "dist-workspace.toml"],
     changed: [".github/workflows/release-please.yml", ".github/workflows/zizmor.yml", "SECURITY.md"],
   }],
   ["features all", { features: "all" }, { removed: [], changed: [".github/workflows/rust-ci.yml"] }],
@@ -88,7 +88,7 @@ test("turning skills and binary off deletes only the files they owned, and never
   expect(await cliRender(repo, { ...BASE, skills: false, binary: false })).toBe(0);
   const after = new Set(listing(repo));
   const deleted = [...before].filter((p) => !after.has(p)).sort();
-  expect(deleted).toEqual([".github/actionlint.yaml", ".github/scripts/tag-release.sh", ".github/workflows/audit-skill.yml", ".github/zizmor.yml", "dist-workspace.toml"]);
+  expect(deleted).toEqual([".github/actionlint.yaml", ".github/scripts/tag-release.sh", ".github/workflows/audit-skill.yml", ".github/workflows/dist-check.yml", ".github/zizmor.yml", "dist-workspace.toml"]);
   expect(get(repo, ".github/workflows/release.yml")).toBe("# written by dist generate\n");
   expect(has(repo, ".github/workflows/plumber.yml")).toBe(true);
 });

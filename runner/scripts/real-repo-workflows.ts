@@ -12,10 +12,15 @@ const root = resolve(import.meta.dir, "../..");
 const cli = join(root, "runner/src/cli.ts");
 const REPOS = ["pantheon-adr", "pantheon-journal", "pantheon-skill-auditor", "pantheon-agentic-harness-dev-kit"];
 // Differences the plan records and accepts, by repository and path. Anything else that differs fails the run.
+const DIST_NOTE = "two action commits (upload-artifact v7.0.2, download-artifact v8.0.2) are the ones the repository's release.yml uses today, so that dist generate --check passes (decision 85)";
 const RECORDED: Record<string, Record<string, string>> = {
+  "pantheon-adr": { "dist-workspace.toml": DIST_NOTE },
+  "pantheon-journal": { "dist-workspace.toml": DIST_NOTE },
   "pantheon-agentic-harness-dev-kit": { ".gitignore": "decision 74 picks target/, the repository has /target" },
-  "pantheon-skill-auditor": { "SECURITY.md": "a seeded file: the repository words its scope bullets differently" },
+  "pantheon-skill-auditor": { "SECURITY.md": "a seeded file: the repository words its scope bullets differently", "dist-workspace.toml": DIST_NOTE },
 };
+// Files the package adds that no repository has yet: a new workflow, expected to be absent.
+const NEW = [".github/workflows/dist-check.yml", ".github/workflows/scaffold-check.yml"];
 // Listed by the package but never written: dist generate writes it, and the drift check of phase 5 wave D compares it.
 const EXTERNAL = [".github/workflows/release.yml"];
 
@@ -63,7 +68,7 @@ for (const name of REPOS) {
   for (const path of built) {
     const mine = readFileSync(join(out, path), "utf8");
     const theirsPath = join(repo, path);
-    if (!existsSync(theirsPath)) { results.push({ path, kind: "ABSENT", detail: ["the repository has no such file"] }); continue; }
+    if (!existsSync(theirsPath)) { results.push({ path, kind: NEW.includes(path) ? "new" : "ABSENT", detail: [NEW.includes(path) ? "a file the package adds: the repository has none yet" : "the repository has no such file"] }); continue; }
     const recorded = RECORDED[name]?.[path];
     const theirs = readFileSync(theirsPath, "utf8");
     if (mine === theirs) { results.push({ path, kind: "identical", detail: [] }); continue; }
@@ -86,7 +91,7 @@ for (const name of REPOS) {
   const bad = results.filter((r) => r.kind === "DIFFERS" || r.kind === "ABSENT");
   const pass = bad.length === 0 && lint.code === 0;
   if (!pass) allPass = false;
-  summary.push(`| ${name} | ${head} | ${built.length} | ${results.filter((r) => r.kind === "identical").length} | ${results.filter((r) => r.kind === "equal (P.1)").length} | ${results.filter((r) => r.kind === "recorded").length} | ${bad.length} | ${lint.code === 0 ? "clean" : "FAIL"} | ${pass ? "PASS" : "FAIL"} |`);
+  summary.push(`| ${name} | ${head} | ${built.length} | ${results.filter((r) => r.kind === "identical").length} | ${results.filter((r) => r.kind === "equal (P.1)").length} | ${results.filter((r) => r.kind === "recorded").length} | ${results.filter((r) => r.kind === "new").length} | ${bad.length} | ${lint.code === 0 ? "clean" : "FAIL"} | ${pass ? "PASS" : "FAIL"} |`);
 
   say(`## ${name} at ${head}`);
   say();
@@ -101,8 +106,8 @@ for (const name of REPOS) {
 
 say("## Summary");
 say();
-say("| Repository | Commit | Files built | Identical | Equal under P.1 | Recorded | Differ or absent | actionlint | Result |");
-say("|---|---|---|---|---|---|---|---|---|");
+say("| Repository | Commit | Files built | Identical | Equal under P.1 | Recorded | New | Differ or absent | actionlint | Result |");
+say("|---|---|---|---|---|---|---|---|---|---|");
 for (const s of summary) say(s);
 say();
 say(`Verdict: ${allPass ? "PASS" : "FAIL"}`);

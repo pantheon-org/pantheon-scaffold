@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseContract } from "../src/contract";
 import { evalContractJson } from "../src/pkl";
@@ -24,7 +25,6 @@ const gitBlobSha = (text: string): string => {
 const BLOBS: Record<string, string> = {
   ".gitignore": "66e8098804d3b4b7ddc5cf4f00cfa8dd94d2c49f",
   ".github/actionlint.yaml": "010277fad034ccbc7ec5b08827de18b22c23b703",
-  "dist-workspace.toml": "e08f6a76e797aebe650685131f709dc53e0dcb20",
 };
 
 test("a repository with a binary gets .gitignore, actionlint.yaml, dist-workspace.toml and release.yml", () => {
@@ -43,6 +43,21 @@ for (const [path, blob] of Object.entries(BLOBS)) {
     expect(f.mode).toBe("0644");
   });
 }
+
+// Decision 85: Dependabot bumped upload-artifact and download-artifact inside the generated release.yml on 04-11-2026 and dist-workspace.toml,
+// which tells dist which commits to write, was not changed, so `dist generate --check` fails on the repositories' main. The file is rendered
+// with the two commits release.yml uses, v7.0.2 and v8.0.2, and is otherwise the pantheon-adr file (blob e08f6a7 at 1e2fd46).
+test("dist-workspace.toml is the pantheon-adr file with exactly the two action commits that release.yml uses", () => {
+  const upstream = readFileSync(join(import.meta.dir, "upstream/phase5/pantheon-adr/dist-workspace.toml"), "utf8");
+  expect(gitBlobSha(upstream)).toBe("e08f6a76e797aebe650685131f709dc53e0dcb20");
+  const expected = upstream
+    .replace("043fb46d1a93c77aae656e7c1c64a875d1fc6a0a", "cf430e030ddbb5b0abf93d22962f4752f3646cd9")
+    .replace("3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c", "9000827ccba6bdab643e8b6fd33ac0654aef8333");
+  const f = file(binary, "dist-workspace.toml");
+  expect(f.content).toBe(expected);
+  expect(f.class).toBe("owned");
+  expect(f.mode).toBe("0644");
+});
 
 test(".gitignore is the same in both kinds of repository: target/ is the decided pick (decision 74)", () => {
   expect(file(library, ".gitignore").content).toBe(file(binary, ".gitignore").content);

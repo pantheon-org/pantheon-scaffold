@@ -37,3 +37,10 @@ const skillAuditorSha256: String = "538863c9929331cd3ff0af6a0f8780fb409592d55757
 const skillAuditorBootstrapVersion: String = "0.3.0"
 const skillAuditorBootstrapSha256: String = "092abe13e3ab7456a95bcd145e8c3074181d5f2c0e9eb6a9de54eb86ed6486d7"
 const skillAuditorBootstrapUrl: String = "https://github.com/pantheon-org/tekhne/releases/download/tool/pantheon-skill-auditor-v0.3.0/pantheon-skill-auditor-x86_64-unknown-linux-gnu.tar.xz"
+
+/// cargo-dist, which the dist-check workflow installs to compare the generated release.yml with dist-workspace.toml. It must equal the
+/// `cargo-dist-version` in dist-workspace.toml, and a test says so.
+const dist: String = "0.32.0"
+
+/// The mise version the workflows that install tools with mise-action ask for, as release.yml and the consumer check sample do.
+const mise: String = "2026.10.25"

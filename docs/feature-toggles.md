@@ -10,12 +10,12 @@ Phase 5. The toggles are the options `skills`, `binary`, `features` and `composi
 |---|---|---|
 | `.gitignore` | always | `pkl/assets/gitignore`, `target/` (the form three repositories use, decision 74). The library repository has `/target`, so it changes by one line when it adopts |
 | `.github/actionlint.yaml` | `binary` | byte for byte from `pantheon-adr` at 1e2fd46 (identical in `pantheon-journal` and `pantheon-skill-auditor`) |
-| `dist-workspace.toml` | `binary` | the same three repositories, byte for byte |
+| `dist-workspace.toml` | `binary` | the pantheon-adr file with two action commits changed to the ones the repositories' `release.yml` uses (wave D, decision 85) |
 | `.github/workflows/release.yml` | `binary` | class `external`: listed with no content, so the runner never writes, hashes or deletes it. `dist generate` writes it. The drift check against `dist generate --check` is wave D |
 
 `actionlint.yaml` belongs to `binary` because the three repositories that have it all build a binary and the library repository, which has none, has no such file (Q1 of the refined plan).
 
-Known limit: `dist-workspace.toml` pins `actions/checkout`, `upload-artifact` and `download-artifact` by commit in its `[dist.github-action-commits]` table. Those commits are not in `pkl/Pins.pkl`, so the pin update workflow does not move them and they are not checked against a release tag. They change with the file.
+Known limit (see wave D): `dist-workspace.toml` pins `actions/checkout`, `upload-artifact` and `download-artifact` by commit in its `[dist.github-action-commits]` table. Those commits are not in `pkl/Pins.pkl`, so the pin update workflow does not move them and they are not checked against a release tag. They change with the file.
 
 Checks: `runner/test/phase5-verbatim.test.ts` (git blobs of the pinned files, both kinds of repository, `release.yml` never written) and the mutation check in `tmp/phase-5-wave-a`.
 
@@ -41,7 +41,7 @@ The four toggles are options of `pantheon.pkl`: `skills`, `binary`, `features` a
 | Toggle | Needs | On | What flipping it changes |
 |---|---|---|---|
 | `skills` | `skillName` | `true` | Removes `audit-skill.yml`. Changes `.coderabbit.yaml` (the skill lines), `SECURITY.md` (the skill line), `.agnix.toml` and `agnix.yml` (comment wording, decision 74) |
-| `binary` | `crateName` | `true` | Removes `dist-workspace.toml`, `.github/actionlint.yaml`, `.github/scripts/tag-release.sh`, `.github/zizmor.yml` and the external `release.yml`. Changes `release-please.yml` (no tag step), `zizmor.yml` (no config) and `SECURITY.md` (the library text) |
+| `binary` | `crateName` | `true` | Removes `dist-workspace.toml`, `.github/actionlint.yaml`, `.github/scripts/tag-release.sh`, `.github/workflows/dist-check.yml`, `.github/zizmor.yml` and the external `release.yml`. Changes `release-please.yml` (no tag step), `zizmor.yml` (no config) and `SECURITY.md` (the library text) |
 | `features` | none | `default` | `all` changes `rust-ci.yml` only (and the hook steps, which are not part of the standard files) |
 | `compositeAction` | none | `false` | `true` changes `audit-skill.yml` (the repository's own action), `zizmor.yml` and `.github/zizmor.yml` (which also scan `action.yml`) |
 
@@ -50,3 +50,20 @@ A toggle that needs a name and does not get one stops the render with an error t
 The external `release.yml` is never written, hashed or deleted, so turning `binary` off leaves a `release.yml` that `dist generate` wrote. Removing it is the repository's own change.
 
 Checks: `runner/test/phase5-toggles.test.ts` flips each toggle from a base configuration and asserts the exact files removed and changed and none added, the two error messages, and, in a scratch git repository, the files deleted when `skills` and `binary` go off (and that the external `release.yml` stays) and that turning a toggle back on writes its files again. The mutation check is in `tmp/phase-5-wave-c`. The real-repository render, now through the two standard builtins, gives the same result as before.
+
+## Wave D: the drift check and `check` in CI
+
+| Workflow | When | What it does |
+|---|---|---|
+| `dist-check.yml` (`Builtins.distCheck()`) | `binary` | Runs `dist generate --check` with the cargo-dist version from `Tools.pkl` (`0.32.0`, which a test ties to the `cargo-dist-version` in `dist-workspace.toml`). Fails when `release.yml` is not what cargo-dist would write from `dist-workspace.toml`. Runs on a pull request or push that changes `dist-workspace.toml`, `release.yml` or `Cargo.toml`, and by hand. Reads contents only, no secrets |
+| `scaffold-check.yml` (`Builtins.scaffoldCheck()`) | always | `pantheon-scaffold check pantheon.pkl` on every pull request, the sample job of [check-in-ci.md](check-in-ci.md). A test compares it with that sample under P.1 |
+
+Both are new files: no repository has them yet, so the real-repository report lists them as "new". `actions/cache` is now a pin in `pkl/Pins.pkl` (v6.1.0), so the pin update workflow keeps it current.
+
+### Finding that shaped wave D (decision 85)
+
+`dist generate --check` fails on today's `main` of pantheon-adr, pantheon-journal and pantheon-skill-auditor. On 04-11-2026 Dependabot bumped `actions/upload-artifact` (v7.0.1 to v7.0.2) and `actions/download-artifact` (v8.0.1 to v8.0.2) inside the generated `release.yml`, and `dist-workspace.toml`, which tells cargo-dist which commits to write, was not changed. So `dist-workspace.toml` is rendered with the two commits `release.yml` uses. Checked locally with cargo-dist 0.32.0 on a clone of each of the three repositories: the check passes with the new file and fails when `release.yml` is edited by hand.
+
+Known limit: Dependabot will keep bumping actions inside `release.yml` and cannot edit `dist-workspace.toml`, so the next such bump fails `dist-check.yml` until `dist-workspace.toml` and `release.yml` are regenerated together. The failure is the point of the check, but how to avoid a failing Dependabot pull request each time (an ignore entry for those two actions, or managing their commits in `Pins.pkl`) is not decided.
+
+Checks: `runner/test/phase5-dist.test.ts`, the updated `phase5-verbatim.test.ts`, the mutation check in `tmp/phase-5-wave-d` (11 of 11 caught), actionlint and zizmor 1.32.0 over both workflows, and the real-repository render.

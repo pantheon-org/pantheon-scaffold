@@ -203,3 +203,34 @@ test("the lock is released before the new runner renders, so its own render can 
   await run(root, f);
   expect(lockedDuringRender).toBe(false);
 });
+
+// What mise lock records for the runner is checked after it runs. Both locks are real output for the published v0.1.1.
+const lockFixture = (name: string) => readFileSync(join(import.meta.dir, "fixtures", name), "utf8");
+const lockWrites = (root: string, name: string) => (c: string) => c === "mise lock" && writeFileSync(join(root, "mise.lock"), lockFixture(name));
+
+test("a lock that names platforms the runner is not built for fails the upgrade and puts everything back", async () => {
+  const root = repo();
+  const before = snapshot(root);
+  const f = fakes({ onExec: lockWrites(root, "mise-lock-all-platforms.lock") });
+  const err = await run(root, f).then(() => null, (e: Error) => e);
+  expect(err).toBeInstanceOf(UpgradeError);
+  expect(err!.message).toContain("windows-x64");
+  expect(err!.message).toContain("macos-x64");
+  expect(err!.message).toContain("lockfile_platforms");
+  expect(snapshot(root)).toEqual(before);
+  expect(f.calls.some((c) => c.includes("render"))).toBe(false);
+});
+
+test("a lock limited to the supported platforms passes and is kept", async () => {
+  const root = repo();
+  const f = fakes({ onExec: lockWrites(root, "mise-lock-three-platforms.lock") });
+  const r = await run(root, f);
+  expect(r.renderExit).toBe(0);
+  expect(get(root, "mise.lock")).toBe(lockFixture("mise-lock-three-platforms.lock"));
+});
+
+test("a lock with no entry for the runner is not an error", async () => {
+  const root = repo();
+  const r = await run(root, fakes());
+  expect(r.renderExit).toBe(0);
+});

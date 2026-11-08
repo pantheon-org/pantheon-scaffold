@@ -2,6 +2,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { checksumAssetUrl, findChecksum } from "./checksums";
+import { checkRunnerLock } from "./lockcheck";
 import { acquireLock, type LockOptions } from "./lock";
 import { RUNNER_TOOL, readPins, writePins } from "./pins";
 import { compareSemver, parseSemver } from "./semver";
@@ -105,6 +106,15 @@ export async function upgrade(root: string, requested: string, opts: UpgradeOpti
         restore(saved);
         throw new UpgradeError(`mise ${step} failed (exit ${code}), the pins and the lock file were put back`);
       }
+    }
+    // mise locks every platform it knows unless told which, and for one with no runner it picks whatever asset it can.
+    const lockPath = join(root, "mise.lock");
+    const problems = existsSync(lockPath) ? checkRunnerLock(readFileSync(lockPath, "utf8")) : [];
+    if (problems.length) {
+      restore(saved);
+      throw new UpgradeError(
+        `mise lock recorded the wrong runner for some platforms, so the pins and the lock file were put back:\n  ${problems.join("\n  ")}\nLimit the platforms in mise.toml: [settings] lockfile_platforms = ["linux-x64", "linux-arm64", "macos-arm64"]`,
+      );
     }
   } finally {
     release();

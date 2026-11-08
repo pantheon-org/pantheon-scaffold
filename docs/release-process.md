@@ -18,7 +18,7 @@ A version is never re-published. If a release is bad, cut the next patch version
 | build | Runner tests, the package build, the three binaries. | read |
 | smoke | The 16 check smoke suite on linux-x64, linux-arm64 and darwin-arm64. | read |
 | release | Cross-checks the package files, writes `checksums.txt`, attests every asset, creates the pre-release. Attestation and publication run on a tag push only. | contents, id-token and attestations: write |
-| verify-release | From the outside, on all three platforms: installs the runner through mise with `mise lock` and `mise install --locked` (checksums and provenance enforced), runs `gh attestation verify` on the downloaded `checksums.txt`, renders and checks through the real package URI with the published checksum, and runs `upgrade --dry-run` against the real release. | read |
+| verify-release | From the outside, on all three platforms: installs the runner through mise with `mise lock` and `mise install --locked` (checksums and provenance enforced), runs `gh attestation verify` on the downloaded `checksums.txt`, limits the lock to the supported platforms (`lockfile_platforms`) and checks that it names only the three runner binaries, renders and checks through the real package URI with the published checksum, and runs `upgrade --dry-run` against the real release. | read |
 
 `checksums.txt` lists the three binaries, the package metadata file (its checksum is the one pkl checks with `::sha256`) and the zip. The attestation covers the binaries, the package files and `checksums.txt`.
 
@@ -46,3 +46,4 @@ They are asserted by `runner/test/release-workflow.test.ts` and kept honest by `
 | Version | Published | Status |
 |---|---|---|
 | 0.1.0 | 07-11-2026, pre-release | Published and **known bad** (listed in `known-bad.json`). Its runner could not read the version of a package URI that carries the pinned checksum, which every real consumer has, so it fails on every real consumer. The release pipeline's `verify-release` job found this on all three platforms. The assets, the attestations, `mise lock` and `mise install --locked` with provenance, and the real `gh attestation verify` all worked. A published version is never re-published, so the fix is 0.1.1. |
+| 0.1.1 | 07-11-2026, pre-release | Published and verified from the outside on ubuntu-latest, ubuntu-24.04-arm and macos-latest (release run 42427253206): `mise lock` and `mise install --locked` with provenance, `gh attestation verify` of `checksums.txt`, render and check through the real package URI with the published checksum, and `upgrade --dry-run` against the real release. Finding: without `lockfile_platforms`, `mise lock` names the package zip for platforms with no runner (see [runner-install.md](runner-install.md)). |

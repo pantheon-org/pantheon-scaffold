@@ -24,7 +24,7 @@ test("an unknown command prints usage with exit 2", async () => expect((await ru
 
 import { afterEach } from "bun:test";
 import { statSync } from "node:fs";
-import { cleanupRepos, get, has, put, tempRepo } from "./helpers";
+import { cleanupRepos, get, has, put, tempRepo, unpin } from "./helpers";
 
 afterEach(cleanupRepos);
 
@@ -88,9 +88,9 @@ test("the rendered workflows carry version comments and still equal the pinned u
   await render(repo);
   for (const name of ["cargo-deny", "inline-scripts", "rust-ci"]) {
     const text = get(repo, `.github/workflows/${name}.yml`);
-    expect(text).toContain("actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1");
+    expect(text).toMatch(/actions\/checkout@[0-9a-f]{40} # v\d/);
     const upstream = await Bun.file(join(root, `runner/test/upstream/workflows/${name}.yml`)).text();
-    expect(compareWorkflows(upstream, text)).toEqual({ equal: true, differences: [], duplicateKeys: [] });
+    expect(compareWorkflows(unpin(upstream), unpin(text))).toEqual({ equal: true, differences: [], duplicateKeys: [] });
   }
 });
 

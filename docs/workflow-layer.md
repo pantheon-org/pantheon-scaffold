@@ -95,6 +95,8 @@ Wave C is new work with no upstream copy, so it is checked by structure tests (`
 
 Run the script by hand with `bun runner/scripts/update-pins.ts --no-write` (reads GitHub with `GITHUB_TOKEN` or `GH_TOKEN`, writes nothing). The flag is `--no-write` and not `--dry-run` because bun consumes `--dry-run` itself: a "dry run" would have rewritten the file.
 
+The tests do not assert the exact pinned versions, so a pin pull request can pass CI on its own: P.1 comparisons with the pinned upstream copies replace each action commit with a marker (`unpin` in `runner/test/helpers.ts`), and the pin lists are checked by shape (`expectPins`: the right actions, each a 40 character commit with a version tag). That each commit belongs to a release tag is checked by `update-pins.ts`, not by the tests.
+
 A pin pull request changes `pkl/`, so while the version in `pkl/PklProject` is already published it also needs a version bump (`pkl project package` refuses a changed package at a published version). The workflow does not bump it.
 
 ### In a consumer repository

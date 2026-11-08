@@ -12,9 +12,9 @@ class Pin {
 }
 
 checkout: Pin = new { action = "actions/checkout"; sha = "3d3c42e5aac5ba805825da76410c181273ba90b1"; version = "v7.0.1" }
-miseAction: Pin = new { action = "jdx/mise-action"; sha = "9b200bcecbfd6303e69a4a261b2e09e3757440a7"; version = "v5.2.0" }
+miseAction: Pin = new { action = "jdx/mise-action"; sha = "b44d12e7d0d8ee7461bb893e1b1993500433185b"; version = "v5.2.7" }
 createGithubAppToken: Pin = new { action = "actions/create-github-app-token"; sha = "64ab729a6294000f5aa4a4bc0b73d1f32bc45510"; version = "v3.3.0" }
-plumber: Pin = new { action = "getplumber/plumber"; sha = "e9ad2dc6d6faa2dfd84395aac18e461284062640"; version = "v0.7.16" }
+plumber: Pin = new { action = "getplumber/plumber"; sha = "ec8cb3a7edd6a324b33e85109b627b2df6023d94"; version = "v0.7.23" }
 releasePleaseAction: Pin = new { action = "googleapis/release-please-action"; sha = "45996ed1f6d02564a971a2fa1b5860e934307cf7"; version = "v5.0.0" }
 zizmorAction: Pin = new { action = "zizmorcore/zizmor-action"; sha = "45d7276c9ca790aabd705e31ca99c6185c3e76dd"; version = "v0.8.1" }
 setupNode: Pin = new { action = "actions/setup-node"; sha = "949feb2413d6458794dcd2491c4babbbce0c15c1"; version = "v7.1.0" }

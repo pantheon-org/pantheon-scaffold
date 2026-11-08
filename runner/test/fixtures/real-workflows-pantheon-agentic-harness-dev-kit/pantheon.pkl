@@ -29,4 +29,6 @@ workflows {
 files {
   ...Builtins.workflowFiles()
   ...Builtins.analysisFiles(options)
+  ...Builtins.verbatimFiles(options)
+  ...Builtins.parameterisedFiles(options)
 }

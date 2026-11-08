@@ -11,6 +11,13 @@ import { compareDirectives, compareWorkflows } from "../src/equality";
 const root = resolve(import.meta.dir, "../..");
 const cli = join(root, "runner/src/cli.ts");
 const REPOS = ["pantheon-adr", "pantheon-journal", "pantheon-skill-auditor", "pantheon-agentic-harness-dev-kit"];
+// Differences the plan records and accepts, by repository and path. Anything else that differs fails the run.
+const RECORDED: Record<string, Record<string, string>> = {
+  "pantheon-agentic-harness-dev-kit": { ".gitignore": "decision 74 picks target/, the repository has /target" },
+  "pantheon-skill-auditor": { "SECURITY.md": "a seeded file: the repository words its scope bullets differently" },
+};
+// Listed by the package but never written: dist generate writes it, and the drift check of phase 5 wave D compares it.
+const EXTERNAL = [".github/workflows/release.yml"];
 
 type Run = { out: string; err: string; code: number };
 const sh = async (cmd: string[], cwd: string): Promise<Run> => {
@@ -21,6 +28,9 @@ const sh = async (cmd: string[], cwd: string): Promise<Run> => {
 const walk = (dir: string, base = dir): string[] =>
   readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(dir, e.name), base) : [join(dir, e.name).slice(base.length + 1)]));
 const isYaml = (p: string) => /\.ya?ml$/.test(p);
+// A pin that moved since the repository last updated it is a pin difference, listed in the report, and not a difference in content.
+const unpin = (text: string): string => text.replace(/@[0-9a-f]{40}\b/g, "@<pin>");
+const pinsOf = (text: string): string[] => [...text.matchAll(/uses:\s*([^@\s]+)@([0-9a-f]{40})/g)].map((m) => `${m[1]}@${m[2].slice(0, 7)}`);
 const comments = (t: string) => t.split("\n").filter((l) => /^\s*#/.test(l)).map((l) => l.trim());
 
 const actionlint = (await sh(["mise", "where", "actionlint"], root)).out;
@@ -54,27 +64,29 @@ for (const name of REPOS) {
     const mine = readFileSync(join(out, path), "utf8");
     const theirsPath = join(repo, path);
     if (!existsSync(theirsPath)) { results.push({ path, kind: "ABSENT", detail: ["the repository has no such file"] }); continue; }
+    const recorded = RECORDED[name]?.[path];
     const theirs = readFileSync(theirsPath, "utf8");
     if (mine === theirs) { results.push({ path, kind: "identical", detail: [] }); continue; }
     if (isYaml(path)) {
-      const c = compareWorkflows(theirs, mine);
+      const c = compareWorkflows(unpin(theirs), unpin(mine));
       const d = compareDirectives(theirs, mine);
-      if (!c.equal || c.duplicateKeys.length || d.length) { results.push({ path, kind: "DIFFERS", detail: [...c.differences, ...c.duplicateKeys.map((k) => `duplicate key ${k}`), ...d.map((x) => `directive: ${x}`)] }); continue; }
+      if (!c.equal || c.duplicateKeys.length || d.length) { results.push({ path, kind: recorded ? "recorded" : "DIFFERS", detail: [...(recorded ? [recorded] : []), ...c.differences, ...c.duplicateKeys.map((k) => `duplicate key ${k}`), ...d.map((x) => `directive: ${x}`)] }); continue; }
       const a = comments(theirs), b = comments(mine);
+      const moved = pinsOf(mine).filter((p) => !pinsOf(theirs).includes(p));
       const lost = a.filter((l) => !b.includes(l)).length, added = b.filter((l) => !a.includes(l)).length;
-      results.push({ path, kind: "equal (P.1)", detail: lost || added ? [`comments only: ${lost} line(s) of the repository's not rendered, ${added} rendered that it lacks`] : ["formatting only"] });
+      results.push({ path, kind: "equal (P.1)", detail: [...(moved.length ? [`pin moved since the repository's: ${moved.join(", ")}`] : []), ...(lost || added ? [`comments only: ${lost} line(s) of the repository's not rendered, ${added} rendered that it lacks`] : moved.length ? [] : ["formatting only"])] });
     } else {
-      results.push({ path, kind: "DIFFERS", detail: ["bytes differ"] });
+      results.push({ path, kind: recorded ? "recorded" : "DIFFERS", detail: [recorded ?? "bytes differ"] });
     }
   }
   const wfBuilt = new Set(built.filter((p) => p.startsWith(".github/workflows/")));
-  const notBuilt = [...(existsSync(join(repo, ".github")) ? walk(join(repo, ".github")).map((p) => `.github/${p}`) : [])].filter((p) => !built.includes(p) && (p.startsWith(".github/workflows/") || /^\.github\/[^/]+\.(ya?ml|txt|md)$/.test(p))).sort();
+  const notBuilt = [...(existsSync(join(repo, ".github")) ? walk(join(repo, ".github")).map((p) => `.github/${p}`) : [])].filter((p) => !built.includes(p) && !EXTERNAL.includes(p) && (p.startsWith(".github/workflows/") || /^\.github\/[^/]+\.(ya?ml|txt|md)$/.test(p))).sort();
   const lint = await sh([actionlintBin, ...[...wfBuilt].sort().map((p) => join(out, p))], out);
 
   const bad = results.filter((r) => r.kind === "DIFFERS" || r.kind === "ABSENT");
   const pass = bad.length === 0 && lint.code === 0;
   if (!pass) allPass = false;
-  summary.push(`| ${name} | ${head} | ${built.length} | ${results.filter((r) => r.kind === "identical").length} | ${results.filter((r) => r.kind === "equal (P.1)").length} | ${bad.length} | ${lint.code === 0 ? "clean" : "FAIL"} | ${pass ? "PASS" : "FAIL"} |`);
+  summary.push(`| ${name} | ${head} | ${built.length} | ${results.filter((r) => r.kind === "identical").length} | ${results.filter((r) => r.kind === "equal (P.1)").length} | ${results.filter((r) => r.kind === "recorded").length} | ${bad.length} | ${lint.code === 0 ? "clean" : "FAIL"} | ${pass ? "PASS" : "FAIL"} |`);
 
   say(`## ${name} at ${head}`);
   say();
@@ -89,8 +101,8 @@ for (const name of REPOS) {
 
 say("## Summary");
 say();
-say("| Repository | Commit | Files built | Identical | Equal under P.1 | Differ or absent | actionlint | Result |");
-say("|---|---|---|---|---|---|---|---|");
+say("| Repository | Commit | Files built | Identical | Equal under P.1 | Recorded | Differ or absent | actionlint | Result |");
+say("|---|---|---|---|---|---|---|---|---|");
 for (const s of summary) say(s);
 say();
 say(`Verdict: ${allPass ? "PASS" : "FAIL"}`);

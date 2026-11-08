@@ -224,12 +224,21 @@ jobs:
           [settings]
           lockfile = true
           locked_verify_provenance = true
+          lockfile_platforms = ["linux-x64", "linux-arm64", "macos-arm64"]
 
           [tools]
           pkl = "0.32.2"
           "github:$REPO" = "$VERSION"
           TOML
           mise lock
+          # With no platform list mise locks every platform and picks the package zip for the ones with no runner, so the lock is checked.
+          urls="$(grep -A6 "^\[tools\.\"github:$REPO\"\.\"platforms\." mise.lock | grep '^url = ' || true)"
+          echo "$urls"
+          test "$(echo "$urls" | grep -c .)" = 3
+          if echo "$urls" | grep -vE '/pantheon-scaffold-(linux-x64|linux-arm64|darwin-arm64)"$'; then
+            echo "mise chose an asset that is not a runner binary" >&2
+            exit 1
+          fi
           mise install --locked
           test "$(mise x -- pantheon-scaffold --version)" = "$VERSION"
       - name: Verify the attestation of checksums.txt, as upgrade does

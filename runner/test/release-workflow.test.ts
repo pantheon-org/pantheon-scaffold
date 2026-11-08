@@ -85,3 +85,9 @@ test("the release is verified from the outside after it is published, on all thr
 test("two releases never run at once, and a running release is not cancelled", () => {
   expect(wf.concurrency?.["cancel-in-progress"]).toBe(false);
 });
+
+test("the consumer the release is verified with limits the lock to the supported platforms and checks the assets mise chose", () => {
+  const run = wf.jobs["verify-release"].steps.map((s) => s.run ?? "").join("\n");
+  expect(run).toContain('lockfile_platforms = ["linux-x64", "linux-arm64", "macos-arm64"]');
+  expect(run).toContain("pantheon-scaffold-(linux-x64|linux-arm64|darwin-arm64)");
+});

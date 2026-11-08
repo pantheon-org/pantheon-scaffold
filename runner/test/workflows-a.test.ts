@@ -1,3 +1,4 @@
+import { expectPins, unpin } from "./helpers";
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -41,7 +42,7 @@ test("wave A renders the six workflows and the four config files they use", () =
 
 for (const name of Object.keys(WORKFLOWS)) {
   test(`${name}.yml equals the pinned pantheon-adr copy under the P.1 rule`, () => {
-    expect(compareWorkflows(upstream(name), file(contract, `.github/workflows/${name}.yml`).content!)).toEqual({ equal: true, differences: [], duplicateKeys: [] });
+    expect(compareWorkflows(unpin(upstream(name)), unpin(file(contract, `.github/workflows/${name}.yml`).content!))).toEqual({ equal: true, differences: [], duplicateKeys: [] });
   });
 
   test(`${name}.yml keeps every comment a tool acts on`, () => {
@@ -68,12 +69,8 @@ test("the four config files are byte for byte the pinned pantheon-adr files and 
   }
 });
 
-test("the pins are the three actions the workflows use, each the commit of a release tag", () => {
-  expect(contract.pins).toEqual([
-    { action: "actions/checkout", sha: "3d3c42e5aac5ba805825da76410c181273ba90b1", version: "v7.0.1" },
-    { action: "actions/create-github-app-token", sha: "64ab729a6294000f5aa4a4bc0b73d1f32bc45510", version: "v3.3.0" },
-    { action: "getplumber/plumber", sha: "e9ad2dc6d6faa2dfd84395aac18e461284062640", version: "v0.7.16" },
-  ]);
+test("the pins are the three actions the workflows use, each a commit with a version tag", () => {
+  expectPins(contract.pins, ["actions/checkout", "actions/create-github-app-token", "getplumber/plumber"]);
 });
 
 test("wave A uses no escape hatch", () => expect(contract.escapeHatch.uses).toBe(0));

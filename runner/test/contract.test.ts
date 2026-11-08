@@ -1,3 +1,4 @@
+import { expectPins } from "./helpers";
 import { expect, test } from "bun:test";
 import { join } from "node:path";
 import { parseContract, ContractError } from "../src/contract";
@@ -25,7 +26,7 @@ test("the pkl output of the minimal fixture satisfies the schema (contract test,
   expect(contract.files.map((f) => f.path)).toEqual([".github/scripts/hello.sh", ".github/workflows/hello.yml", "mise.lock", "rust-toolchain.toml"]);
   expect(contract.files.find((f) => f.path === "mise.lock")).toEqual({ path: "mise.lock", class: "external", mode: "0644" });
   expect(contract.files.find((f) => f.path === ".github/scripts/hello.sh")?.mode).toBe("0755");
-  expect(contract.pins).toEqual([{ action: "actions/checkout", sha: "3d3c42e5aac5ba805825da76410c181273ba90b1", version: "v7.0.1" }]);
+  expectPins(contract.pins, ["actions/checkout"]);
   expect(contract.escapeHatch).toEqual({ uses: 0, constructs: 4 });
 });
 

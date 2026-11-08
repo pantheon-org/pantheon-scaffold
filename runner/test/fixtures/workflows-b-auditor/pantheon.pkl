@@ -1,0 +1,19 @@
+amends "../../../../pkl/Config.pkl"
+
+import "../../../../pkl/Builtins.pkl"
+
+// A repository like pantheon-skill-auditor: a binary, a skill, and its own composite action that zizmor also scans.
+options {
+  toolchain = "1.96.1"
+  crateName = "skill-auditor"
+  compositeAction = true
+  gitDependencyIgnore { "pahdk-core"; "pahdk-install" }
+}
+
+workflows {
+  ["zizmor"] = Builtins.zizmor(options)
+}
+
+files {
+  ...Builtins.analysisFiles(options)
+}

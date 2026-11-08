@@ -89,3 +89,7 @@ Each repository already has an `hk.pkl` with the steps inline, so the seed is no
 1. Render, then diff the existing `hk.pkl` against the seeded one. The `hooks` block should be identical except that `steps = preCommit` and `steps = prePush` became `steps = shared.preCommit()` and `steps = shared.prePush()`.
 2. Keep any step of your own: move it into the hook that needs it, as shown above.
 3. Replace the repository's `hk.pkl` with the seeded one plus those local steps, delete the inline `local preCommit` and `local prePush`, and run `hk check --all`.
+
+## Wave D: the four real repositories
+
+A read-only render of everything Phase 3 owns into scratch clones of the four repositories passes for all four, with the verbatim files byte for byte equal, `mise.toml` changed by exactly the named lines, and `hk check --all` giving the same result before and after. The results, the named differences and a finding that is not ours (`rumdl` fails in all four repositories today) are in [real-repo-tooling.md](real-repo-tooling.md).

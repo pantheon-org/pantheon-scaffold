@@ -1033,7 +1033,7 @@ local skillAuditorPin: Pins.Pin = new { action = "pantheon-org/pantheon-skill-au
 /// Validates and grades the bundled skill (`skills` toggle, option `skillName`). With `compositeAction` the repository is the skill auditor
 /// itself, so it runs its own action with a bootstrap binary instead of the released action.
 function auditSkill(opts: Config.Options): Config.Workflow =
-  let (skill = opts.skillName!!)
+  let (skill = needSkillName(opts))
   let (paths = new Listing {
     "skills/\(skill)/**"
     when (opts.compositeAction) { "action.yml" }
@@ -1111,7 +1111,7 @@ function parameterisedFiles(opts: Config.Options): Mapping<String, Config.GenFil
     content =
       let (text = read("assets/coderabbit.yaml.tmpl").text)
       if (opts.skills)
-        text.replaceAll("@@SKILL@@", opts.skillName!!)
+        text.replaceAll("@@SKILL@@", needSkillName(opts))
       else
         text.replaceAll("    # Covered by the Audit Skill workflow; avoid a second opinion on the same diff.\n    - \"!skills/@@SKILL@@/**\"\n", "")
   }
@@ -1120,14 +1120,50 @@ function parameterisedFiles(opts: Config.Options): Mapping<String, Config.GenFil
     content =
       if (opts.binary)
         read("assets/security-binary.md.tmpl").text
-          .replaceAll("@@CRATE@@", opts.crateName!!)
-          .replaceAll("@@SKILL_LINE@@\n", if (opts.skills) "- The bundled `\(opts.skillName!!)` skill and its scripts.\n" else "")
+          .replaceAll("@@CRATE@@", needCrateName(opts))
+          .replaceAll("@@SKILL_LINE@@\n", if (opts.skills) "- The bundled `\(needSkillName(opts))` skill and its scripts.\n" else "")
       else read("assets/security-library.md").text
   }
   when (opts.binary) {
     [".github/scripts/tag-release.sh"] = new Config.GenFile {
-      content = read("assets/tag-release.sh.tmpl").text.replaceAll("@@CRATE@@", opts.crateName!!)
+      content = read("assets/tag-release.sh.tmpl").text.replaceAll("@@CRATE@@", needCrateName(opts))
       executable = true
     }
   }
+}
+
+// Phase 5, wave C: the toggles.
+
+local function needSkillName(opts: Config.Options): String =
+  opts.skillName ?? throw("options.skillName is required when options.skills is true: it names the folder under skills/ that audit-skill.yml, .coderabbit.yaml and SECURITY.md refer to. Set skillName, or set skills = false.")
+
+local function needCrateName(opts: Config.Options): String =
+  opts.crateName ?? throw("options.crateName is required when options.binary is true: tag-release.sh and SECURITY.md name the crate. Set crateName, or set binary = false.")
+
+/// Every workflow of the workflow layer for a repository with these options: the thirteen that every repository has, and `audit-skill` when
+/// `skills` is on. Turning `skills` off drops the entry, so the runner deletes the file it rendered before.
+function standardWorkflows(opts: Config.Options): Mapping<String, Config.Workflow> = new {
+  ["plumber"] = plumber()
+  ["sync-labels"] = syncLabels()
+  ["pr-auto-rebase"] = prAutoRebase(opts)
+  ["release-automerge"] = releaseAutomerge(opts)
+  ["commit-types"] = commitTypes()
+  ["conventional-commits"] = conventionalCommits()
+  ["release-please"] = releasePlease(opts)
+  ["zizmor"] = zizmor(opts)
+  ["agnix"] = agnix(opts)
+  ["aislop"] = aislop()
+  ["rust-ci"] = rustCi(opts)
+  ["cargo-deny"] = cargoDeny(opts)
+  ["inline-scripts"] = inlineScripts()
+  when (opts.skills) { ["audit-skill"] = auditSkill(opts) }
+}
+
+/// Every file of the workflow layer for a repository with these options: the config files the workflows read, the verbatim files and the
+/// parameterised ones. Files that belong to `binary` are dropped when it is off.
+function standardFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
+  ...workflowFiles()
+  ...analysisFiles(opts)
+  ...verbatimFiles(opts)
+  ...parameterisedFiles(opts)
 }

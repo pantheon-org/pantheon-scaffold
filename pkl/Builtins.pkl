@@ -126,3 +126,19 @@ function baseFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new 
   [".github/scripts/check-inline-scripts.sh"] = new Config.GenFile { content = read("assets/check-inline-scripts.sh").text; executable = true }
   [".github/scripts/check-toolchain-version.sh"] = new Config.GenFile { content = read("assets/check-toolchain-version.sh").text; executable = true }
 }
+
+/// The tooling files the four Rust repositories share, all verbatim: the seven shared scripts that `baseFiles` does not cover (with
+/// `cargo-deny.sh` and `check-inline-scripts.sh` from there they are the nine shared scripts), the rumdl configuration and the Claude Code
+/// settings. All nine scripts are executable. `sync-labels.sh` is not executable in the four repositories today, and its workflow runs
+/// it with `bash`, so the bit never mattered. It is rendered executable like the other eight.
+function toolingFiles(): Mapping<String, Config.GenFile> = new {
+  [".github/scripts/agnix-assemble-comment.sh"] = new Config.GenFile { content = read("assets/agnix-assemble-comment.sh").text; executable = true }
+  [".github/scripts/agnix-file-issues.sh"] = new Config.GenFile { content = read("assets/agnix-file-issues.sh").text; executable = true }
+  [".github/scripts/agnix-introduced-errors.sh"] = new Config.GenFile { content = read("assets/agnix-introduced-errors.sh").text; executable = true }
+  [".github/scripts/auto-rebase.sh"] = new Config.GenFile { content = read("assets/auto-rebase.sh").text; executable = true }
+  [".github/scripts/check-commit-types.sh"] = new Config.GenFile { content = read("assets/check-commit-types.sh").text; executable = true }
+  [".github/scripts/release-automerge.sh"] = new Config.GenFile { content = read("assets/release-automerge.sh").text; executable = true }
+  [".github/scripts/sync-labels.sh"] = new Config.GenFile { content = read("assets/sync-labels.sh").text; executable = true }
+  [".rumdl.toml"] = new Config.GenFile { content = read("assets/rumdl.toml").text }
+  [".claude/settings.json"] = new Config.GenFile { content = read("assets/claude-settings.json").text }
+}

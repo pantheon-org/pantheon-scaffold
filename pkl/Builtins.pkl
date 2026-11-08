@@ -187,3 +187,317 @@ function hkFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
     content = read("assets/hk.pkl.tmpl").text.replaceAll("@@HK_VERSION@@", Tools.hkConfigVersion)
   }
 }
+
+// BEGIN generated: wave A workflows (tmp/phase-4-generators/workflows-a.ts)
+
+local function mintToken(opts: Config.Options): Config.Step = new {
+  name = "Mint pantheon-ai-bot token"
+  id = "app-token"
+  uses = Pins.createGithubAppToken
+  `with` = new Mapping {
+    ["client-id"] = opts.appClientId
+    ["private-key"] = "${{ secrets.GH_APP_PRIVATE_KEY }}"
+    ["permission-contents"] = "write"
+    ["permission-pull-requests"] = "write"
+  }
+}
+
+local checkoutScripts: Config.Step = new {
+  name = "Checkout scripts"
+  uses = Pins.checkout
+  `with` = new Mapping {
+    ["persist-credentials"] = false
+    ["sparse-checkout"] = ".github/scripts"
+  }
+}
+
+/// The CI/CD security scan of the repository's workflows (Plumber). Only a Critical finding blocks a pull request.
+function plumber(): Config.Workflow = new {
+  header = #"""
+    CI/CD security scan of this repository's GitHub Actions workflows (unpinned
+    actions, untrusted shell input, over-broad permissions). Findings surface in the
+    Security tab (Code Scanning SARIF).
+
+    Gating model (ported from pantheon-org/tekhne): Critical findings BLOCK the PR;
+    everything else is visible in Code Scanning and never blocks. The Plumber action
+    runs with soft-fail + continue-on-error so its own A-E score gate and any
+    transient runtime error never block; the ONLY blocking signal is a Critical
+    finding in the gate step below. Config lives in .plumber.yaml.
+    """#
+  name = "Plumber"
+  on = new Mapping<String, Any?> {
+    ...mainTriggers()
+    ["schedule"] = new Listing { new Mapping { ["cron"] = "41 3 * * 1" } }
+  }
+  permissions = readOnly
+  concurrency = concurrencyPerRef
+  jobs {
+    ["plumber"] {
+      name = "Plumber Score"
+      `runs-on` = "ubuntu-24.04"
+      `timeout-minutes` = 5
+      permissions = new Mapping {
+        ["contents"] = "read"
+        ["security-events"] = "write"
+      }
+      steps {
+        checkout
+        new {
+          id = "plumber"
+          uses = Pins.plumber
+          `continue-on-error` = true
+          `with` = new Mapping {
+            ["soft-fail"] = "true"
+            ["score-push"] = "false"
+            ["output"] = "results.json"
+          }
+        }
+        new {
+          name = "Gate on Critical findings"
+          run = #"""
+            if [ ! -f results.json ]; then
+              echo "::warning::results.json not found; Plumber did not produce a report (likely a transient scan error). Critical gate skipped this run."
+              exit 0
+            fi
+            critical="$(jq '.plumberScore.counts.critical // 0' results.json)"
+            if [ "$critical" -gt 0 ]; then
+              echo "::error::${critical} Critical-severity Plumber finding(s) present; see the Code Scanning alerts for detail."
+              jq -r '(.plumberScore.codeLosses // [])[] | select(.severity == "critical") | "::error::[\(.code)] \(.count) Critical-severity finding(s)"' results.json
+              exit 1
+            fi
+            echo "No Critical-severity Plumber findings. Gate passed."\#n
+            """#
+        }
+      }
+    }
+  }
+}
+
+/// Creates the labels Dependabot applies, from .github/labels.txt.
+function syncLabels(): Config.Workflow = new {
+  header = #"""
+    Creates the labels Dependabot applies (see .github/dependabot.yml). Dependabot
+    cannot create labels itself and comments on its PRs when one is missing.
+    Edit .github/labels.txt to add a label; this runs on push to main or on demand.
+    """#
+  name = "Sync Labels"
+  on = new Mapping<String, Any?> {
+    ["push"] = new Mapping {
+      ["branches"] = new Listing { "main" }
+      ["paths"] = new Listing { ".github/labels.txt"; ".github/scripts/sync-labels.sh"; ".github/workflows/sync-labels.yml" }
+    }
+    ["workflow_dispatch"] = new Mapping {}
+  }
+  permissions = new Mapping {
+    ["contents"] = "read"
+    ["issues"] = "write"
+  }
+  jobs {
+    ["sync-labels"] {
+      name = "Sync Labels"
+      `timeout-minutes` = 5
+      steps {
+        checkout
+        new {
+          name = "Create or update labels"
+          env = new Mapping {
+            ["GH_TOKEN"] = "${{ github.token }}"
+            ["GH_REPO"] = "${{ github.repository }}"
+          }
+          run = "bash .github/scripts/sync-labels.sh"
+        }
+      }
+    }
+  }
+}
+
+/// Rebases open pull request branches that are behind main, under the App token so the required checks run again on the new head.
+function prAutoRebase(opts: Config.Options): Config.Workflow = new {
+  header = #"""
+    The `main` ruleset requires linear history and a strict "branches must be up
+    to date" status-check policy, so every push to `main` marks all open PRs as
+    BEHIND and blocks them until rebased. This workflow rebases those branches
+    onto the latest `main` using the pantheon-ai-bot App token, which (unlike the
+    default GITHUB_TOKEN) re-triggers the required checks on the new head.
+    Ported from pantheon-org/tekhne.
+
+    Needs the org secret GH_APP_PRIVATE_KEY to be available to this repository and
+    the App installed on it with contents and pull-requests write.
+    """#
+  name = "Auto-rebase PR branches"
+  on = new Mapping<String, Any?> {
+    ["push"] = new Mapping { ["branches"] = new Listing { "main" } }
+    ["workflow_dispatch"] = new Mapping {}
+  }
+  permissions = readOnly
+  concurrency = new Mapping {
+    ["group"] = "pr-auto-rebase"
+    ["cancel-in-progress"] = true
+  }
+  jobs {
+    ["rebase"] {
+      name = "Rebase behind PR branches"
+      `timeout-minutes` = 5
+      steps {
+        mintToken(opts)
+        checkoutScripts
+        new {
+          name = "Rebase behind, non-draft PRs"
+          env = new Mapping {
+            ["GH_TOKEN"] = "${{ steps.app-token.outputs.token }}"
+            ["GH_REPO"] = "${{ github.repository }}"
+          }
+          run = "bash .github/scripts/auto-rebase.sh"
+        }
+      }
+    }
+  }
+}
+
+/// Mondays: squash-merges the open release-please pull request, under the App token so the push to main starts release-please.
+function releaseAutomerge(opts: Config.Options): Config.Workflow = new {
+  header = #"""
+    Mondays: squash-merges the open release-please PR so a release lands without a
+    human clicking merge. The merge runs under the pantheon-ai-bot App token so the
+    push to main fires release-please.yml, which then tags the version.
+    Ported from pantheon-org/tekhne. Needs the org secret GH_APP_PRIVATE_KEY.
+    """#
+  name = "Release Auto-merge"
+  on = new Mapping<String, Any?> {
+    ["schedule"] = new Listing { new Mapping { ["cron"] = "37 8 * * 1" } }
+    ["workflow_dispatch"] = new Mapping {}
+  }
+  permissions = readOnly
+  concurrency = new Mapping {
+    ["group"] = "release-automerge"
+    ["cancel-in-progress"] = false
+  }
+  jobs {
+    ["automerge"] {
+      name = "Merge open release PR"
+      `timeout-minutes` = 5
+      steps {
+        mintToken(opts)
+        checkoutScripts
+        new {
+          name = "Merge open release-please PR"
+          env = new Mapping {
+            ["GH_TOKEN"] = "${{ steps.app-token.outputs.token }}"
+            ["GH_REPO"] = "${{ github.repository }}"
+          }
+          run = "bash .github/scripts/release-automerge.sh"
+        }
+      }
+    }
+  }
+}
+
+/// Fails when the commit types copied into the title gate drift from .github/commit-types.txt.
+function commitTypes(): Config.Workflow = new {
+  header = #"""
+    Keeps the PR title gate honest. conventional-commits.yml carries a copy of
+    the allowed commit types inside its regex, because it runs on
+    pull_request_target and must not read repository files. This runs on an
+    ordinary pull_request, where reading them is safe, and fails if:
+
+      - the copy has drifted from .github/commit-types.txt, the canonical list, or
+      - the regex no longer accepts or rejects the titles in the script's table,
+        including release-please's own pull request titles.
+
+    Path-filtered on purpose. Unlike the title gate and zizmor it is not meant to
+    be a required status check: a required check that is skipped blocks the pull
+    request forever, so only change this to required after removing the filter.
+    Also runs on push to main as a post-merge safety net.
+    """#
+  name = "Commit Types"
+  on = new Mapping<String, Any?> {
+    ["pull_request"] = new Mapping {
+      ["types"] = new Listing { "opened"; "synchronize"; "reopened" }
+      ["branches"] = new Listing { "main" }
+      ["paths"] = commitTypesPaths
+    }
+    ["push"] = new Mapping {
+      ["branches"] = new Listing { "main" }
+      ["paths"] = commitTypesPaths
+    }
+  }
+  permissions = readOnly
+  concurrency = concurrencyPerRef
+  jobs {
+    ["commit-types"] {
+      name = "Commit Types"
+      `timeout-minutes` = 5
+      steps {
+        checkout
+        new { name = "Check the gate has not drifted from the canonical list"; run = "bash .github/scripts/check-commit-types.sh" }
+      }
+    }
+  }
+}
+
+local commitTypesPaths: Listing<String> = new {
+  ".github/commit-types.txt"
+  ".github/workflows/conventional-commits.yml"
+  ".github/workflows/commit-types.yml"
+  ".github/scripts/check-commit-types.sh"
+}
+
+/// Checks that the pull request title is a conventional commit. The job name is the required status check, so it must not change.
+function conventionalCommits(): Config.Workflow = new {
+  header = #"""
+    Pull requests are squash-merged, so the title becomes the commit message on
+    main and is what release-please parses to pick the version bump and write
+    the changelog. A malformed title produces a wrong bump or no release at all,
+    silently.
+
+    The allowed types are copied into the regex below from .github/commit-types.txt.
+    The copy is deliberate: this runs on pull_request_target, where the workflow
+    has a privileged token, so it checks out nothing and reads only the event
+    payload. .github/scripts/check-commit-types.sh fails if the copy drifts, and
+    the Commit Types workflow runs that check on pull requests.
+    """#
+  name = "Conventional Commit Title"
+  onComment = "zizmor: ignore[dangerous-triggers] reads only the PR title; checks out and runs no PR code"
+  on = new Mapping<String, Any?> {
+    ["pull_request_target"] = new Mapping {
+      ["types"] = new Listing { "opened"; "edited"; "reopened"; "synchronize" }
+    }
+  }
+  permissions = new Mapping {}
+  concurrency = new Mapping {
+    ["group"] = "${{ github.workflow }}-${{ github.event.pull_request.number }}"
+    ["cancel-in-progress"] = true
+  }
+  jobs {
+    ["title"] {
+      name = "Conventional Commit Title"
+      `timeout-minutes` = 5
+      steps {
+        new {
+          name = "Check the pull request title"
+          env = new Mapping { ["PR_TITLE"] = "${{ github.event.pull_request.title }}" }
+          run = #"""
+            pattern='^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([[:alnum:]][[:alnum:]./_-]*\))?!?: [[:lower:]](.*[[:graph:]])?$'
+            if [[ ! "$PR_TITLE" =~ $pattern ]]; then
+              echo "::error title=Invalid pull request title::The title does not match the required format."
+              printf 'Received title: %q\n' "$PR_TITLE"
+              echo "Use: <type>[optional scope][optional !]: <summary starting lowercase>"
+              echo "Types: build chore ci docs feat fix perf refactor revert style test"
+              exit 1
+            fi\#n
+            """#
+        }
+      }
+    }
+  }
+}
+
+/// The verbatim config files the wave A workflows use, from pantheon-adr at 1e2fd46.
+function workflowFiles(): Mapping<String, Config.GenFile> = new {
+  [".plumber.yaml"] = new Config.GenFile { content = read("assets/plumber.yaml").text }
+  [".github/labels.txt"] = new Config.GenFile { content = read("assets/labels.txt").text }
+  [".github/commit-types.txt"] = new Config.GenFile { content = read("assets/commit-types.txt").text }
+  [".github/pull_request_template.md"] = new Config.GenFile { content = read("assets/pull_request_template.md").text }
+}
+
+// END generated: wave A workflows

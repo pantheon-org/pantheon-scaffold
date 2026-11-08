@@ -74,3 +74,41 @@ test("duplicate keys: comments and the document marker are ignored", () => {
 test("duplicate keys: quoted keys count", () => {
   expect(findDuplicateKeys("'on': 1\n'on': 2\n")).toEqual(["line 2: 'on'"]);
 });
+
+// Comments a tool acts on. P.1 ignores comments, so a render that dropped one would pass P.1 and then fail the tool in the real repository.
+import { compareDirectives, directiveComments } from "../src/equality";
+
+const withZizmor = `name: x\non: # zizmor: ignore[dangerous-triggers] reads only the PR title\n  pull_request_target:\n    types: [opened]\n`;
+
+test("a zizmor ignore comment is found with the line it sits on", () => {
+  expect(directiveComments(withZizmor)).toEqual(["on: # zizmor: ignore[dangerous-triggers] reads only the PR title"]);
+});
+
+test("ordinary comments are not directives", () => {
+  expect(directiveComments("name: x # a note\n# zizmor is a linter\non: push\n")).toEqual([]);
+});
+
+test("a zizmor directive inside a run script is part of the script and not a YAML comment", () => {
+  const script = "jobs:\n  a:\n    steps:\n      - run: |\n          echo '# zizmor: ignore[x]'\n";
+  expect(directiveComments(script)).toEqual([]);
+});
+
+test("the same directives compare equal, however the file is otherwise formatted", () => {
+  expect(compareDirectives(withZizmor, withZizmor.replace("name: x", "name:    x"))).toEqual([]);
+});
+
+test("a dropped directive and an added one are both reported", () => {
+  expect(compareDirectives(withZizmor, "name: x\non:\n  pull_request_target:\n    types: [opened]\n")).toEqual(["missing in the render: on: # zizmor: ignore[dangerous-triggers] reads only the PR title"]);
+  expect(compareDirectives("name: x\non: push\n", withZizmor)).toEqual(["not in the canonical file: on: # zizmor: ignore[dangerous-triggers] reads only the PR title"]);
+});
+
+test("a directive moved to a different line is reported", () => {
+  const moved = withZizmor.replace("on: # zizmor: ignore[dangerous-triggers] reads only the PR title\n  pull_request_target:", "on:\n  pull_request_target: # zizmor: ignore[dangerous-triggers] reads only the PR title");
+  expect(compareDirectives(withZizmor, moved)).toHaveLength(2);
+});
+
+test("a directive on a quoted key is the same line as on the bare key", () => {
+  const quoted = withZizmor.replace("\non:", "\n'on':");
+  expect(compareDirectives(withZizmor, quoted)).toEqual([]);
+  expect(directiveComments(quoted)).toEqual(["on: # zizmor: ignore[dangerous-triggers] reads only the PR title"]);
+});

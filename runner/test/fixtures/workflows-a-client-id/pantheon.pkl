@@ -1,0 +1,13 @@
+amends "../../../../pkl/Config.pkl"
+
+import "../../../../pkl/Builtins.pkl"
+
+options {
+  toolchain = "1.96.1"
+  appClientId = "Iv-test-client-id"
+}
+
+workflows {
+  ["pr-auto-rebase"] = Builtins.prAutoRebase(options)
+  ["release-automerge"] = Builtins.releaseAutomerge(options)
+}

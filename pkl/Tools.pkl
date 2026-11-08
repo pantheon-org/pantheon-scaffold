@@ -25,3 +25,15 @@ const minimumReleaseAge: String = "7d"
 /// The platforms the runner is built for. mise locks only these: for any other platform it picks whatever release asset it can, and for
 /// this package that is the package zip (found on the published v0.1.1).
 const lockfilePlatforms: List<String> = List("linux-x64", "linux-arm64", "macos-arm64")
+
+/// The skill auditor the audit-skill workflow installs through that repository's own action, pinned by the commit that is its v0.3.1 tag
+/// (decision 71). The version and the SHA-256 of its binary belong to that commit, so they change together, and the commit is kept here
+/// and not in Pins.pkl so that the pin update workflow cannot move the action without moving its binary.
+const skillAuditorAction: String = "a71472ec078f54ff13b5b74b7e3786779ef28df9"
+const skillAuditorVersion: String = "0.3.1"
+const skillAuditorSha256: String = "538863c9929331cd3ff0af6a0f8780fb409592d55757335d91e4627808656799"
+
+/// The repository that is the skill auditor runs its own action, which needs a binary from before its first release: the tekhne v0.3.0 one.
+const skillAuditorBootstrapVersion: String = "0.3.0"
+const skillAuditorBootstrapSha256: String = "092abe13e3ab7456a95bcd145e8c3074181d5f2c0e9eb6a9de54eb86ed6486d7"
+const skillAuditorBootstrapUrl: String = "https://github.com/pantheon-org/tekhne/releases/download/tool/pantheon-skill-auditor-v0.3.0/pantheon-skill-auditor-x86_64-unknown-linux-gnu.tar.xz"

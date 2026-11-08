@@ -1,0 +1,63 @@
+name: Audit skill
+
+# The embedded skill (skills/skill-quality-auditor/) is audited with a released binary through this
+# repository's own action, the way a consuming repository would. Until this
+# repository has its own release, the bootstrap binary is the tekhne v0.3.0 one.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+    paths:
+      - "skills/skill-quality-auditor/**"
+      - "action.yml"
+      - ".github/workflows/audit-skill.yml"
+  push:
+    branches: [main]
+    paths:
+      - "skills/skill-quality-auditor/**"
+      - "action.yml"
+      - ".github/workflows/audit-skill.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Audit skill
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install pantheon-skill-auditor
+        uses: ./
+        with:
+          version: "0.3.0"
+          sha256: "092abe13e3ab7456a95bcd145e8c3074181d5f2c0e9eb6a9de54eb86ed6486d7"
+          download-url: "https://github.com/pantheon-org/tekhne/releases/download/tool/pantheon-skill-auditor-v0.3.0/pantheon-skill-auditor-x86_64-unknown-linux-gnu.tar.xz"
+
+      # Exit codes: 0 clean, 1 error, 2 warnings only, 3 usage error. Warnings do
+      # not fail the job (the same policy as tekhne); errors and usage errors do.
+      - name: Validate structure
+        run: |
+          rc=0
+          pantheon-skill-auditor validate structure --allow-dirs=evals skills/skill-quality-auditor || rc=$?
+          case "$rc" in
+            0) ;;
+            2) echo "::warning::validate structure reported warnings only" ;;
+            *) exit "$rc" ;;
+          esac
+
+      # Same gate as tekhne: A and A+ pass, B and B+ warn, anything lower fails.
+      - name: Grade the skill
+        run: |
+          grade=$(pantheon-skill-auditor evaluate ./skills/skill-quality-auditor --json | jq -r '.grade // "?"')
+          echo "grade: $grade"
+          case "$grade" in
+            A|A+) ;;
+            B+|B) echo "::warning::skill grade $grade is below A" ;;
+            *) echo "::error::skill grade $grade is below B"; exit 1 ;;
+          esac

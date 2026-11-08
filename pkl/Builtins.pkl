@@ -1023,3 +1023,111 @@ function verbatimFiles(opts: Config.Options): Mapping<String, Config.GenFile> = 
     [".github/workflows/release.yml"] = new Config.GenFile { `class` = "external" }
   }
 }
+
+// Phase 5, wave B: written by hand from the pinned copies in runner/test/upstream/phase5 (pantheon-adr 1e2fd46, pantheon-journal 05c3d84,
+// pantheon-skill-auditor b9e706e, pantheon-agentic-harness-dev-kit 42f48b4). Run scripts are copied, the names are parameters.
+
+/// The skill auditor action as a pin, built from Tools.pkl and not listed in Pins.pkl, so the pin update workflow cannot move it without its binary.
+local skillAuditorPin: Pins.Pin = new { action = "pantheon-org/pantheon-skill-auditor"; sha = Tools.skillAuditorAction; version = "v\(Tools.skillAuditorVersion)" }
+
+/// Validates and grades the bundled skill (`skills` toggle, option `skillName`). With `compositeAction` the repository is the skill auditor
+/// itself, so it runs its own action with a bootstrap binary instead of the released action.
+function auditSkill(opts: Config.Options): Config.Workflow =
+  let (skill = opts.skillName!!)
+  let (paths = new Listing {
+    "skills/\(skill)/**"
+    when (opts.compositeAction) { "action.yml" }
+    ".github/workflows/audit-skill.yml"
+  })
+  new {
+    header =
+      if (opts.compositeAction)
+        "The embedded skill (skills/\(skill)/) is audited with a released binary through this\nrepository's own action, the way a consuming repository would. Until this\nrepository has its own release, the bootstrap binary is the tekhne v\(Tools.skillAuditorBootstrapVersion) one."
+      else
+        "The bundled skill (skills/\(skill)/) is validated and graded with a released\npantheon-skill-auditor, installed through that repository's own action, the way\nany consuming repository would."
+    name = "Audit skill"
+    on = new Mapping<String, Any?> {
+      ["pull_request"] = new Mapping {
+        ["types"] = new Listing { "opened"; "synchronize"; "reopened" }
+        ["branches"] = new Listing { "main" }
+        ["paths"] = paths
+      }
+      ["push"] = new Mapping {
+        ["branches"] = new Listing { "main" }
+        ["paths"] = paths
+      }
+    }
+    permissions = readOnly
+    jobs {
+      ["audit"] {
+        name = "Audit skill"
+        `timeout-minutes` = 5
+        steps {
+          checkout
+          new {
+            name = "Install pantheon-skill-auditor"
+            uses = if (opts.compositeAction) "./" else skillAuditorPin
+            `with` = new Mapping {
+              ["version"] = if (opts.compositeAction) Tools.skillAuditorBootstrapVersion else Tools.skillAuditorVersion
+              ["sha256"] = if (opts.compositeAction) Tools.skillAuditorBootstrapSha256 else Tools.skillAuditorSha256
+              when (opts.compositeAction) { ["download-url"] = Tools.skillAuditorBootstrapUrl }
+            }
+          }
+          new {
+            name = "Validate structure"
+            run = #"""
+              rc=0
+              pantheon-skill-auditor validate structure --allow-dirs=evals skills/\#(skill) || rc=$?
+              case "$rc" in
+                0) ;;
+                2) echo "::warning::validate structure reported warnings only" ;;
+                *) exit "$rc" ;;
+              esac
+
+              """#
+          }
+          new {
+            name = "Grade the skill"
+            run = #"""
+              grade=$(pantheon-skill-auditor evaluate ./skills/\#(skill) --json | jq -r '.grade // "?"')
+              echo "grade: $grade"
+              case "$grade" in
+                A|A+) ;;
+                B+|B) echo "::warning::skill grade $grade is below A" ;;
+                *) echo "::error::skill grade $grade is below B"; exit 1 ;;
+              esac
+
+              """#
+          }
+        }
+      }
+    }
+  }
+
+/// The files of the parameterised group: `.coderabbit.yaml` always (the skill line only with `skills`), `SECURITY.md` seeded once (the binary
+/// text with the crate and skill names, or the library text), and with `binary` the release tagging script.
+function parameterisedFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
+  [".coderabbit.yaml"] = new Config.GenFile {
+    content =
+      let (text = read("assets/coderabbit.yaml.tmpl").text)
+      if (opts.skills)
+        text.replaceAll("@@SKILL@@", opts.skillName!!)
+      else
+        text.replaceAll("    # Covered by the Audit Skill workflow; avoid a second opinion on the same diff.\n    - \"!skills/@@SKILL@@/**\"\n", "")
+  }
+  ["SECURITY.md"] = new Config.GenFile {
+    `class` = "seed"
+    content =
+      if (opts.binary)
+        read("assets/security-binary.md.tmpl").text
+          .replaceAll("@@CRATE@@", opts.crateName!!)
+          .replaceAll("@@SKILL_LINE@@\n", if (opts.skills) "- The bundled `\(opts.skillName!!)` skill and its scripts.\n" else "")
+      else read("assets/security-library.md").text
+  }
+  when (opts.binary) {
+    [".github/scripts/tag-release.sh"] = new Config.GenFile {
+      content = read("assets/tag-release.sh.tmpl").text.replaceAll("@@CRATE@@", opts.crateName!!)
+      executable = true
+    }
+  }
+}

@@ -34,6 +34,8 @@ class Options {
   compositeAction: Boolean = false
   /// The crate whose Cargo.toml release-please bumps. Only the header comment of release-please.yml names it.
   crateName: String?
+  /// The skill folder name under `skills/`, for the files that refer to it (audit-skill.yml, .coderabbit.yaml, SECURITY.md). Needed when `skills` is on.
+  skillName: String?
   /// Git dependencies pinned by tag that Dependabot cannot resolve, so it must ignore them.
   gitDependencyIgnore: Listing<String> = new {}
 }

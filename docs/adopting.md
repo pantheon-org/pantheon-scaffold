@@ -198,7 +198,7 @@ Most rendered workflows use no secret: they use the built-in `GITHUB_TOKEN` with
 
 | For these three workflows | You need |
 |---|---|
-| A GitHub App installed on the repository, with contents and pull-requests write | the App's private key stored as the repository or organisation secret `GH_APP_PRIVATE_KEY` |
+| A GitHub App installed on the repository, with contents and pull-requests write | the App's private key, available to the repository as the secret `GH_APP_PRIVATE_KEY` |
 
 **The App is the organisation's.** The three workflows carry the client id of the `pantheon-org` App in the file. A repository outside that organisation cannot use them unchanged: the client id is not an option of the package today. Without the key, each of these jobs stops at the token step before it does anything.
 

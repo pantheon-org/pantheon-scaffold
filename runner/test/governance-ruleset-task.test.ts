@@ -207,3 +207,14 @@ test("an answer that is not a list, or a ruleset without an id, is an error and 
   const noId: Gh = { get: async () => [{ name: "x" }], send: async () => undefined };
   await expect(readRulesets(noId, OWNER, REPO)).rejects.toThrow("has no id");
 });
+
+test("the ruleset task refuses a token that cannot see the bypass actors: a plan made without them would drop them", async () => {
+  const hidden = fake(START());
+  hidden.rulesets = hidden.rulesets.map((r) => {
+    const { bypass_actors: _h, ...rest } = r;
+    return rest;
+  });
+  await expect(dryRunRulesets(hidden.gh, GOVERNED, OWNER, REPO, [MAIN])).rejects.toThrow("cannot see the bypass actors");
+  await expect(applyRulesets(hidden.gh, OWNER, REPO, [MAIN], opts(CONFIRM, tempRepo()))).rejects.toThrow("needs admin rights");
+  expect(hidden.sends).toEqual([]);
+});

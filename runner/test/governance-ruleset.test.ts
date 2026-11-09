@@ -97,7 +97,7 @@ const wanted = (...names: string[]): Ruleset[] => names.map((n) => ({ ...desired
 
 test("a repository whose rulesets match the desired ones has no problem, and only GETs are made", async () => {
   const { api, calls } = fakeApi([ruleset(1, "Protect main")]);
-  expect(await checkRepo("pantheon-org", "pantheon-journal", wanted("Protect main"), api)).toEqual({ repo: "pantheon-journal", problems: [] });
+  expect(await checkRepo("pantheon-org", "pantheon-journal", wanted("Protect main"), api)).toEqual({ repo: "pantheon-journal", problems: [], notes: [] });
   expect(calls).toEqual(["repos/pantheon-org/pantheon-journal/rulesets", "repos/pantheon-org/pantheon-journal/rulesets/1"]);
 });
 
@@ -126,4 +126,32 @@ test("repos.json names only desired files that exist, and the four repositories"
   expect(d.owner).toBe("pantheon-org");
   expect(Object.keys(d.repos).sort()).toEqual(["pantheon-adr", "pantheon-agentic-harness-dev-kit", "pantheon-journal", "pantheon-skill-auditor"]);
   for (const stems of Object.values(d.repos)) for (const s of stems) expect(() => desiredFile(s), s).not.toThrow();
+});
+
+// What a token that is not an admin sees: the rulesets, but never the bypass actors.
+const withoutBypass = (r: Record<string, unknown>): Record<string, unknown> => {
+  const { bypass_actors: _hidden, ...rest } = r;
+  return rest;
+};
+
+test("a token that cannot see bypass actors does not report them as drift, and says it did not compare them", async () => {
+  const live = withoutBypass(ruleset(1, "Protect main"));
+  const f = await checkRepo("pantheon-org", "pantheon-journal", wanted("Protect main"), fakeApi([live]).api);
+  expect(f.problems).toEqual([]);
+  expect(f.notes).toEqual(["the bypass actors were not compared: this token cannot see them (it is not an admin of the repository)"]);
+});
+
+test("a token that cannot see bypass actors still reports every other difference", async () => {
+  const live = { ...withoutBypass(ruleset(1, "Protect main")), enforcement: "disabled" };
+  const f = await checkRepo("pantheon-org", "pantheon-journal", wanted("Protect main"), fakeApi([live]).api);
+  expect(f.problems).toEqual(['ruleset "Protect main": enforcement: should be active, is disabled']);
+  expect(f.notes.length).toBe(1);
+});
+
+test("a token that can see the bypass actors compares them, and has nothing to note", async () => {
+  const live = { ...ruleset(1, "Protect main"), bypass_actors: [] };
+  const f = await checkRepo("pantheon-org", "pantheon-journal", wanted("Protect main"), fakeApi([live]).api);
+  expect(f.problems.length).toBe(1);
+  expect(f.problems[0]).toStartWith('ruleset "Protect main": bypass actors:');
+  expect(f.notes).toEqual([]);
 });

@@ -8,7 +8,10 @@ const mutations: [string, string, string, string][] = [
   ["compare: enforcement", "ruleset", "if (d.enforcement !== l.enforcement) out.push(", "if (false) out.push("],
   ["compare: target", "ruleset", "if (d.target !== l.target) out.push(", "if (false) out.push("],
   ["compare: conditions", "ruleset", "if (!same(d.conditions, l.conditions)) out.push(", "if (false) out.push("],
-  ["compare: bypass actors", "ruleset", "if (!same(d.bypass_actors, l.bypass_actors)) out.push(", "if (false) out.push("],
+  ["compare: bypass actors", "ruleset", "if (!opts.skipBypass && !same(d.bypass_actors, l.bypass_actors)) out.push(", "if (false) out.push("],
+  ["compare: skipBypass is ignored", "ruleset", "if (!opts.skipBypass && !same(", "if (!same("],
+  ["live: hidden bypass actors not detected", "live", 'if (!("bypass_actors" in got)) bypassHidden = true;', ""],
+  ["rulesets: hidden bypass actors accepted", "rulesetTask", 'if (!("bypass_actors" in got)) throw', "if (false) throw"],
   ["compare: rule missing in live", "ruleset", "else if (!lr) out.push(", "else if (false) out.push("],
   ["compare: rule extra in live", "ruleset", "if (!dr) out.push(", "if (false) out.push("],
   ["compare: rule parameters", "ruleset", "else if (!same(dr, lr)) {", "else if (false) {"],
@@ -57,16 +60,26 @@ const mutations: [string, string, string, string][] = [
   ["rulesets: restore checks the repository is governed", "rulesetTask", "  assertGoverned(o.governed, rec.owner, rec.repo);\n  const plan = planRestore", "  const plan = planRestore"],
   ["rulesets: an answer that is not a list", "rulesetTask", "if (!Array.isArray(list)) throw", "if (false) throw"],
   ["rulesets: a ruleset without an id", "rulesetTask", 'if (typeof item?.id !== "number") throw', "if (false) throw"],
+  ["drift: two issues with the title", "drift", "if (open.length > 1) throw", "if (false) throw"],
+  ["drift: any issue is touched", "drift", ".filter((i) => i.title === ISSUE_TITLE)", ".filter(() => true)"],
+  ["drift: a resolved drift with no issue", "drift", 'if (!existing) return { outcome: "none" };', 'if (false) return { outcome: "none" };'],
+  ["drift: a dry run closes", "drift", "    if (!dryRun) {\n      await issues.comment(existing.number, `No drift", "    if (true) {\n      await issues.comment(existing.number, `No drift"],
+  ["drift: a dry run creates", "drift", "const number = dryRun ? undefined : await issues.create(", "const number = await issues.create("],
+  ["drift: an unchanged issue is left alone", "drift", 'if (existing.body === issue.body) return { outcome: "unchanged"', 'if (false) return { outcome: "unchanged"'],
+  ["drift: a dry run updates", "drift", "  if (!dryRun) {\n    await issues.update", "  if (true) {\n    await issues.update"],
+  ["drift: an update without a comment", "drift", "    await issues.comment(existing.number, `The drift changed", "    void (existing.number, `The drift changed"],
+  ["drift: notes repeated", "drift", "[...new Set(findings.flatMap((f) => f.notes))]", "findings.flatMap((f) => f.notes)"],
+  ["drift: clean repositories listed", "drift", "const drifted = findings.filter((f) => f.problems.length);\n  const sections", "const drifted = findings;\n  const sections"],
   ["checks: unrequired", "checks", "unrequired: [...new Set(offered)].filter((o) => !required.includes(o)).sort()", "unrequired: [] as string[]"],
 ];
-const originals = new Map(["ruleset", "live", "checks", "settings", "rulesetTask"].map((n) => [n, readFileSync(f(n), "utf8")]));
+const originals = new Map(["ruleset", "live", "checks", "settings", "rulesetTask", "drift"].map((n) => [n, readFileSync(f(n), "utf8")]));
 let caught = 0;
 try {
   for (const [name, file, from, to] of mutations) {
     const text = originals.get(file)!;
     if (!text.includes(from)) throw new Error(`mutation "${name}": text not found`);
     writeFileSync(f(file), text.replace(from, to));
-    const r = Bun.spawnSync(["bun", "test", "test/governance-ruleset.test.ts", "test/governance-checks.test.ts", "test/governance-settings.test.ts", "test/governance-ruleset-task.test.ts"], { cwd: resolve(root, "runner"), stdout: "pipe", stderr: "pipe" });
+    const r = Bun.spawnSync(["bun", "test", "test/governance-ruleset.test.ts", "test/governance-checks.test.ts", "test/governance-settings.test.ts", "test/governance-ruleset-task.test.ts", "test/governance-drift.test.ts"], { cwd: resolve(root, "runner"), stdout: "pipe", stderr: "pipe" });
     const failed = r.exitCode !== 0;
     if (failed) caught++;
     console.log(`${failed ? "caught  " : "MISSED  "} ${name}`);

@@ -27,6 +27,8 @@ export async function readRulesets(gh: Gh, owner: string, repo: string): Promise
   for (const item of list as { id: number }[]) {
     if (typeof item?.id !== "number") throw new Error(`${owner}/${repo}: a ruleset has no id`);
     const got = (await gh.get(`repos/${owner}/${repo}/rulesets/${item.id}`)) as Record<string, unknown>;
+    // Without admin rights GitHub leaves the bypass actors out. A plan made from that would silently drop them, so it is refused.
+    if (!("bypass_actors" in got)) throw new Error(`${owner}/${repo}: this token cannot see the bypass actors of ruleset ${item.id}. The ruleset task needs admin rights on the repository`);
     out.push({ id: item.id, got, shape: toCreateShape(got) });
   }
   return out;

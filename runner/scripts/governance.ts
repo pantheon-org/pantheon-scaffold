@@ -7,11 +7,13 @@
 //        bun runner/scripts/governance.ts rulesets [repo ...] [--show-body]   dry run of the ruleset task: what would be created or replaced, nothing is sent
 //        bun runner/scripts/governance.ts rulesets <repo> --apply --confirm <owner>/<repo> [--record-dir <dir>]
 //        bun runner/scripts/governance.ts rulesets-restore <record file> [--apply --confirm <owner>/<repo>]
+//        bun runner/scripts/governance.ts drift [--issue]              the scheduled check: compares the rulesets; with --issue it opens, updates or closes the drift issue
 // option: --desired-dir <dir> reads the desired state from another folder (a dry run of a change before it is committed)
 // env:   GH_TOKEN (any token that can read the repositories: the rulesets of a public repository are public)
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { realGh } from "../src/governance/gh";
+import { ISSUE_LABEL, reconcileIssue, renderIssue, type Issues } from "../src/governance/drift";
 import { applyRulesets, dryRunRulesets, restoreRulesets, type RulesetPlan } from "../src/governance/rulesetTask";
 import { checkRepo, type Api, type DesiredRepos } from "../src/governance/live";
 import { applySettings, dryRunSettings, parseDesiredSettings, restoreSettings, type SettingsPlan } from "../src/governance/settings";
@@ -56,6 +58,29 @@ const describeRulesets = (p: RulesetPlan): string => {
   return `${pending ? "CHANGE" : "ok    "} ${p.repo}\n${lines.join("\n")}`;
 };
 
+/** The drift issue, through the gh CLI, in this repository. The label is created when it is missing. */
+function realIssues(): Issues {
+  const repo = process.env.GH_REPO ?? process.env.GITHUB_REPOSITORY ?? "pantheon-org/pantheon-scaffold";
+  const run = async (args: string[], input?: string): Promise<string> => {
+    const proc = Bun.spawn(["gh", ...args, "--repo", repo], { stdin: input === undefined ? "ignore" : new Blob([input]), stdout: "pipe", stderr: "pipe" });
+    const [out, err, code] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text(), proc.exited]);
+    if (code !== 0) throw new Error(`gh ${args.slice(0, 2).join(" ")} failed (exit ${code}): ${err.trim()}`);
+    return out.trim();
+  };
+  const assignee = (JSON.parse(readFileSync(join(root, "governance/drift-owner.json"), "utf8")) as { login: string }).login;
+  return {
+    list: async () => JSON.parse((await run(["issue", "list", "--label", ISSUE_LABEL, "--state", "open", "--limit", "20", "--json", "number,title,body"])) || "[]"),
+    create: async (title, body) => {
+      await run(["label", "create", ISSUE_LABEL, "--description", "Live rulesets differ from governance/desired", "--color", "d93f0b", "--force"]);
+      const url = await run(["issue", "create", "--title", title, "--label", ISSUE_LABEL, "--assignee", assignee, "--body-file", "-"], body);
+      return Number(url.split("/").pop());
+    },
+    update: async (n, body) => void (await run(["issue", "edit", String(n), "--body-file", "-"], body)),
+    comment: async (n, text) => void (await run(["issue", "comment", String(n), "--body-file", "-"], text)),
+    close: async (n) => void (await run(["issue", "close", String(n)])),
+  };
+}
+
 const [cmd, ...rest] = Bun.argv.slice(2);
 try {
   if (cmd === "check") {
@@ -65,10 +90,28 @@ try {
     for (const repo of repos) {
       const f = await checkRepo(desired.owner, repo, desired.repos[repo].map(loadRuleset), api);
       console.log(f.problems.length ? `DRIFT ${repo}\n${f.problems.map((p) => `  ${p}`).join("\n")}` : `ok    ${repo}: ${desired.repos[repo].length} ruleset(s) match`);
+      for (const n of f.notes) console.log(`  note: ${n}`);
       drift += f.problems.length;
     }
     console.log(drift ? `${drift} difference(s).` : `no drift in ${repos.length} repositories.`);
     process.exit(drift ? 4 : 0);
+  } else if (cmd === "drift") {
+    const repos = Object.keys(desired.repos);
+    const findings = [];
+    for (const repo of repos) findings.push(await checkRepo(desired.owner, repo, desired.repos[repo].map(loadRuleset), api));
+    for (const f of findings) console.log(f.problems.length ? `DRIFT ${f.repo}\n${f.problems.map((p) => `  ${p}`).join("\n")}` : `ok    ${f.repo}`);
+    for (const n of new Set(findings.flatMap((f) => f.notes))) console.log(`note: ${n}`);
+    const assignee = (JSON.parse(readFileSync(join(root, "governance/drift-owner.json"), "utf8")) as { login: string }).login;
+    const drifted = findings.some((f) => f.problems.length);
+    if (Bun.argv.includes("--issue")) {
+      const runUrl = process.env.GITHUB_SERVER_URL && process.env.GITHUB_RUN_ID ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}` : undefined;
+      const r = await reconcileIssue(realIssues(), findings, assignee, runUrl, false);
+      console.log(`issue: ${r.outcome}${r.number ? ` #${r.number}` : ""}`);
+      process.exit(0);
+    }
+    if (drifted) console.log(`\nNo issue was opened (run with --issue to do that). It would read:\n\n# ${renderIssue(findings, assignee).title}\n\n${renderIssue(findings, assignee).body}`);
+    else console.log("no drift.");
+    process.exit(drifted ? 4 : 0);
   } else if (cmd === "settings") {
     const desiredSettings = parseDesiredSettings(readFileSync(join(desiredDir, "settings.json"), "utf8"));
     const governed = Object.keys(desired.repos);

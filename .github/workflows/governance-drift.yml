@@ -1,0 +1,51 @@
+name: governance-drift
+
+# Weekly and by hand: compares the live rulesets of the four Rust repositories with governance/desired/, and opens, updates or closes
+# one issue in this repository when they differ (Phase 6, task 6.4). It only reads other repositories. The token is this run's own
+# GITHUB_TOKEN, with no App and no secret, so it cannot see bypass actors or merge settings: those are compared by hand (governance/README.md).
+# By hand it is a dry run unless told otherwise: it prints the issue it would open and opens nothing.
+on:
+  schedule:
+    - cron: "23 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Compare and print, but do not open, update or close the issue
+        type: boolean
+        default: true
+
+permissions: {}
+
+concurrency:
+  group: governance-drift
+  cancel-in-progress: false
+
+jobs:
+  drift:
+    name: Compare live rulesets with governance/desired
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5.2.0
+        with:
+          version: 2026.10.25
+          install: false
+          cache: false
+      - name: Install the pinned tools from the lock file
+        run: mise install --locked
+      - name: Compare and print, change nothing (a manual run with dry_run left on)
+        if: github.event_name == 'workflow_dispatch' && inputs.dry_run
+        run: mise x -- bun runner/scripts/governance.ts drift
+        continue-on-error: true
+      - name: Compare, and open, update or close the drift issue
+        if: github.event_name == 'schedule' || !inputs.dry_run
+        run: mise x -- bun runner/scripts/governance.ts drift --issue

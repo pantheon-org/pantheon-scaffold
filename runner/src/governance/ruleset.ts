@@ -57,15 +57,18 @@ export function requiredChecks(r: Ruleset): string[] {
 
 const same = (a: unknown, b: unknown): boolean => JSON.stringify(canonical(a)) === JSON.stringify(canonical(b));
 
-/** What differs between the ruleset that should hold and the one that does, in words. Empty when they are the same. */
-export function compareRulesets(desired: Ruleset, live: Ruleset): string[] {
+/**
+ * What differs between the ruleset that should hold and the one that does, in words. Empty when they are the same. A token that is not an
+ * admin of the repository is never shown the bypass actors, so `skipBypass` leaves them out, and the caller says that it did.
+ */
+export function compareRulesets(desired: Ruleset, live: Ruleset, opts: { skipBypass?: boolean } = {}): string[] {
   const out: string[] = [];
   const d = toCreateShape({ ...desired });
   const l = toCreateShape({ ...live });
   if (d.target !== l.target) out.push(`target: should be ${d.target}, is ${l.target}`);
   if (d.enforcement !== l.enforcement) out.push(`enforcement: should be ${d.enforcement}, is ${l.enforcement}`);
   if (!same(d.conditions, l.conditions)) out.push(`conditions: should be ${JSON.stringify(d.conditions)}, is ${JSON.stringify(l.conditions)}`);
-  if (!same(d.bypass_actors, l.bypass_actors)) out.push(`bypass actors: should be ${JSON.stringify(d.bypass_actors)}, is ${JSON.stringify(l.bypass_actors)}`);
+  if (!opts.skipBypass && !same(d.bypass_actors, l.bypass_actors)) out.push(`bypass actors: should be ${JSON.stringify(d.bypass_actors)}, is ${JSON.stringify(l.bypass_actors)}`);
   const types = [...new Set([...d.rules.map((r) => r.type), ...l.rules.map((r) => r.type)])].sort();
   for (const t of types) {
     const dr = d.rules.find((r) => r.type === t);

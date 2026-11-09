@@ -13,11 +13,12 @@ const cli = join(root, "runner/src/cli.ts");
 const REPOS = ["pantheon-adr", "pantheon-journal", "pantheon-skill-auditor", "pantheon-agentic-harness-dev-kit"];
 // Differences the plan records and accepts, by repository and path. Anything else that differs fails the run.
 const DIST_NOTE = "two action commits (upload-artifact v7.0.2, download-artifact v8.0.2) are the ones the repository's release.yml uses today, so that dist generate --check passes (decision 85)";
+const DEPENDABOT_NOTE = "the github-actions entry also ignores actions/upload-artifact and actions/download-artifact, which only dist generate may change in release.yml (decision 86)";
 const RECORDED: Record<string, Record<string, string>> = {
-  "pantheon-adr": { "dist-workspace.toml": DIST_NOTE },
-  "pantheon-journal": { "dist-workspace.toml": DIST_NOTE },
+  "pantheon-adr": { "dist-workspace.toml": DIST_NOTE, ".github/dependabot.yml": DEPENDABOT_NOTE },
+  "pantheon-journal": { "dist-workspace.toml": DIST_NOTE, ".github/dependabot.yml": DEPENDABOT_NOTE },
   "pantheon-agentic-harness-dev-kit": { ".gitignore": "decision 74 picks target/, the repository has /target" },
-  "pantheon-skill-auditor": { "SECURITY.md": "a seeded file: the repository words its scope bullets differently", "dist-workspace.toml": DIST_NOTE },
+  "pantheon-skill-auditor": { "SECURITY.md": "a seeded file: the repository words its scope bullets differently", "dist-workspace.toml": DIST_NOTE, ".github/dependabot.yml": DEPENDABOT_NOTE },
 };
 // Files the package adds that no repository has yet: a new workflow, expected to be absent.
 const NEW = [".github/workflows/dist-check.yml", ".github/workflows/scaffold-check.yml"];

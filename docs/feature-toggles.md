@@ -41,7 +41,7 @@ The four toggles are options of `pantheon.pkl`: `skills`, `binary`, `features` a
 | Toggle | Needs | On | What flipping it changes |
 |---|---|---|---|
 | `skills` | `skillName` | `true` | Removes `audit-skill.yml`. Changes `.coderabbit.yaml` (the skill lines), `SECURITY.md` (the skill line), `.agnix.toml` and `agnix.yml` (comment wording, decision 74) |
-| `binary` | `crateName` | `true` | Removes `dist-workspace.toml`, `.github/actionlint.yaml`, `.github/scripts/tag-release.sh`, `.github/workflows/dist-check.yml`, `.github/zizmor.yml` and the external `release.yml`. Changes `release-please.yml` (no tag step), `zizmor.yml` (no config) and `SECURITY.md` (the library text) |
+| `binary` | `crateName` | `true` | Removes `dist-workspace.toml`, `.github/actionlint.yaml`, `.github/scripts/tag-release.sh`, `.github/workflows/dist-check.yml`, `.github/zizmor.yml` and the external `release.yml`. Changes `dependabot.yml` (no ignore of the artifact actions), `release-please.yml` (no tag step), `zizmor.yml` (no config) and `SECURITY.md` (the library text) |
 | `features` | none | `default` | `all` changes `rust-ci.yml` only (and the hook steps, which are not part of the standard files) |
 | `compositeAction` | none | `false` | `true` changes `audit-skill.yml` (the repository's own action), `zizmor.yml` and `.github/zizmor.yml` (which also scan `action.yml`) |
 
@@ -64,7 +64,7 @@ Both are new files: no repository has them yet, so the real-repository report li
 
 `dist generate --check` fails on today's `main` of pantheon-adr, pantheon-journal and pantheon-skill-auditor. On 04-11-2026 Dependabot bumped `actions/upload-artifact` (v7.0.1 to v7.0.2) and `actions/download-artifact` (v8.0.1 to v8.0.2) inside the generated `release.yml`, and `dist-workspace.toml`, which tells cargo-dist which commits to write, was not changed. So `dist-workspace.toml` is rendered with the two commits `release.yml` uses. Checked locally with cargo-dist 0.32.0 on a clone of each of the three repositories: the check passes with the new file and fails when `release.yml` is edited by hand.
 
-Known limit: Dependabot will keep bumping actions inside `release.yml` and cannot edit `dist-workspace.toml`, so the next such bump fails `dist-check.yml` until `dist-workspace.toml` and `release.yml` are regenerated together. The failure is the point of the check, but how to avoid a failing Dependabot pull request each time (an ignore entry for those two actions, or managing their commits in `Pins.pkl`) is not decided.
+Known limit: Dependabot will keep bumping actions inside `release.yml` and cannot edit `dist-workspace.toml`, so the next such bump fails `dist-check.yml` until `dist-workspace.toml` and `release.yml` are regenerated together. The failure is the point of the check. To stop a failing Dependabot pull request each time, the rendered `dependabot.yml` of a repository with a binary now ignores those two actions (decision 86, below).
 
 Checks: `runner/test/phase5-dist.test.ts`, the updated `phase5-verbatim.test.ts`, the mutation check in `tmp/phase-5-wave-d` (11 of 11 caught), actionlint and zizmor 1.32.0 over both workflows, and the real-repository render.
 
@@ -73,3 +73,11 @@ Checks: `runner/test/phase5-dist.test.ts`, the updated `phase5-verbatim.test.ts`
 The consumer smoke test is a step of `verify-release` in `release.yml` (moved here from wave D, because only the release candidate contains the Phase 5 builtins). After the release is published, on all three platforms, a scratch consumer loads the package by its package URI with the published checksum, both for `Config.pkl` and for `Builtins.pkl`, renders `standardWorkflows` and `standardFiles` with `skillName` and `crateName` set into an empty folder, runs `check`, and renders again. It fails unless `check` passes, the second render writes nothing, the files of every toggle are there, and the external `release.yml` was not written. It runs with the runner installed through mise with checksums and provenance enforced, so it is the consumer's whole path.
 
 Checks: the two new assertions in `runner/test/release-workflow.test.ts`, the mutation check in `tmp/phase-5-wave-e` (6 of 6 caught), actionlint, and a local rehearsal of the same sequence with the local package (29 files written, `check` ok, second render 0 written).
+
+## Decision 86: Dependabot leaves the two artifact actions of release.yml alone
+
+With `binary`, the `github-actions` entry of the rendered `dependabot.yml` has an `ignore` list for `actions/upload-artifact` and `actions/download-artifact`, and the header says why. cargo-dist is the only writer of `release.yml`: those two commits change in `dist-workspace.toml`, followed by `dist generate`. Without `binary` there is no such entry. In the three binary repositories this is a recorded difference from their own `dependabot.yml`.
+
+Known limit, not verified: whether a Dependabot `ignore` entry also stops Dependabot's security updates for these two actions. If it does, a security fix for either action has to be applied through `dist-workspace.toml` by hand. Moving the two commits into `Pins.pkl` (so the pin update workflow keeps them current) was the rejected alternative: it needs `dist` in that workflow to regenerate `release.yml` in the same pull request.
+
+Checks: `runner/test/phase5-dependabot.test.ts`, the adjusted equality test in `workflows-b.test.ts`, the mutation check in `tmp/phase-5-dependabot` (5 of 5 caught) and the real-repository render.

@@ -61,13 +61,35 @@ After the edit it checks that the release is stable and the latest, that `checks
 
 The tag is not compared with `pkl/PklProject`: on `main` that file always holds the next unreleased version, so the comparison would refuse every older candidate.
 
-**Who approves.** The environment `promote` has the owner as its required reviewer, with self-review allowed, because the organisation has one member. That is a recorded self-approval and not an independent one (decision 90, which amends decisions 56 and 60). The job's value is the guards and the record, not a second person.
+**Who approves.** Nobody, today. The environment `promote` has **no protection rules** (decision 91, 09-11-2026): the owner decided that a required reviewer would block the work while the repository has one contributor. The job still names the environment, and GitHub creates a missing environment with no rules on its first use, so the job runs as soon as it is dispatched. The environment then records each promotion as a deployment, and it does not gate it.
+
+What controls a promotion until a second contributor exists:
+
+- it is dispatched by hand, from `main`, by someone with write access to the repository (the owner);
+- every guard in the table above, run twice (once in each job), and the post-edit checks;
+- the run itself, in the Actions tab, with its log.
+
+This is a recorded accepted risk and not an approval of any kind: nothing is checked by a second person (decisions 78, 90 and 91).
+
+### Before onboarding a contributor
+
+Do this **before** the new contributor, collaborator, organisation member or bot with write access can dispatch a workflow here, and at the latest before the next promotion. It takes about five minutes and changes no code, because the workflow already names the environment.
+
+1. Open the repository's Settings, then Environments, then `promote` (the environment exists after the first real promotion run. If it does not, click "New environment", name it `promote`, and click "Configure environment").
+2. Tick "Required reviewers" and pick **a person who is not the maintainer**. Leave "Prevent self-review" ticked, so that whoever dispatches a promotion cannot approve it.
+3. Under "Deployment branches and tags", choose "Selected branches and tags", add the rule `main`, and click "Add rule".
+4. Click "Save protection rules".
+5. Check it: `gh api repos/pantheon-org/pantheon-scaffold/environments/promote --jq '[.protection_rules[]|.type]'` must list `required_reviewers` and `branch_policy`.
+6. Run `promote` once as a dry run: the first job passes and the second is skipped, so the check does not need an approval. The first real promotion afterwards waits for the reviewer.
+7. Record it: add a dated line under "Releases so far" and in the plan, with who the reviewer is, and say the independent approval is now in place (it ends decision 91's accepted risk).
+
+Also settle, in the same change, the other places where the maintainer is the only check: a required approving review on `main` and the creation of release tags (see "Accepted risks and open items").
 
 ## Accepted risks and open items
 
 - **No Security review.** The owner recorded P.3 as an accepted risk on 07-11-2026 (decision 78). Security has not reviewed this pipeline or the pkl flags, and no Security reviewer is named. This is a recorded risk, not an approval.
 - **Cross-compiling downloads the bun runtime** for each target at build time, and the pipeline downloads tools through mise. Both are supply-chain inputs for any later Security review.
-- **No second reviewer.** The repository has one member, so a promotion approved by someone other than the maintainer cannot be set up. The owner recorded this as an accepted risk on 09-11-2026 (decision 90): the owner approves the promotion through the environment, which is a self-approval.
+- **No second reviewer, and no approval step.** The repository has one contributor. The owner recorded on 09-11-2026 that no second person approves the promotion (decision 90) and that the environment `promote` has no protection rules (decision 91). The steps to add them are under "Before onboarding a contributor" and are due before a second contributor can dispatch a workflow.
 - **The tag ruleset has no creation rule**, so anyone with write access can push a `v*` tag. Today that is the maintainer only.
 
 ## Releases so far

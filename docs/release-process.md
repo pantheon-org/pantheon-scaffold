@@ -43,7 +43,7 @@ They are asserted by `runner/test/release-workflow.test.ts` and kept honest by `
 Added in phase 8. A release stays a pre-release until it is promoted. The promotion is the workflow `promote.yml`, run by hand from `main`, and it is the only thing that edits a release. It never changes the assets: it removes the pre-release flag, drops "(pre-release)" from the title and "Pre-" from the first words of the notes.
 
 1. **Dry run.** Run `promote` with the tag (for example `v0.1.5`) and `dry_run` left true. One job runs every guard and edits nothing. It never touches the environment.
-2. **Real run.** Run it again with `dry_run` false. The first job repeats the guards, then the `promote` job waits for the protected environment `promote`. When it is approved, the job runs every guard again, edits the release, and checks the result.
+2. **Real run.** Run it again with `dry_run` false. The first job repeats the guards, then the `promote` job runs in the environment `promote`. That environment has no protection rules today, so the job starts at once (see "Who approves" below). It runs every guard again, edits the release, and checks the result.
 
 The guards, all before the edit (`runner/src/promote.ts`, with tests and a mutation check):
 

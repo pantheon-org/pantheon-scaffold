@@ -24,8 +24,8 @@ Added in phase 2b, wave B2. It was built and tested against a faked release (a l
 
 - The pin locations are in `runner/src/pins.ts` and nowhere else, so a consumer that keeps the pin in a `PklProject` is a change to that one file (decision 45). The `mise.toml` entry has to be on one line, as `"github:pantheon-org/pantheon-scaffold" = "x.y.z"` or with `version = "x.y.z"` inside an inline table. Multi-line tables are not read, and the runner says so rather than guessing.
 - `PANTHEON_SCAFFOLD_RELEASE_BASE` replaces the download address, for tests and mirrors. The attestation is still checked against the repository, so a mirror cannot change what is trusted.
-- Needs the `gh` CLI. Whether the consumer CI image has it, and what token it needs, is a question for the Security review of the release pipeline (task 7.5).
-- The tool key `github:pantheon-org/pantheon-scaffold` is a working name, confirmed when the binary is published (wave C).
+- Needs the `gh` CLI. Whether the consumer CI image has it, and what token it needs, was meant for a Security review of the release pipeline. That review did not happen: it is a recorded accepted risk (decision 78, see [release-process.md](release-process.md)).
+- The tool key is `github:pantheon-org/pantheon-scaffold` (`RUNNER_TOOL` in `runner/src/pins.ts`). It is the key of the published runner, and the release's `verify-release` job installs the runner through it.
 
 ## Going back to an older version
 

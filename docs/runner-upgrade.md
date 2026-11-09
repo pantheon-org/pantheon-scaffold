@@ -26,3 +26,9 @@ Added in phase 2b, wave B2. It was built and tested against a faked release (a l
 - `PANTHEON_SCAFFOLD_RELEASE_BASE` replaces the download address, for tests and mirrors. The attestation is still checked against the repository, so a mirror cannot change what is trusted.
 - Needs the `gh` CLI. Whether the consumer CI image has it, and what token it needs, is a question for the Security review of the release pipeline (task 7.5).
 - The tool key `github:pantheon-org/pantheon-scaffold` is a working name, confirmed when the binary is published (wave C).
+
+## Going back to an older version
+
+`upgrade <older> --force` moves the pins back, but the render that follows is refused with exit 3, because the package is older than the one that last rendered this repository (the version rule in [runner-lifecycle.md](runner-lifecycle.md)). `upgrade` does not pass `--force` on to the render: it would also overwrite hand edits. Run `pantheon-scaffold render pantheon.pkl --force` once the pins are back, and `check` then passes. This was run end to end for 0.1.3 back to 0.1.1 (Phase 7, [proof-report-0.1.3.md](proof-report-0.1.3.md)).
+
+If the new package drops or renames an owned file, the render after an upgrade is also refused until the pin change is committed, because the runner deletes an orphan only from a clean tracked tree. Commit the pins, then run `render`.

@@ -5,7 +5,7 @@
 // required status checks of each repository's rulesets (read-only GET) with the job names of the rendered workflows, and runs `hk check --all`
 // before and after, as real-repo-tooling.ts does.
 // usage: bun runner/scripts/proof-render.ts [version]   (default: the version in pkl/PklProject)
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { createHash } from "node:crypto";
@@ -230,4 +230,6 @@ for (const s of summary) say(s);
 say();
 say(`Verdict: ${allPass ? "PASS" : "FAIL"}`);
 console.log(lines.join("\n"));
+// The scratch clones and the downloaded runner are deleted.
+rmSync(work, { recursive: true, force: true });
 process.exit(allPass ? 0 : 1);

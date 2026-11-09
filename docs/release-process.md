@@ -1,6 +1,6 @@
 # Release process
 
-Added in phase 2b, wave D. A release publishes the pkl package and the runner binaries together, under the version in `pkl/PklProject`, as a GitHub **pre-release**. The pre-release flag is the gate (decision 46): promoting a release to a stable one is a later step (task 5.5) and needs a reviewer other than the maintainer, which this repository does not have yet.
+Added in phase 2b, wave D. A release publishes the pkl package and the runner binaries together, under the version in `pkl/PklProject`, as a GitHub **pre-release**. The pre-release flag is the gate (decision 46): promoting a release to a stable one is a separate step, described under "Promoting a release" below.
 
 ## Cutting a release
 
@@ -38,11 +38,36 @@ They are asserted by `runner/test/release-workflow.test.ts` and kept honest by `
 - Tag names, refs and inputs reach scripts through `env`, never through `${{ }}` inside `run`.
 - A manual run is a dry run unless told otherwise.
 
+## Promoting a release
+
+Added in phase 8. A release stays a pre-release until it is promoted. The promotion is the workflow `promote.yml`, run by hand from `main`, and it is the only thing that edits a release. It never changes the assets: it removes the pre-release flag, drops "(pre-release)" from the title and "Pre-" from the first words of the notes.
+
+1. **Dry run.** Run `promote` with the tag (for example `v0.1.5`) and `dry_run` left true. One job runs every guard and edits nothing. It never touches the environment.
+2. **Real run.** Run it again with `dry_run` false. The first job repeats the guards, then the `promote` job waits for the protected environment `promote`. When it is approved, the job runs every guard again, edits the release, and checks the result.
+
+The guards, all before the edit (`runner/src/promote.ts`, with tests and a mutation check):
+
+| Guard | Refuses when |
+|---|---|
+| Run from main | the workflow runs on any ref other than `refs/heads/main` |
+| Tag shape | the tag is not `v<major>.<minor>.<patch>[-pre-release]` |
+| Release state | the release is a draft, or is already stable (a published version is never re-published) |
+| Assets | the release does not carry exactly the files a release carries |
+| Attestation and digests | `checksums.txt` has no valid attestation, or any file's digest differs from it |
+| Known bad | the version is in `known-bad.json` |
+| Release run | the release workflow did not succeed for the tag, or its verify job is missing or not successful |
+
+After the edit it checks that the release is stable and the latest, that `checksums.txt` is byte for byte the one attested before, that every digest still matches, and that the attestation still verifies (decision 46's revisit trigger: promotion must not change the asset bytes or the checksums).
+
+The tag is not compared with `pkl/PklProject`: on `main` that file always holds the next unreleased version, so the comparison would refuse every older candidate.
+
+**Who approves.** The environment `promote` has the owner as its required reviewer, with self-review allowed, because the organisation has one member. That is a recorded self-approval and not an independent one (decision 90, which amends decisions 56 and 60). The job's value is the guards and the record, not a second person.
+
 ## Accepted risks and open items
 
 - **No Security review.** The owner recorded P.3 as an accepted risk on 07-11-2026 (decision 78). Security has not reviewed this pipeline or the pkl flags, and no Security reviewer is named. This is a recorded risk, not an approval.
 - **Cross-compiling downloads the bun runtime** for each target at build time, and the pipeline downloads tools through mise. Both are supply-chain inputs for any later Security review.
-- **No second reviewer.** The repository has one member, so promotion with an independent reviewer (task 5.5) cannot be set up yet.
+- **No second reviewer.** The repository has one member, so a promotion approved by someone other than the maintainer cannot be set up. The owner recorded this as an accepted risk on 09-11-2026 (decision 90): the owner approves the promotion through the environment, which is a self-approval.
 - **The tag ruleset has no creation rule**, so anyone with write access can push a `v*` tag. Today that is the maintainer only.
 
 ## Releases so far

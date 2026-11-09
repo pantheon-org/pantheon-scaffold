@@ -480,3 +480,27 @@ What this sign-off is not:
 - **It is not independent.** The signer is the owner of the four repositories and the maintainer of the package (decisions 69, 70 and 72). A second reviewer is not named, so the independent steps of the plan (the independent sample check and the promotion approval of Phase 8) are still unmet.
 - **It does not cover the App key custody.** The custody questions were answered privately (see the dossier) and the answers are not part of this report.
 - **It does not adopt the package.** No repository has adopted v0.1.5. Adoption stays with each repository's owner (decision 48).
+
+## Phase 8 wave E: the adoption guide followed literally
+
+09-11-2026, after v0.1.5 was promoted to a stable release. `runner/scripts/proof-adoption.ts` follows [adopting.md](adopting.md) command by command on a scratch clone of `pantheon-adr`, against the published release, in isolated mise folders. Nothing is pushed and the four repositories are not touched. The clone and everything downloaded are deleted afterwards.
+
+| Step of the guide | Result |
+|---|---|
+| Pick a version (`gh release list`, newest not on the known-bad list) | v0.1.5, not on the list |
+| 1. Add the settings and the two tools to `mise.toml`, `mise lock`, `mise install --locked` | exit 0, 11 tools installed in about 32 seconds, the runner reports 0.1.5 |
+| 2. Download `checksums.txt`, verify its attestation, read the package checksum | exit 0 for each |
+| 3. Write `pantheon.pkl` exactly as the guide shows it | accepted by the runner |
+| 4. `render --dry-run` | exit 3 and a list of the existing files that differ, as the guide says |
+| 4. `render --force` | exit 0, 22 files written |
+| 4. `check` | exit 0, 44 owned files match the render |
+| 4. A second `render` | writes 0 files |
+| One-off: remove the old `hk.pkl`, render, `check` | the seeded `hk.pkl` is written (it imports `hk.shared.pkl`), `check` still passes |
+| `cargo build --workspace --locked` on the rendered tree | exit 0 |
+| `cargo test --workspace --locked` on the rendered tree | exit 0: **4 suites, 4 ok, 188 tests passed, 0 failed**, and no line of the log contains `FAILED` |
+
+Verdict: PASS. Every command in the guide's first-time setup worked as written.
+
+What it showed that the guide now says: `mise install` also installs hk's git hooks into the repository (through `git config`), so a clone you adopt in gains the hook commands.
+
+What it does not show: `hk check --all` (compared before and after in wave A), an upgrade or a detach (wave B), adoption in a real repository, and the platforms the runner has no binary for.

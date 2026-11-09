@@ -469,7 +469,7 @@ A sign-off is never defaulted (decision 68). Each row stays "not signed" until t
 
 | Repository | Diff report | Sample check (diffs ticked) | Signed by, date |
 |---|---|---|---|
-| pantheon-adr | wave A and this report | not done | not signed |
-| pantheon-journal | wave A and this report | not done | not signed |
-| pantheon-skill-auditor | wave A and this report | not done | not signed |
-| pantheon-agentic-harness-dev-kit (library, a render only, not a proof repository) | wave A and this report | not done | not signed |
+| pantheon-adr | wave A and this report | 4 of 4 confirmed, 09-11-2026 | not signed |
+| pantheon-journal | wave A and this report | 5 of 5 confirmed, 09-11-2026 | not signed |
+| pantheon-skill-auditor | wave A and this report | 5 of 5 confirmed, 09-11-2026 | not signed |
+| pantheon-agentic-harness-dev-kit (library, a render only, not a proof repository) | wave A and this report | 5 of 5 confirmed, 09-11-2026 | not signed |

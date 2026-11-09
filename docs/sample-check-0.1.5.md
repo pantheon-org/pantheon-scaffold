@@ -2,10 +2,12 @@
 
 Phase 7, wave E (task 7.2, decision 56). Generated on 09-11-2026 by `runner/scripts/proof-dossier.ts`. The package renders the standard set into each of the four repositories and 94 files differ from the repository's own copy (the others are identical). This is **19 of 94** of them (20 percent rounded up is 19, and at least one of every category), chosen with a seeded generator so the choice can be repeated: the seed is `pantheon-scaffold-0.1.5-wave-e`.
 
+**Review record (09-11-2026):** the owner went through all 19 entries one at a time in a walk-through. For each one the diff was explained in plain words (what changes, what stays, what to check) and the owner confirmed it as labelled and acceptable. 19 of 19 confirmed, none queried. The walk-through was held after the boxes had already been ticked in the working copy, so the boxes below are kept only because each was confirmed in the walk-through.
+
 The owner reads each diff below and ticks it. A sample the owner does not finish is recorded as not signed. The owner is also the maintainer, so this check is **not independent** (decisions 69 and 72).
 
 | Category | Differences | In the sample |
-|---|---|---|
+| --- | --- | --- |
 | comments and formatting only (P.1) | 52 | 5 |
 | migration: hk.pkl replaced by the seeded one (decision 31) | 4 | 3 |
 | migration: mise.toml, 10 lines added and 4 removed | 4 | 1 |
@@ -20,7 +22,7 @@ The owner reads each diff below and ticks it. A sample the owner does not finish
 ### 1. pantheon-adr: .github/scripts/sync-labels.sh
 
 - Category: mode change only (decision 79). 0644 to 0755
-- Owner reviewed: [ ]
+- Owner reviewed: [x]
 
 ```diff
 (content identical, mode 0644 to 0755)
@@ -29,7 +31,7 @@ The owner reads each diff below and ticks it. A sample the owner does not finish
 ### 2. pantheon-adr: .github/workflows/inline-scripts.yml
 
 - Category: comments and formatting only (P.1)
-- Owner reviewed: [ ]
+- Owner reviewed: [x]
 
 ```diff
 @@ -1,3 +1 @@
@@ -78,7 +80,7 @@ The owner reads each diff below and ticks it. A sample the owner does not finish
 ### 3. pantheon-adr: .github/workflows/sync-labels.yml
 
 - Category: comments and formatting only (P.1)
-- Owner reviewed: [ ]
+- Owner reviewed: [x]
 
 ```diff
 @@ -1,3 +1 @@
@@ -127,7 +129,7 @@ The owner reads each diff below and ticks it. A sample the owner does not finish
 ### 4. pantheon-adr: hk.pkl
 
 - Category: migration: hk.pkl replaced by the seeded one (decision 31)
-- Owner reviewed: [ ]
+- Owner reviewed: [x]
 
 ```diff
 @@ -2,3 +2,10 @@ amends "package://github.com/jdx/hk/releases/download/v1.49.0/hk@1.49.0#/Config.
@@ -176,7 +178,7 @@ The owner reads each diff below and ticks it. A sample the owner does not finish
 ### 5. pantheon-agentic-harness-dev-kit: .github/workflows/plumber.yml
 
 - Category: pin moved. getplumber/plumber@ec8cb3a
-- Owner reviewed: [ ]
+- Owner reviewed: [x]
 
 ```diff
 @@ -1,3 +1 @@
@@ -225,7 +227,7 @@ The owner reads each diff below and ticks it. A sample the owner does not finish
 ### 6. pantheon-agentic-harness-dev-kit: .github/workflows/release-automerge.yml
 
 - Category: comments and formatting only (P.1)
-- Owner reviewed: [ ]
+- Owner reviewed: [x]
 
 ```diff
 @@ -1,3 +1 @@
@@ -274,7 +276,7 @@ The owner reads each diff below and ticks it. A sample the owner does not finish
 ### 7. pantheon-agentic-harness-dev-kit: .gitignore
 
 - Category: recorded difference: decisions 74 and 87. added target/, .pkl-gen/cache/, removed /target
-- Owner reviewed: [ ]
+- Owner reviewed: [x]
 
 ```diff
 @@ -1,2 +1,3 @@
@@ -287,7 +289,7 @@ The owner reads each diff below and ticks it. A sample the owner does not finish
 ### 8. pantheon-agentic-harness-dev-kit: hk.shared.pkl
 
 - Category: new file. a file the package adds
-- Owner reviewed: [ ]
+- Owner reviewed: [x]
 
 ```diff
 (new file, 52 lines)
@@ -296,7 +298,7 @@ The owner reads each diff below and ticks it. A sample the owner does not finish
 ### 9. pantheon-agentic-harness-dev-kit: mise.toml
 
 - Category: migration: mise.toml, 10 lines added and 4 removed
-- Owner reviewed: [ ]
+- Owner reviewed: [x]
 
 ```diff
 @@ -7,4 +7,3 @@ rust = { version = "1.96.1", components = "rustfmt,clippy" }
@@ -327,7 +329,7 @@ The owner reads each diff below and ticks it. A sample the owner does not finish
 ### 10. pantheon-journal: .github/scripts/sync-labels.sh
 
 - Category: mode change only (decision 79). 0644 to 0755
-- Owner reviewed: [ ]
+- Owner reviewed: [x]
 
 ```diff
 (content identical, mode 0644 to 0755)
@@ -336,7 +338,7 @@ The owner reads each diff below and ticks it. A sample the owner does not finish
 ### 11. pantheon-journal: .github/workflows/release-please.yml
 
 - Category: comments and formatting only (P.1)
-- Owner reviewed: [ ]
+- Owner reviewed: [x]
 
 ```diff
 @@ -1,3 +1 @@
@@ -385,7 +387,7 @@ The owner reads each diff below and ticks it. A sample the owner does not finish
 ### 12. pantheon-journal: .github/workflows/scaffold-check.yml
 
 - Category: new file. a file the package adds
-- Owner reviewed: [ ]
+- Owner reviewed: [x]
 
 ```diff
 (new file, 36 lines)
@@ -394,7 +396,7 @@ The owner reads each diff below and ticks it. A sample the owner does not finish
 ### 13. pantheon-journal: dist-workspace.toml
 
 - Category: recorded difference: decision 85. 2 action commit line(s)
-- Owner reviewed: [ ]
+- Owner reviewed: [x]
 
 ```diff
 @@ -32,3 +32,3 @@ x86_64-apple-darwin = "macos-latest"
@@ -408,7 +410,7 @@ The owner reads each diff below and ticks it. A sample the owner does not finish
 ### 14. pantheon-journal: hk.pkl
 
 - Category: migration: hk.pkl replaced by the seeded one (decision 31)
-- Owner reviewed: [ ]
+- Owner reviewed: [x]
 
 ```diff
 @@ -2,3 +2,10 @@ amends "package://github.com/jdx/hk/releases/download/v1.49.0/hk@1.49.0#/Config.
@@ -457,7 +459,7 @@ The owner reads each diff below and ticks it. A sample the owner does not finish
 ### 15. pantheon-skill-auditor: .github/dependabot.yml
 
 - Category: recorded difference: decision 86. $.updates[1].ignore: undefined vs [{"dependency-name":"actions/upload-artifact"},{"dependency-name":"actions/download-artifact"}]
-- Owner reviewed: [ ]
+- Owner reviewed: [x]
 
 ```diff
 @@ -1,3 +1 @@
@@ -506,7 +508,7 @@ The owner reads each diff below and ticks it. A sample the owner does not finish
 ### 16. pantheon-skill-auditor: .github/workflows/zizmor.yml
 
 - Category: comments and formatting only (P.1)
-- Owner reviewed: [ ]
+- Owner reviewed: [x]
 
 ```diff
 @@ -1,3 +1 @@
@@ -555,7 +557,7 @@ The owner reads each diff below and ticks it. A sample the owner does not finish
 ### 17. pantheon-skill-auditor: dist-workspace.toml
 
 - Category: recorded difference: decision 85. 2 action commit line(s)
-- Owner reviewed: [ ]
+- Owner reviewed: [x]
 
 ```diff
 @@ -32,3 +32,3 @@ x86_64-apple-darwin = "macos-latest"
@@ -569,7 +571,7 @@ The owner reads each diff below and ticks it. A sample the owner does not finish
 ### 18. pantheon-skill-auditor: hk.pkl
 
 - Category: migration: hk.pkl replaced by the seeded one (decision 31)
-- Owner reviewed: [ ]
+- Owner reviewed: [x]
 
 ```diff
 @@ -2,3 +2,10 @@ amends "package://github.com/jdx/hk/releases/download/v1.49.0/hk@1.49.0#/Config.
@@ -618,7 +620,7 @@ The owner reads each diff below and ticks it. A sample the owner does not finish
 ### 19. pantheon-skill-auditor: SECURITY.md
 
 - Category: recorded difference: seeded file, the repository's own scope wording. 3 scope line(s)
-- Owner reviewed: [ ]
+- Owner reviewed: [x]
 
 ```diff
 @@ -36,5 +36,4 @@ In scope:

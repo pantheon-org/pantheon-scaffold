@@ -1,0 +1,77 @@
+name: promote
+
+# Promotes a published pre-release to a stable release (decisions 46, 56, 60 and 90). By hand only, from main.
+# The first job runs every guard and edits nothing: it is the whole of a dry run, and it never touches the environment.
+# The second job is the only one that can edit a release. It sits behind the protected environment "promote", runs every
+# guard again, removes the pre-release flag, and checks that the assets and checksums.txt did not change.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The release tag to promote, for example v0.1.5
+        type: string
+        required: true
+      dry_run:
+        description: Run every guard and edit nothing
+        type: boolean
+        default: true
+
+permissions: {}
+
+concurrency:
+  group: promote
+  cancel-in-progress: false
+
+jobs:
+  guards:
+    name: Check every guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5.2.0
+        with:
+          version: 2026.10.25
+          install: false
+          cache: false
+      - name: Install the pinned tools from the lock file
+        run: mise install --locked
+      - name: Run every guard, edit nothing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          GITHUB_REF: ${{ github.ref }}
+          TAG: ${{ inputs.tag }}
+        run: mise x -- bun runner/scripts/promote.ts check "$TAG"
+
+  promote:
+    name: Promote the release
+    needs: guards
+    if: inputs.dry_run == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: promote
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5.2.0
+        with:
+          version: 2026.10.25
+          install: false
+          cache: false
+      - name: Install the pinned tools from the lock file
+        run: mise install --locked
+      - name: Run every guard again, remove the pre-release flag, and check the result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          GITHUB_REF: ${{ github.ref }}
+          TAG: ${{ inputs.tag }}
+        run: mise x -- bun runner/scripts/promote.ts promote "$TAG"

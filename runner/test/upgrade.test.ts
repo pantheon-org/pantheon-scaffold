@@ -234,3 +234,24 @@ test("a lock with no entry for the runner is not an error", async () => {
   const r = await run(root, fakes());
   expect(r.renderExit).toBe(0);
 });
+
+// Phase 7 finding: the imports of the package (Builtins.pkl) have to move with the amends line, and the report says how many did.
+test("upgrade moves every import of the package with the amends line and says so", async () => {
+  const root = repo();
+  const imp = (v: string, sum: string) => `import "package://github.com/pantheon-org/pantheon-scaffold/releases/download/v${v}/pantheon-scaffold@${v}::sha256:${sum}#/Builtins.pkl"`;
+  put(root, "pantheon.pkl", `${amends("0.1.0", h("a")).split("\n")[0]}\n${imp("0.1.0", h("a"))}\n\noptions { toolchain = "1.96.1" }\n`);
+  const r = await run(root, fakes());
+  expect(get(root, "pantheon.pkl")).toContain(imp("0.2.0", h("c")));
+  expect(get(root, "pantheon.pkl")).not.toContain("0.1.0");
+  expect(r.changes[0]).toContain("1 import");
+});
+
+test("a dry run lists the imports it would move and changes nothing", async () => {
+  const root = repo();
+  const imp = `import "package://github.com/pantheon-org/pantheon-scaffold/releases/download/v0.1.0/pantheon-scaffold@0.1.0::sha256:${h("a")}#/Builtins.pkl"`;
+  const text = `${amends("0.1.0", h("a")).split("\n")[0]}\n${imp}\n`;
+  put(root, "pantheon.pkl", text);
+  const r = await run(root, fakes(), "0.2.0", { dryRun: true });
+  expect(r.changes[0]).toContain("1 import");
+  expect(get(root, "pantheon.pkl")).toBe(text);
+});

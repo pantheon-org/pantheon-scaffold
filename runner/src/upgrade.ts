@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { checksumAssetUrl, findChecksum } from "./checksums";
 import { checkRunnerLock } from "./lockcheck";
 import { acquireLock, type LockOptions } from "./lock";
-import { RUNNER_TOOL, readPins, writePins } from "./pins";
+import { RUNNER_TOOL, readPins, writePins, countPackageImports } from "./pins";
 import { compareSemver, parseSemver } from "./semver";
 
 export const REPO = "pantheon-org/pantheon-scaffold";
@@ -93,7 +93,8 @@ export async function upgrade(root: string, requested: string, opts: UpgradeOpti
   if (compareSemver(to, from) < 0 && !opts.force) throw new UpgradeError(`${to} is older than ${from}, which is pinned now (use --force to go back)`);
 
   const checksum = await verifiedChecksum(to, opts.baseUrl ?? RELEASE_BASE, deps);
-  const changes = [`${config}: ${from} -> ${to}, checksum ${checksum.slice(0, 12)}...`, `mise.toml: ${RUNNER_TOOL} ${pins.runnerVersion} -> ${to}`];
+  const imports = countPackageImports(root, config);
+  const changes = [`${config}: ${from} -> ${to}, checksum ${checksum.slice(0, 12)}...${imports ? `, ${imports} import${imports === 1 ? "" : "s"} of the package` : ""}`, `mise.toml: ${RUNNER_TOOL} ${pins.runnerVersion} -> ${to}`];
   if (opts.dryRun) return { from, to, changes, dryRun: true };
 
   const release = acquireLock(root, opts.lock);

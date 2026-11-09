@@ -34,7 +34,7 @@ P.1 ignores comments, so a render that dropped `# zizmor: ignore[...]` would pas
 
 ### The GitHub App already exists
 
-`pr-auto-rebase.yml` and `release-automerge.yml` already mint a token from a GitHub App, `pantheon-ai-bot` (client id in the workflow, private key in the org secret `GH_APP_PRIVATE_KEY`, contents and pull-requests write). So an App exists in the organisation. Whether it is the App the plan's P.4 asks for, and whether the secret is available to `pantheon-scaffold`, is for the owner to decide.
+`pr-auto-rebase.yml` and `release-automerge.yml` already mint a token from a GitHub App, `pantheon-ai-bot` (the client id is in the workflow). So an App exists in the organisation. Whether it is the App the plan's P.4 asks for is for the owner to decide.
 
 ### Not in wave A
 
@@ -79,13 +79,13 @@ The same `adr`-pinned file is also the file of `pantheon-journal` and `pantheon-
 
 P.1 ignores comments. The header of each workflow is kept, and comments between keys are lost. The headers that depend on an option are built so that they never describe a file the repository does not have (the zizmor command, the agnix lead sentence). The wording of a header can still differ from a repository's own, and the real-repository render lists those.
 
-### Not built by any task yet
+### Built in Phase 5
 
-Decision 74 settles how four more files are handled, but no task in the plan builds them: `.gitignore` (the `target/` pick), `.coderabbit.yaml` (the skill folder is a parameter), `SECURITY.md` (seeded once) and `tag-release.sh` (the crate name is a parameter, and the `binary` variant of `release-please.yml` calls it). `audit-skill.yml` and `release.yml` belong to the phase 5 toggles. The owner is asked where these go.
+Decision 74 settles how four more files are handled: `.gitignore` (the `target/` pick), `.coderabbit.yaml` (the skill folder is a parameter), `SECURITY.md` (seeded once) and `tag-release.sh` (the crate name is a parameter, and the `binary` variant of `release-please.yml` calls it). Phase 5 built them, with `audit-skill.yml` and `release.yml`: see [feature-toggles.md](feature-toggles.md).
 
 ## Wave C: keeping pins current, and proposing upgrades
 
-Wave C is new work with no upstream copy, so it is checked by structure tests (`runner/test/workflows-c.test.ts`, `update-pins-workflow.test.ts`, `update-pins-script.test.ts`) rather than by P.1 equality. The App steps are built and **unverified**: nothing here has run with the App yet.
+Wave C is new work with no upstream copy, so it is checked by structure tests (`runner/test/workflows-c.test.ts`, `update-pins-workflow.test.ts`, `update-pins-script.test.ts`) rather than by P.1 equality. The App token step of `update-pins.yml` has run successfully (the weekly run on 09-11-2026 included). Opening a pin pull request has not been exercised, because no pin has moved since, and `upgrade-scaffold.yml` has never run in a consumer repository: both stay **unverified**.
 
 ### In the package repository
 

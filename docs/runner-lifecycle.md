@@ -13,8 +13,8 @@ A package URI with no readable version is an error, never ignored. After every r
 | Rule | Result |
 |---|---|
 | The package requires a newer runner than this one (`requires.runner`, raised by hand in the release that needs it) | Exit 1, "upgrade the runner". |
-| The package is older than the version that last rendered this repository | `render` refuses with exit . unless `--force`. `check` only warns, because it writes nothing. A pre-release of the recorded version counts as older. |
-| The package version is on the known-bad list | Warning with the reason. With `--strict`, exit . before anything is written. |
+| The package is older than the version that last rendered this repository | `render` refuses with exit 3 unless `--force`. `check` only warns, because it writes nothing. A pre-release of the recorded version counts as older. |
+| The package version is on the known-bad list | Warning with the reason. With `--strict`, exit 3 before anything is written. |
 | A required Security builtin is disabled (`securityBuiltins` in the contract) | Warning for each one. `--strict` does not change it. |
 
 Versions are compared as semantic versions, not as text. A pre-release ranks below its release, so a runner `0.1.0-rc.1` is older than a requirement of `0.1.0`. Keep `requires.runner` at a version that pre-releases of the next release can meet: CI builds `0.0.1-ci.N` against the current requirement of `0.0.0`, and the smoke suite fails if it does not. `--repair` skips reading the manifest first, because it exists to fix one that cannot be read.
@@ -29,7 +29,7 @@ A JSON document of `{ "versions": [{ "version": "x.y.z", "reason": "..." }] }` k
 
 1. It fetches the list (5 second limit) and writes it to `.pkl-gen/cache/known-bad.json`.
 2. If the fetch fails or the text is not a valid list, it uses the cached copy and prints a note.
-3. With no cache it uses the snapshot bundled in the runner (`runner/src/known-bad.bundled.json`, empty for now) and prints a note.
+3. With no cache it uses the snapshot bundled in the runner (`runner/src/known-bad.bundled.json`, a snapshot kept in step with `known-bad.json` by hand, so it can be behind the list on `main`) and prints a note.
 
 A failed fetch never stops a run. The list can only produce a warning, or a refusal with `--strict`. `PANTHEON_SCAFFOLD_KNOWN_BAD_URL` overrides the address, for tests and mirrors. The package repository publishes `known-bad.json` on `main`. If the fetch fails the runner falls back with a note.
 

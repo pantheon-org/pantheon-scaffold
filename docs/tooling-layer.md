@@ -51,7 +51,7 @@ The rendered file equals the current one except for these lines (asserted exactl
 
 ### Adopting it
 
-None of the four repositories has a `mise.lock` or a `.mise/` folder today, so adopting this file turns the lock on for them. After the first render, run `mise lock` once and commit `mise.lock`, and CI installs with `mise install --locked`. That is applied in phase 7, not here.
+None of the four repositories has a `mise.lock` or a `.mise/` folder today, so adopting this file turns the lock on for them. After the first render, run `mise lock` once and commit `mise.lock`, and CI installs with `mise install --locked`. Phase 7 proved this on scratch clones of the four repositories. It has not been applied to the real repositories: each owner decides that (see [adopting.md](adopting.md)).
 
 ## Wave C: the hook steps
 

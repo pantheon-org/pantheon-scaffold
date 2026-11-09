@@ -181,9 +181,9 @@ The package does **not** render \`release.yml\`. \`cargo-dist\` generates it in 
 
 ## Token and App key custody
 
-What the files show: the workflows \`pr-auto-rebase.yml\`, \`release-automerge.yml\` and \`release-please.yml\` read the organisation secret \`GH_APP_PRIVATE_KEY\` and mint a short-lived installation token for the App \`pantheon-ai-bot\` (its client id is written in the file: a public identifier). Each asks for contents and pull-requests write on the repository it runs in. The token step runs before every other step, and a key that is not valid stops the job there (shown in the wave C run).
+What the files show: the workflows \`pr-auto-rebase.yml\`, \`release-automerge.yml\` and \`release-please.yml\` read the secret \`GH_APP_PRIVATE_KEY\` and mint a short-lived installation token for the App \`pantheon-ai-bot\` (its client id is written in the file: a public identifier). Each asks for contents and pull-requests write on the repository it runs in. The token step runs before every other step, and a key that is not valid stops the job there (shown in the wave C run).
 
-What is **not** in the files, and that the review token cannot read (organisation and App settings): the App's permission scope and installation list, who holds the key and where, rotation, who can read the organisation secret, and whether the custody is written down. Six questions about these were put to the owner and answered on 09-11-2026.
+What is **not** in the files, and that the review token cannot read (organisation and App settings): the App's permission scope and installation list, who holds the key and where, rotation, who can read the secret, and whether the custody is written down. Six questions about these were put to the owner and answered on 09-11-2026.
 
 The answers are **not recorded in this repository**, which is public: they describe how a secret is held and who can reach it. They are held in the owner's private record, together with an analysis of what the key could do if it were misused and the gaps that analysis found. This dossier therefore does not claim that the custody is verified. It records that the questions were asked and answered, that the answers are held privately, and that the private record lists open items.
 

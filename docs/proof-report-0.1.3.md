@@ -515,7 +515,7 @@ What it does not show: `hk check --all` (compared before and after in wave A), a
 | Required check names match the names GitHub reports | PR 54: a test renders the standard workflows for each repository's options and checks every required check is a job name the package renders, plus a rename transition test. Read-only check on GitHub: on the latest merged pull request of each of the four repositories, all five required checks are reported. On the head of `main` four of five are, because "Conventional Commit Title" runs on pull requests only |
 | Per-repository ruleset task validated in a dry run | PR 56: the dry run on the live repositories shows no change. With a changed desired state in a scratch folder it plans one replacement (each difference in words) and one creation. 15 tests against a fake GitHub, including the rollback path |
 | Repository settings task validated in a dry run | PR 55: the dry run finds 3 changes in each of the four repositories (merge commits off, rebase merges off, delete branch on merge on), sent nowhere. 14 tests, including a restore from the record |
-| Scheduled drift workflow with a named owner | PR 57: `governance-drift.yml`, owner in `governance/drift-owner.json`. Run twice on GitHub with the real token: a dry run and a run with the dry run off, both with no drift and no issue. A changed desired state prints the issue it would open, and no issue exists afterwards |
+| Scheduled drift workflow with a named owner | PR 57: `governance-drift.yml`, owner in `governance/drift-owner.json`. Run twice on GitHub with the real token: a dry run and a run with the dry run off, both with no drift and no issue. A changed desired state prints the issue it would open, and no issue exists afterwards. **Real issue writes, 09-11-2026, run by the owner's request with `drift --issue` and a scratch desired state:** the first run created issue 61 (label `governance-drift`, assigned to the owner), the same drift again left it `unchanged`, a different drift `updated` it and added one comment, and a run against the real desired state closed it with a comment ("No drift in the latest run. Closing."). A run with nothing open did nothing. Issue 61 is closed and no other issue was touched |
 
 Mutation checks over the governance code: 66 of 66 caught (`tmp/phase-6-governance`). Each tool is dry-run by default, writes a record before any change, verifies after it, and sends only what differs.
 
@@ -529,6 +529,6 @@ Mutation checks over the governance code: 66 of 66 caught (`tmp/phase-6-governan
 ### Not shown
 
 - Applying a ruleset or a setting to a real repository, or restoring one. The ruleset create and update calls carry parameters (for example `dismissal_restriction`) that have not been tried against the real API. The owner chose not to run a throwaway-repository test.
-- The real issue writes of the workflow (opening, updating and closing the drift issue) have been tested against a fake GitHub only.
+- The issue writes **from the scheduled workflow itself**: the real-issue test below ran on a laptop with the owner's token, not in a workflow run with the workflow's own `GITHUB_TOKEN` (which has `issues: write`).
 - The bypass actors and the merge settings in the scheduled run (see finding 1).
 - The policy decisions that follow from the live state, which are the owner's and are kept privately.

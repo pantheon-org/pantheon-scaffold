@@ -379,13 +379,18 @@ The first real `upgrade` of a scratch consumer from 0.1.1 to 0.1.3, with the pub
 
 Fixed in `runner/src/pins.ts`: every import of the package moves with the `amends` line (tests in `pins.test.ts` and `upgrade.test.ts`, mutation check in `tmp/phase-7-upgrade-imports`, 6 of 6 caught). Checked against the real release: the fixed `upgrade` took the same scratch consumer from 0.1.1 to 0.1.3, moved 1 import, rendered with exit 0, and `check` passed. The fix is in the runner, so it ships in the next candidate (0.1.4). 0.1.3 stays published; whether it goes on the known-bad list is decided when 0.1.4 exists (decision 88).
 
-## Wave D: v0.1.4 and the benefit test
+## Wave D: v0.1.4, v0.1.5 and the benefit test
 
-Task 7.6, decision 89. v0.1.4 is the Phase 5 candidate plus the `upgrade` fix of decision 88 and one header line in `plumber.yml` (PR 37, `f87d607`). It was released on 09-11-2026 as a pre-release: a manual dry run first (run 42574935271, nothing published), then the tag `v0.1.4` on `f87d607` (release run 42576757594). Published with 8 assets, `gh attestation verify` of `checksums.txt` passes, and the published release was verified on ubuntu-latest, ubuntu-24.04-arm and macos-latest.
+Task 7.6, decisions 88 and 89. v0.1.4 (PR 37, `f87d607`, 09-11-2026) is the Phase 5 candidate plus the `upgrade` fix of decision 88 and one header line in `plumber.yml`. The benefit test run on it found a second `upgrade` bug (the finding below), so v0.1.5 (PR 38, `e7cf2e6`) is the candidate that Phase 8 promotes (decision 46). 0.1.4 stays published and is superseded.
 
-### The four repositories against the published v0.1.4
+| Release | How it was cut | Result |
+|---|---|---|
+| v0.1.4 | A manual dry run (run 42574935271, nothing published), then the tag on `f87d607` (release run 42576757594) | 8 assets, `gh attestation verify` of `checksums.txt` passes, verified on ubuntu-latest, ubuntu-24.04-arm and macos-latest |
+| v0.1.5 | A manual dry run (run 42587832833), then the tag on `e7cf2e6` (release run 42588132278) | 8 assets, `gh attestation verify` of `checksums.txt` passes, verified on ubuntu-latest, ubuntu-24.04-arm and macos-latest |
 
-`runner/scripts/proof-render.ts 0.1.4` repeats wave A with the published 0.1.4 runner and package URI: every repository PASS, zero uncategorised, five required checks each and none missing, `hk check --all` the same before and after.
+### The four repositories against the published v0.1.5
+
+`runner/scripts/proof-render.ts 0.1.5` repeats wave A with the published 0.1.5 runner and package URI. Every repository PASS, zero uncategorised, five required checks each and none missing, `hk check --all` the same before and after. The same run on 0.1.4 gave the same counts.
 
 | Repository | Commit | Files | Identical | Categorised differences | Uncategorised |
 |---|---|---|---|---|---|
@@ -396,15 +401,19 @@ Task 7.6, decision 89. v0.1.4 is the Phase 5 candidate plus the `upgrade` fix of
 
 ### The benefit test
 
-`runner/scripts/proof-benefit.ts` adopts v0.1.3 in scratch clones of `pantheon-adr` and `pantheon-skill-auditor` (compositeAction off and on), then moves each to v0.1.4 with `upgrade`. The consumer's runner is the published one of the version it is pinned to. `upgrade` runs from this checkout's source, which is the code of 0.1.4. The one hand edit of the 0.1.3 hop (the `Builtins` import, decision 89) is made by the script. The reference is a fresh clone adopted straight on 0.1.4.
+`runner/scripts/proof-benefit.ts` adopts v0.1.3 in scratch clones of `pantheon-adr` and `pantheon-skill-auditor` (compositeAction off and on), then moves each to the new release with `upgrade`. The consumer's runner is the published one of the version it is pinned to. `upgrade` runs from this checkout's source at `e7cf2e6`, which is the code of 0.1.5. The one hand edit of the 0.1.3 hop (the `Builtins` import, decision 89) is made by the script. The reference is a fresh clone adopted straight on the new release. `upgrade` must exit 0 by itself: no refusal and no `--force`.
 
-| Repository | Changed by the hop | plumber.yml (added, removed) | Differ from a direct 0.1.4 render | Runner after | check | Second render | Result |
-|---|---|---|---|---|---|---|---|
-| pantheon-adr | plumber.yml, mise.toml, pantheon.pkl | 2, 0 | 0 | 0.1.4 | 44 owned files match | written 0 | PASS |
-| pantheon-skill-auditor | plumber.yml, mise.toml, pantheon.pkl | 2, 0 | 0 | 0.1.4 | 44 owned files match | written 0 | PASS |
+| Hop | Repository | Changed by the hop | plumber.yml (added, removed) | Differ from a direct render | Runner after | check | Second render | Result |
+|---|---|---|---|---|---|---|---|---|
+| 0.1.3 to 0.1.4, with the fix at `e7cf2e6` | pantheon-adr | plumber.yml, mise.toml, pantheon.pkl | 2, 0 | 0 | 0.1.4 | 44 owned files match | wrote 0 | PASS |
+| 0.1.3 to 0.1.4, with the fix at `e7cf2e6` | pantheon-skill-auditor | plumber.yml, mise.toml, pantheon.pkl | 2, 0 | 0 | 0.1.4 | 44 owned files match | wrote 0 | PASS |
+| 0.1.3 to 0.1.5, the published release | pantheon-adr | plumber.yml, mise.toml, pantheon.pkl | 2, 0 | 0 | 0.1.5 | 44 owned files match | wrote 0 | PASS |
+| 0.1.3 to 0.1.5, the published release | pantheon-skill-auditor | plumber.yml, mise.toml, pantheon.pkl | 2, 0 | 0 | 0.1.5 | 44 owned files match | wrote 0 | PASS |
 
-The one canonical change (two lines, the header of `plumber.yml`) reached both clones through one release, nothing else in the rendered tree changed, and both trees equal a direct render of 0.1.4. The test is the owner's own run on scratch clones, so it is not independent (decisions 70 and 72).
+The one canonical change (two lines, the header of `plumber.yml`) reached both clones through one release, nothing else in the rendered tree changed, and both trees equal a direct render of the new release. The test is the owner's own run on scratch clones, so it is not independent (decisions 70 and 72).
 
-### Finding of wave D: `upgrade` leaves a consumer that renders `mise.toml` with a refused render
+### Finding of wave D: `upgrade` left a consumer that renders `mise.toml` with a refused render (fixed in 0.1.5)
 
-In both clones `upgrade 0.1.4` exits 3: after rewriting the runner pin in `mise.toml`, its own render refuses `mise.toml` as "was edited by hand since the last render". `mise.toml` is an owned file of the package (`Builtins.miseFiles`, runner pin from the package version), so the pin edit that `upgrade` makes is read as a hand edit. The pins, the lock and `pantheon.pkl` are already updated, and a `render --force` then writes the same `mise.toml` the package renders, which the script did. `--force` would also overwrite a real hand edit, so it is not a safe instruction for a consumer. Every consumer that adopts `miseFiles` is affected, as with the import in decision 88. The Phase 2b tests used a hand-written `mise.toml`, so none saw it. No fix is made in this report.
+The first run of the benefit test, on 0.1.4, exited 3 in both clones: after rewriting the runner pin in `mise.toml`, `upgrade`'s own render refused `mise.toml` as "was edited by hand since the last render". `mise.toml` is an owned file of the package (`Builtins.miseFiles`, runner pin from the package version), so the pin edit that `upgrade` makes was read as a hand edit. The pins, the lock and `pantheon.pkl` were already updated, and a `render --force` wrote the same `mise.toml` the package renders, but `--force` would also overwrite a real hand edit, so it is not safe advice. Every consumer that adopts `miseFiles` was affected, as with the import in decision 88. The Phase 2b tests used a hand-written `mise.toml`, so none saw it.
+
+Fixed in `runner/src/upgrade.ts` (PR 38): `upgrade` records the text after the pin edit in `.pkl-gen/manifest.json`, but only when `mise.toml` is an owned file that matched the manifest before the edit. A `mise.toml` edited by hand keeps its old hash and is still refused. Four new tests in `upgrade.test.ts` (the sealed hash, the hand-edit case, no manifest or a seeded file, and the manifest restored when `mise lock` fails). The first of them failed before the fix. After the fix the strict benefit test passes on both clones, on the code and on the published 0.1.5.

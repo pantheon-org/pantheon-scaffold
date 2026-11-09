@@ -828,11 +828,19 @@ local dependabotGroup = (name: String) -> new Dynamic {
 
 /// Dependabot's configuration. The git dependencies in `options.gitDependencyIgnore` are ignored, because Dependabot cannot resolve a git
 /// dependency pinned by tag and that error fails the whole cargo job. The github-actions ecosystem is not in the consumer file.
+/// Added to the header of dependabot.yml for a repository with a binary (decision 86).
+local distNote: String = "\n\n" + #"""
+  release.yml caveat: release.yml is written by `dist generate` from dist-workspace.toml, which
+  Dependabot cannot edit, so a Dependabot bump of upload-artifact or download-artifact inside
+  it would fail the dist check. They are ignored below: change their commits in
+  dist-workspace.toml and run `dist generate`.
+  """#
+
 function dependabot(opts: Config.Options): Config.GenFile =
   let (names = opts.gitDependencyIgnore.toList().join(" and "))
   new Config.GenFile {
     content =
-      commentBlock(
+      commentBlock((
         if (opts.gitDependencyIgnore.isEmpty) #"""
           Keeps Cargo dependencies and the SHA-pinned GitHub Actions current. Minor and
           patch bumps are grouped into one weekly PR per ecosystem to cut review noise;
@@ -853,7 +861,7 @@ function dependabot(opts: Config.Options): Config.GenFile =
           Cargo.toml. Dependabot cannot resolve them (dependency_file_not_resolvable), and
           that error fails the whole cargo job, so they are ignored below. Bump the tag by
           hand when pantheon-agentic-harness-dev-kit cuts a release.
-          """#
+          """#) + (if (opts.binary) distNote else "")
       ) + yamlConfig.renderValue(new Dynamic {
         version = 2
         updates = new Listing {
@@ -876,6 +884,12 @@ function dependabot(opts: Config.Options): Config.GenFile =
             schedule = new Dynamic { interval = "weekly"; day = "monday" }
             `open-pull-requests-limit` = 5
             cooldown = new Dynamic { `default-days` = 7 }
+            when (opts.binary) {
+              ignore = new Listing {
+                new Dynamic { `dependency-name` = "actions/upload-artifact" }
+                new Dynamic { `dependency-name` = "actions/download-artifact" }
+              }
+            }
             labels = new Listing { "dependencies"; "github-actions" }
             `commit-message` = new Dynamic { prefix = "ci"; include = "scope" }
             groups = new Dynamic { `actions-minor-patch` = dependabotGroup.apply("actions") }

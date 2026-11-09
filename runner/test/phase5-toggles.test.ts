@@ -33,7 +33,7 @@ const EXPECTED: [string, Partial<T>, { removed: string[]; changed: string[] }][]
   }],
   ["binary off", { binary: false }, {
     removed: [".github/actionlint.yaml", ".github/scripts/tag-release.sh", ".github/workflows/dist-check.yml", ".github/workflows/release.yml", ".github/zizmor.yml", "dist-workspace.toml"],
-    changed: [".github/workflows/release-please.yml", ".github/workflows/zizmor.yml", "SECURITY.md"],
+    changed: [".github/dependabot.yml", ".github/workflows/release-please.yml", ".github/workflows/zizmor.yml", "SECURITY.md"],
   }],
   ["features all", { features: "all" }, { removed: [], changed: [".github/workflows/rust-ci.yml"] }],
   ["compositeAction on", { compositeAction: true }, { removed: [], changed: [".github/workflows/audit-skill.yml", ".github/workflows/zizmor.yml", ".github/zizmor.yml"] }],

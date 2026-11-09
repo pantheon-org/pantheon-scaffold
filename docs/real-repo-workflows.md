@@ -4,7 +4,7 @@ Wave D of Phase 4, extended in Phase 5 wave B. `runner/scripts/real-repo-workflo
 
 A YAML file is compared under the P.1 rule (parsed data, so job ids, job names and every `run:` script byte for byte) and its directive comments (such as `# zizmor: ignore[...]`) are checked. Pinned action commits are masked in that comparison, because a pin that moved since the repository last updated it is a pin difference and not a difference in content: the report lists it as "pin moved". Any other file is compared byte for byte. The rendered workflows must also pass `actionlint`. Run from the repository root: `bun runner/scripts/real-repo-workflows.ts`. It needs network, git and `actionlint` installed through mise.
 
-Run on 08-11-2026 against `main` of each repository: **PASS for all four.** Under P.1 a file is "equal" when only comments, formatting and pin commits differ. A "recorded" difference is one the plan accepts, listed in the script: the library repository's `.gitignore` (`/target`, while decision 74 picks `target/`), the skill auditor's seeded `SECURITY.md` (it words its scope bullets differently, and a seeded file is written once and then belongs to the repository), and `dist-workspace.toml` in the three binary repositories (two action commits changed to the ones their `release.yml` uses, decision 85). A "new" file is one the package adds that no repository has yet (`dist-check.yml` and `scaffold-check.yml`).
+Run on 08-11-2026 against `main` of each repository: **PASS for all four.** Under P.1 a file is "equal" when only comments, formatting and pin commits differ. A "recorded" difference is one the plan accepts, listed in the script: the library repository's `.gitignore` (`/target`, while decision 74 picks `target/`), the skill auditor's seeded `SECURITY.md` (it words its scope bullets differently, and a seeded file is written once and then belongs to the repository), `dist-workspace.toml` in the three binary repositories (two action commits changed to the ones their `release.yml` uses, decision 85), and `dependabot.yml` in the same three (the github-actions entry ignores the two artifact actions, decision 86). A "new" file is one the package adds that no repository has yet (`dist-check.yml` and `scaffold-check.yml`).
 
 `release.yml` is listed by the package but never written (class `external`): `dist generate` writes it, and the drift check is Phase 5 wave D. No file the repositories have is left without a builtin.
 
@@ -16,7 +16,7 @@ Run on 08-11-2026 against `main` of each repository: **PASS for all four.** Unde
 | .coderabbit.yaml | identical | none |
 | .github/actionlint.yaml | identical | none |
 | .github/commit-types.txt | identical | none |
-| .github/dependabot.yml | equal (P.1) | comments only: 3 line(s) of the repository's not rendered, 0 rendered that it lacks |
+| .github/dependabot.yml | recorded | the github-actions entry also ignores actions/upload-artifact and actions/download-artifact, which only dist generate may change in release.yml (decision 86); $.updates[1].ignore: undefined vs [{"dependency-name":"actions/upload-artifact"},{"dependency-name":"actions/download-artifact"}] |
 | .github/labels.txt | identical | none |
 | .github/pull_request_template.md | identical | none |
 | .github/scripts/tag-release.sh | identical | none |
@@ -53,7 +53,7 @@ Run on 08-11-2026 against `main` of each repository: **PASS for all four.** Unde
 | .coderabbit.yaml | identical | none |
 | .github/actionlint.yaml | identical | none |
 | .github/commit-types.txt | identical | none |
-| .github/dependabot.yml | equal (P.1) | comments only: 3 line(s) of the repository's not rendered, 0 rendered that it lacks |
+| .github/dependabot.yml | recorded | the github-actions entry also ignores actions/upload-artifact and actions/download-artifact, which only dist generate may change in release.yml (decision 86); $.updates[1].ignore: undefined vs [{"dependency-name":"actions/upload-artifact"},{"dependency-name":"actions/download-artifact"}] |
 | .github/labels.txt | identical | none |
 | .github/pull_request_template.md | identical | none |
 | .github/scripts/tag-release.sh | identical | none |
@@ -90,7 +90,7 @@ Run on 08-11-2026 against `main` of each repository: **PASS for all four.** Unde
 | .coderabbit.yaml | identical | none |
 | .github/actionlint.yaml | identical | none |
 | .github/commit-types.txt | identical | none |
-| .github/dependabot.yml | equal (P.1) | comments only: 3 line(s) of the repository's not rendered, 0 rendered that it lacks |
+| .github/dependabot.yml | recorded | the github-actions entry also ignores actions/upload-artifact and actions/download-artifact, which only dist generate may change in release.yml (decision 86); $.updates[1].ignore: undefined vs [{"dependency-name":"actions/upload-artifact"},{"dependency-name":"actions/download-artifact"}] |
 | .github/labels.txt | identical | none |
 | .github/pull_request_template.md | identical | none |
 | .github/scripts/tag-release.sh | identical | none |
@@ -154,9 +154,9 @@ Run on 08-11-2026 against `main` of each repository: **PASS for all four.** Unde
 
 | Repository | Commit | Files built | Identical | Equal under P.1 | Recorded | New | Differ or absent | actionlint | Result |
 |---|---|---|---|---|---|---|---|---|---|
-| pantheon-adr | 1e2fd46 | 29 | 11 | 15 | 1 | 2 | 0 | clean | PASS |
-| pantheon-journal | 05c3d84 | 29 | 11 | 15 | 1 | 2 | 0 | clean | PASS |
-| pantheon-skill-auditor | b9e706e | 29 | 10 | 15 | 2 | 2 | 0 | clean | PASS |
+| pantheon-adr | 1e2fd46 | 29 | 11 | 14 | 2 | 2 | 0 | clean | PASS |
+| pantheon-journal | 05c3d84 | 29 | 11 | 14 | 2 | 2 | 0 | clean | PASS |
+| pantheon-skill-auditor | b9e706e | 29 | 10 | 14 | 3 | 2 | 0 | clean | PASS |
 | pantheon-agentic-harness-dev-kit | 42f48b4 | 23 | 7 | 14 | 1 | 1 | 0 | clean | PASS |
 
 Verdict: PASS

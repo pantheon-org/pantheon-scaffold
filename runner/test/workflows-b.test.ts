@@ -61,7 +61,11 @@ const same = (label: string, c: C, path: string, upstream: string) => {
 };
 for (const n of ["release-please", "zizmor", "agnix", "aislop"]) same("adr-like", adr, `.github/workflows/${n}.yml`, text(`workflows/${n}.yml`));
 same("adr-like", adr, ".github/workflows/rust-ci.yml", text("workflows/rust-ci.yml"));
-same("adr-like", adr, ".github/dependabot.yml", text("workflows/dependabot.yml"));
+// Decision 86: a repository with a binary also tells Dependabot to leave the two artifact actions of the generated release.yml alone.
+// The only difference from the repository's own file is that ignore list, added here to the pinned copy.
+const withDistIgnore = (upstream: string): string =>
+  upstream.replace(`    cooldown:\n      default-days: 7\n    labels:\n      - "dependencies"\n      - "github-actions"`, `    cooldown:\n      default-days: 7\n    ignore:\n      - dependency-name: "actions/upload-artifact"\n      - dependency-name: "actions/download-artifact"\n    labels:\n      - "dependencies"\n      - "github-actions"`);
+same("adr-like", adr, ".github/dependabot.yml", withDistIgnore(text("workflows/dependabot.yml")));
 for (const n of ["release-please", "zizmor", "agnix", "aislop", "rust-ci"]) same("library-like", kit, `.github/workflows/${n}.yml`, text(`workflows-kit/${n}.yml`));
 same("library-like", kit, ".github/dependabot.yml", text("workflows-kit/dependabot.yml"));
 same("auditor-like", auditor, ".github/workflows/zizmor.yml", text("workflows-auditor/zizmor.yml"));

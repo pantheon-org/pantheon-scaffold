@@ -58,6 +58,15 @@ bun runner/scripts/governance.ts rulesets-restore <record file> [--apply --confi
 
 **Not yet proven against the real API.** The tests use a fake GitHub. The rulesets read from GitHub carry parameters (for example `dismissal_restriction`) that the create and update calls have not been tried with. A dry run prints the request it would send (`--show-body`), and the first real apply, on a throwaway repository, is the way to find out. Nothing has been applied to any repository.
 
+## The weekly drift check
+
+`.github/workflows/governance-drift.yml` runs every Monday morning (and by hand) and compares the live rulesets of the four repositories with `desired/`. It uses only this run's own `GITHUB_TOKEN`: no App, no secret.
+
+- **It opens, updates or closes one issue** in this repository, labelled `governance-drift` and assigned to the owner in `drift-owner.json`. The issue lists each difference in words. It is updated (with a comment) when the drift changes, and closes itself, with a comment, when the drift is gone. It only ever touches an open issue with exactly its own title.
+- **By hand it is a dry run unless told otherwise:** it prints the issue it would open and opens nothing. Run it with `dry_run` off to let it write.
+- **What it cannot see.** A token that is not an admin of a repository is never shown the bypass actors of a ruleset or the repository's merge settings (checked on 09-11-2026: both are absent from the answers). So the scheduled run compares everything else about the rulesets and says in the issue and in its log that it did not compare the bypass actors. The merge settings are not compared by it at all. Both are compared when an admin runs `check` (bypass actors) and `settings` (merge settings) by hand.
+- **Locally:** `bun runner/scripts/governance.ts drift` prints the same findings and, with drift, the issue text, and exits 4. With `--issue` it writes the issue (it needs a token that can write issues in this repository).
+
 ## The required checks and the package
 
 A required check is a job name. `runner/test/governance-checks.test.ts` renders the standard workflows for each repository's options and checks that every required check is the name of a job the package renders. It also tests what happens when a job is renamed: the required check is reported missing, and a renamed job would block every pull request until the ruleset follows. The jobs the package renders that nothing requires (for example `Scaffold check`) are reported as unrequired. Requiring them is a decision for each owner.

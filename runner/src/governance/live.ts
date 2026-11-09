@@ -6,7 +6,8 @@ export type DesiredRepos = { owner: string; repos: Record<string, string[]> };
 /** Reads one GitHub API path as JSON. Replaceable, which is how the tests run without GitHub. */
 export type Api = (path: string) => Promise<unknown>;
 
-export type RepoFinding = { repo: string; problems: string[] };
+/** `notes` are things the comparison could not do, so a clean result is not read as more than it is. */
+export type RepoFinding = { repo: string; problems: string[]; notes: string[] };
 
 const SLUG = /^[a-z0-9][a-z0-9._-]*$/;
 
@@ -20,16 +21,19 @@ export async function checkRepo(owner: string, repo: string, wanted: Ruleset[], 
   const list = await api(`repos/${owner}/${repo}/rulesets`);
   if (!Array.isArray(list)) throw new Error(`${owner}/${repo}: the rulesets answer is not a list`);
   const live: Ruleset[] = [];
+  let bypassHidden = false;
   for (const item of list as { id: number }[]) {
     if (typeof item?.id !== "number") throw new Error(`${owner}/${repo}: a ruleset has no id`);
-    live.push(toCreateShape((await api(`repos/${owner}/${repo}/rulesets/${item.id}`)) as Record<string, unknown>));
+    const got = (await api(`repos/${owner}/${repo}/rulesets/${item.id}`)) as Record<string, unknown>;
+    if (!("bypass_actors" in got)) bypassHidden = true;
+    live.push(toCreateShape(got));
   }
   const problems: string[] = [];
   for (const w of wanted) {
     const l = live.find((x) => x.name === w.name);
     if (!l) problems.push(`ruleset "${w.name}" is missing`);
-    else for (const d of compareRulesets(w, l)) problems.push(`ruleset "${w.name}": ${d}`);
+    else for (const d of compareRulesets(w, l, { skipBypass: bypassHidden })) problems.push(`ruleset "${w.name}": ${d}`);
   }
   for (const l of live) if (!wanted.some((w) => w.name === l.name)) problems.push(`ruleset "${l.name}" is present and is not in the desired state`);
-  return { repo, problems };
+  return { repo, problems, notes: bypassHidden ? ["the bypass actors were not compared: this token cannot see them (it is not an admin of the repository)"] : [] };
 }

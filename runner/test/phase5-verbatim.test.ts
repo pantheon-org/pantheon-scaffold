@@ -23,7 +23,6 @@ const gitBlobSha = (text: string): string => {
 };
 
 const BLOBS: Record<string, string> = {
-  ".gitignore": "66e8098804d3b4b7ddc5cf4f00cfa8dd94d2c49f",
   ".github/actionlint.yaml": "010277fad034ccbc7ec5b08827de18b22c23b703",
 };
 
@@ -55,6 +54,17 @@ test("dist-workspace.toml is the pantheon-adr file with exactly the two action c
     .replace("3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c", "9000827ccba6bdab643e8b6fd33ac0654aef8333");
   const f = file(binary, "dist-workspace.toml");
   expect(f.content).toBe(expected);
+  expect(f.class).toBe("owned");
+  expect(f.mode).toBe("0644");
+});
+
+// Decision 87: the runner keeps its package cache in .pkl-gen/cache, which must not be committed, so the shipped .gitignore is the pantheon-adr
+// file (blob 66e8098 at 1e2fd46) plus the line `.pkl-gen/cache/`.
+test(".gitignore is the pantheon-adr file plus exactly the line .pkl-gen/cache/, owned and not executable", () => {
+  const upstream = readFileSync(join(import.meta.dir, "upstream/phase5/pantheon-adr/.gitignore"), "utf8");
+  expect(gitBlobSha(upstream)).toBe("66e8098804d3b4b7ddc5cf4f00cfa8dd94d2c49f");
+  const f = file(binary, ".gitignore");
+  expect(f.content).toBe(upstream + ".pkl-gen/cache/\n");
   expect(f.class).toBe("owned");
   expect(f.mode).toBe("0644");
 });

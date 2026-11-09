@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { checksumAssetUrl, findChecksum } from "./checksums";
 import { checkRunnerLock } from "./lockcheck";
+import { MANIFEST_PATH, readManifest, serialiseManifest, sha256 } from "./manifest";
 import { acquireLock, type LockOptions } from "./lock";
 import { RUNNER_TOOL, readPins, writePins, countPackageImports } from "./pins";
 import { compareSemver, parseSemver } from "./semver";
@@ -48,6 +49,23 @@ const restore = (b: Backup[]): void => {
     else writeFileSync(path, text);
   }
 };
+
+/**
+ * When mise.toml is an owned file whose text still matches the manifest, returns a function that records the text after the pin edit in the
+ * manifest, so the render that follows sees no hand edit. A mise.toml that was edited by hand, a seeded one, or no manifest: nothing is
+ * recorded, and the render judges the file as it did before.
+ */
+async function sealedMise(root: string): Promise<() => Promise<void>> {
+  const path = join(root, "mise.toml");
+  if (!existsSync(path) || !existsSync(join(root, MANIFEST_PATH))) return async () => {};
+  const manifest = await readManifest(root);
+  const entry = manifest.files["mise.toml"];
+  if (entry?.class !== "owned" || entry.hash !== sha256(readFileSync(path, "utf8"))) return async () => {};
+  return async () => {
+    manifest.files["mise.toml"] = { ...entry, hash: sha256(readFileSync(path, "utf8")) };
+    writeFileSync(join(root, MANIFEST_PATH), serialiseManifest(manifest));
+  };
+}
 
 /** Downloads the release's checksums file and returns the package checksum, after the attestation says the file is genuine. */
 async function verifiedChecksum(version: string, base: string, deps: Deps): Promise<string> {
@@ -98,8 +116,10 @@ export async function upgrade(root: string, requested: string, opts: UpgradeOpti
   if (opts.dryRun) return { from, to, changes, dryRun: true };
 
   const release = acquireLock(root, opts.lock);
-  const saved = [backup(join(root, config)), backup(join(root, "mise.toml")), backup(join(root, "mise.lock"))];
+  const saved = [backup(join(root, config)), backup(join(root, "mise.toml")), backup(join(root, "mise.lock")), backup(join(root, MANIFEST_PATH))];
   try {
+    // The package owns mise.toml when it renders it, so the pin edit below must not look like a hand edit to the render that follows.
+    const sealed = await sealedMise(root);
     writePins(root, config, { version: to, checksum });
     for (const step of ["install", "lock"]) {
       const code = await deps.exec(["mise", step], root);
@@ -117,6 +137,7 @@ export async function upgrade(root: string, requested: string, opts: UpgradeOpti
         `mise lock recorded the wrong runner for some platforms, so the pins and the lock file were put back:\n  ${problems.join("\n  ")}\nLimit the platforms in mise.toml: [settings] lockfile_platforms = ["linux-x64", "linux-arm64", "macos-arm64"]`,
       );
     }
+    await sealed();
   } finally {
     release();
   }

@@ -85,11 +85,8 @@ try {
     // The one hand edit of the 0.1.3 hop (decision 89): the Builtins import, which the 0.1.3 runner's upgrade does not move.
     const pkl = readFileSync(join(dir, "pantheon.pkl"), "utf8");
     writeFileSync(join(dir, "pantheon.pkl"), pkl.replace(uri(from, fromSum, "Builtins.pkl"), uri(to, toSum, "Builtins.pkl")));
-    const up = await sh([process.execPath, cli, "upgrade", to, "--config", "pantheon.pkl", "--root", dir], dir);
-    // Exit 3 is the render inside upgrade refusing mise.toml (an owned file whose runner pin upgrade just rewrote): recorded, then forced.
-    const refusal = up.code === 3 ? up.err.split("\n").filter((l) => /^ {2}\S.*: /.test(l)).map((l) => l.trim()).join("; ") : "";
-    if (up.code !== 0 && up.code !== 3) need(up, `upgrade ${spec.name}`);
-    if (up.code === 3) need(await mx(dir, "render", "pantheon.pkl", "--force"), `render --force after upgrade ${spec.name}`);
+    // upgrade must succeed on its own, render included: exit 3 here was the finding of the first run (mise.toml refused as a hand edit, fixed in upgrade.ts).
+    const up = need(await sh([process.execPath, cli, "upgrade", to, "--config", "pantheon.pkl", "--root", dir], dir), `upgrade ${spec.name}`);
     const version = (await mx(dir, "--version")).out;
     const check = need(await mx(dir, "check", "pantheon.pkl"), `check ${spec.name}`);
     const again = need(await mx(dir, "render", "pantheon.pkl"), `second render ${spec.name}`);
@@ -114,7 +111,7 @@ try {
     rows.push(`| ${spec.name} | ${head} | ${changed.join(", ")} | ${diff.replace(/\s+/g, " ")} | ${differ.length} | ${version} | ${check.out.split("\n").pop()} | ${again.out.split("\n").pop()} | ${pass ? "PASS" : "FAIL"} |`);
     say(`### ${spec.name}`);
     say();
-    say(`- Exit of \`upgrade ${to}\`: ${up.code}${refusal ? `, its own render refused: ${refusal}, so a \`render --force\` followed` : ""}.`);
+    say(`- \`upgrade ${to}\` exited ${up.code}: its own render ran without a refusal and no \`--force\` was used.`);
     say(`- \`upgrade ${to}\` output: ${up.out.split("\n").filter((l) => /^(changed|upgraded)/.test(l)).join("; ")}`);
     say(`- Files changed by the hop: ${changed.join(", ")}. Added: ${added.join(", ") || "none"}. Removed: ${removed.join(", ") || "none"}.`);
     say(`- \`plumber.yml\` numstat (added removed): ${diff.replace(/\s+/g, " ")}`);

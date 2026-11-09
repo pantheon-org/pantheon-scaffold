@@ -11,7 +11,7 @@ locked_verify_provenance = true
 lockfile_platforms = ["linux-x64", "linux-arm64", "macos-arm64"]
 
 [tools]
-"github:pantheon-org/pantheon-scaffold" = "0.1.1"
+"github:pantheon-org/pantheon-scaffold" = "VERSION"
 ```
 
 Then `mise lock` and `mise install --locked`. A CI job runs `mise install --locked`, so a tampered checksum or a missing attestation fails the install.
@@ -26,4 +26,4 @@ The runner is built for `linux-x64`, `linux-arm64` and `macos-arm64` (glibc Linu
 
 - `pantheon-scaffold upgrade` checks the runner's lock entries after `mise lock`. A platform the runner is not built for, or the wrong asset for one it is, fails the upgrade and puts the pins and the lock file back, with the setting to add (see [runner-upgrade.md](runner-upgrade.md)).
 - The release pipeline's `verify-release` job installs the published release as a consumer with exactly this setting, and checks that the lock names only the three runner binaries (see [release-process.md](release-process.md)).
-- The `mise.toml` that the package renders for a repository must carry the setting. That template is part of the tooling layer (phase 3), which is not built yet.
+- The `mise.toml` that the package renders for a repository carries the setting (the tooling layer, [tooling-layer.md](tooling-layer.md)).

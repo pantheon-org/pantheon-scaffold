@@ -2,6 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { LockError } from "../src/lock";
+import { type Manifest, serialiseManifest, sha256 } from "../src/manifest";
 import { RUNNER_TOOL } from "../src/pins";
 import { UpgradeError, upgrade, type Deps } from "../src/upgrade";
 import { cleanupRepos, get, has, put, tempRepo } from "./helpers";
@@ -254,4 +255,45 @@ test("a dry run lists the imports it would move and changes nothing", async () =
   const r = await run(root, fakes(), "0.2.0", { dryRun: true });
   expect(r.changes[0]).toContain("1 import");
   expect(get(root, "pantheon.pkl")).toBe(text);
+});
+
+const manifestOf = (root: string, files: Record<string, { class: "owned" | "seed"; hash: string }>) =>
+  put(root, ".pkl-gen/manifest.json", serialiseManifest({ manifestVersion: 1, packageVersion: "0.1.0", files }));
+const readHash = (root: string, path: string): string | undefined => (JSON.parse(get(root, ".pkl-gen/manifest.json")) as Manifest).files[path]?.hash;
+
+test("the runner pin upgrade writes into an owned mise.toml is recorded in the manifest, so the render that follows does not read it as a hand edit", async () => {
+  const root = repo();
+  manifestOf(root, { "mise.toml": { class: "owned", hash: sha256(get(root, "mise.toml")) }, "other.txt": { class: "owned", hash: h("e") } });
+  await run(root, fakes());
+  expect(readHash(root, "mise.toml")).toBe(sha256(get(root, "mise.toml")));
+  expect(get(root, "mise.toml")).toContain(`"${RUNNER_TOOL}" = "0.2.0"`);
+  expect(readHash(root, "other.txt")).toBe(h("e"));
+});
+
+test("a mise.toml that was edited by hand keeps its old hash, so the render still refuses it", async () => {
+  const root = repo();
+  manifestOf(root, { "mise.toml": { class: "owned", hash: sha256(get(root, "mise.toml")) } });
+  const old = readHash(root, "mise.toml");
+  put(root, "mise.toml", `${get(root, "mise.toml")}# a hand edit\n`);
+  await run(root, fakes());
+  expect(readHash(root, "mise.toml")).toBe(old);
+});
+
+test("a repository with no manifest, or a mise.toml the package does not own, gets no manifest written", async () => {
+  const none = repo();
+  await run(none, fakes());
+  expect(has(none, ".pkl-gen/manifest.json")).toBe(false);
+  const seeded = repo();
+  manifestOf(seeded, { "mise.toml": { class: "seed", hash: sha256(get(seeded, "mise.toml")) } });
+  const before = get(seeded, ".pkl-gen/manifest.json");
+  await run(seeded, fakes());
+  expect(get(seeded, ".pkl-gen/manifest.json")).toBe(before);
+});
+
+test("when mise lock fails the manifest is put back with the other files", async () => {
+  const root = repo();
+  manifestOf(root, { "mise.toml": { class: "owned", hash: sha256(get(root, "mise.toml")) } });
+  const manifest = get(root, ".pkl-gen/manifest.json");
+  await expect(run(root, fakes({ exit: { "mise lock": 1 } }))).rejects.toThrow(UpgradeError);
+  expect(get(root, ".pkl-gen/manifest.json")).toBe(manifest);
 });

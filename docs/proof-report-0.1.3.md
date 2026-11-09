@@ -378,3 +378,33 @@ Notes on the scenarios:
 The first real `upgrade` of a scratch consumer from 0.1.1 to 0.1.3, with the published runner and mise installing both releases into an isolated scratch folder (checksums and provenance enforced), rewrote the `amends` line and the runner pin but **not the `import` of `Builtins.pkl`**, which stayed on 0.1.1. The render then failed in `Config.pkl`, because the 0.1.3 `Config` was mixed with the 0.1.1 `Builtins`. Every consumer that uses a builtin has that import, so `upgrade` of the published 0.1.3 runner is broken for all of them. The Phase 2b tests only had an `amends` line, and `verify-release` only dry-runs `upgrade`, so neither saw it.
 
 Fixed in `runner/src/pins.ts`: every import of the package moves with the `amends` line (tests in `pins.test.ts` and `upgrade.test.ts`, mutation check in `tmp/phase-7-upgrade-imports`, 6 of 6 caught). Checked against the real release: the fixed `upgrade` took the same scratch consumer from 0.1.1 to 0.1.3, moved 1 import, rendered with exit 0, and `check` passed. The fix is in the runner, so it ships in the next candidate (0.1.4). 0.1.3 stays published; whether it goes on the known-bad list is decided when 0.1.4 exists (decision 88).
+
+## Wave D: v0.1.4 and the benefit test
+
+Task 7.6, decision 89. v0.1.4 is the Phase 5 candidate plus the `upgrade` fix of decision 88 and one header line in `plumber.yml` (PR 37, `f87d607`). It was released on 09-11-2026 as a pre-release: a manual dry run first (run 42574935271, nothing published), then the tag `v0.1.4` on `f87d607` (release run 42576757594). Published with 8 assets, `gh attestation verify` of `checksums.txt` passes, and the published release was verified on ubuntu-latest, ubuntu-24.04-arm and macos-latest.
+
+### The four repositories against the published v0.1.4
+
+`runner/scripts/proof-render.ts 0.1.4` repeats wave A with the published 0.1.4 runner and package URI: every repository PASS, zero uncategorised, five required checks each and none missing, `hk check --all` the same before and after.
+
+| Repository | Commit | Files | Identical | Categorised differences | Uncategorised |
+|---|---|---|---|---|---|
+| pantheon-adr | 1e2fd46 | 47 | 23 | 24 | 0 |
+| pantheon-journal | 05c3d84 | 47 | 23 | 24 | 0 |
+| pantheon-skill-auditor | b9e706e | 47 | 22 | 25 | 0 |
+| pantheon-agentic-harness-dev-kit | 42f48b4 | 41 | 20 | 21 | 0 |
+
+### The benefit test
+
+`runner/scripts/proof-benefit.ts` adopts v0.1.3 in scratch clones of `pantheon-adr` and `pantheon-skill-auditor` (compositeAction off and on), then moves each to v0.1.4 with `upgrade`. The consumer's runner is the published one of the version it is pinned to. `upgrade` runs from this checkout's source, which is the code of 0.1.4. The one hand edit of the 0.1.3 hop (the `Builtins` import, decision 89) is made by the script. The reference is a fresh clone adopted straight on 0.1.4.
+
+| Repository | Changed by the hop | plumber.yml (added, removed) | Differ from a direct 0.1.4 render | Runner after | check | Second render | Result |
+|---|---|---|---|---|---|---|---|
+| pantheon-adr | plumber.yml, mise.toml, pantheon.pkl | 2, 0 | 0 | 0.1.4 | 44 owned files match | written 0 | PASS |
+| pantheon-skill-auditor | plumber.yml, mise.toml, pantheon.pkl | 2, 0 | 0 | 0.1.4 | 44 owned files match | written 0 | PASS |
+
+The one canonical change (two lines, the header of `plumber.yml`) reached both clones through one release, nothing else in the rendered tree changed, and both trees equal a direct render of 0.1.4. The test is the owner's own run on scratch clones, so it is not independent (decisions 70 and 72).
+
+### Finding of wave D: `upgrade` leaves a consumer that renders `mise.toml` with a refused render
+
+In both clones `upgrade 0.1.4` exits 3: after rewriting the runner pin in `mise.toml`, its own render refuses `mise.toml` as "was edited by hand since the last render". `mise.toml` is an owned file of the package (`Builtins.miseFiles`, runner pin from the package version), so the pin edit that `upgrade` makes is read as a hand edit. The pins, the lock and `pantheon.pkl` are already updated, and a `render --force` then writes the same `mise.toml` the package renders, which the script did. `--force` would also overwrite a real hand edit, so it is not a safe instruction for a consumer. Every consumer that adopts `miseFiles` is affected, as with the import in decision 88. The Phase 2b tests used a hand-written `mise.toml`, so none saw it. No fix is made in this report.

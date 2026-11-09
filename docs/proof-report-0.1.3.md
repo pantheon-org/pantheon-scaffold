@@ -417,3 +417,35 @@ The one canonical change (two lines, the header of `plumber.yml`) reached both c
 The first run of the benefit test, on 0.1.4, exited 3 in both clones: after rewriting the runner pin in `mise.toml`, `upgrade`'s own render refused `mise.toml` as "was edited by hand since the last render". `mise.toml` is an owned file of the package (`Builtins.miseFiles`, runner pin from the package version), so the pin edit that `upgrade` makes was read as a hand edit. The pins, the lock and `pantheon.pkl` were already updated, and a `render --force` wrote the same `mise.toml` the package renders, but `--force` would also overwrite a real hand edit, so it is not safe advice. Every consumer that adopts `miseFiles` was affected, as with the import in decision 88. The Phase 2b tests used a hand-written `mise.toml`, so none saw it.
 
 Fixed in `runner/src/upgrade.ts` (PR 38): `upgrade` records the text after the pin edit in `.pkl-gen/manifest.json`, but only when `mise.toml` is an owned file that matched the manifest before the edit. A `mise.toml` edited by hand keeps its old hash and is still refused. Four new tests in `upgrade.test.ts` (the sealed hash, the hand-edit case, no manifest or a seeded file, and the manifest restored when `mise lock` fails). The first of them failed before the fix. After the fix the strict benefit test passes on both clones, on the code and on the published 0.1.5.
+
+## Wave C: the throwaway repository run
+
+Task 7.3, 09-11-2026. The candidate is v0.1.5. The repository was `pantheon-org/pantheon-wave-c-throwaway` (private), created from a scratch copy of `pantheon-adr` at `1e2fd46` with the standard set rendered by the published v0.1.5 runner through its real package URI (17 workflows: the 16 standard ones and `adr`'s own `release.yml`). The runner was checked first: its checksum matches `checksums.txt` and both attestations pass. One repository secret was set, `GH_APP_PRIVATE_KEY` with the text `fake-not-a-key`, before anything was pushed. The site was committed with `[skip ci]` and pushed to `main`, so none of the 17 workflows ran on the push. Each of the six workflows that have `workflow_dispatch` was then dispatched once.
+
+| Run | Workflow | Result | First failing step |
+|---|---|---|---|
+| 42592944145 | Cargo Deny | success | none |
+| 42592948195 | Dist check | success | none |
+| 42592966939 | Sync Labels | success | none |
+| 42592952490 | Auto-rebase PR branches | failure, expected | Mint pantheon-ai-bot token: `Invalid keyData` |
+| 42592957108 | Release Auto-merge | failure, expected | Mint pantheon-ai-bot token: `Invalid keyData` |
+| 42592962476 | Release Please | failure, expected | Mint pantheon-ai-bot token: `Invalid keyData` |
+
+### What it confirms
+
+- **`workflow_dispatch: {}` is dispatchable.** All six dispatches were accepted and started a run. GitHub treats the rendered `{}` as the `null` form that the four repositories use today, so the equality rule inside `on:` (decision 73, part b) holds and stays.
+- **The three App-token workflows fail closed.** The fake key is rejected by a local import (`importDerKey`) before any request to GitHub carries a credential, and the jobs stop at the token step without running the steps after it.
+- **The three workflows that need no secret pass** on a synthetic repository with the rendered files.
+
+### Findings
+
+1. **A new repository in the organisation can see the organisation's secrets.** Before any run, the repository listed 6 organisation secrets (`CEREBRAS_API_KEY`, `GEMINI_API_KEY`, `GH_APP_PRIVATE_KEY`, `MISTRAL_API_KEY`, `NPM_TOKEN`, `TESSL_TOKEN`) and 4 organisation variables (`CEREBRAS_MODEL`, `GEMINI_CLI_VERSION`, `GEMINI_MODEL`, `GH_APP_ID`). The fake repository secret shadowed `GH_APP_PRIVATE_KEY`, and no pushed workflow references any of the other five secrets (a search of the site found only `secrets.GH_APP_PRIVATE_KEY` and `secrets.GITHUB_TOKEN`). The visibility is an organisation setting and not a property of the package, so it is for the owner to review (the secrets are visible to all repositories). Nothing was changed.
+2. **`[skip ci]` does not stop Dependabot.** The rendered `dependabot.yml` started two Dependabot Updates runs (cargo and github-actions) on the first push. Both succeeded and opened no pull request.
+
+### Not exercised
+
+The `push`, `pull_request`, `pull_request_target` and `schedule` triggers; a real App token and what it may write; a real release-please pull request; the permissions of a token minted by the real App; and `release.yml` of the sample repository (tag-triggered, not dispatched).
+
+### Cleanup
+
+The repository was deleted by the owner in the web UI on 09-11-2026. `gh api repos/pantheon-org/pantheon-wave-c-throwaway` returns 404 and the organisation's repository list holds no repository with "throwaway" in its name. The repository secret went with it. The token of the maintainer was not given the `delete_repo` scope (decision of 09-11-2026). The scratch copy and runner are in the session's temporary folder.

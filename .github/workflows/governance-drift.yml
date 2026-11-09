@@ -3,7 +3,8 @@ name: governance-drift
 # Weekly and by hand: compares the live rulesets of the four Rust repositories with governance/desired/, and opens, updates or closes
 # one issue in this repository when they differ (Phase 6, task 6.4). It only reads other repositories. The token is this run's own
 # GITHUB_TOKEN, with no App and no secret, so it cannot see bypass actors or merge settings: those are compared by hand (governance/README.md).
-# By hand it is a dry run unless told otherwise: it prints the issue it would open and opens nothing.
+# By hand it is a dry run unless told otherwise: it prints the issue it would open and opens nothing. Drift (exit 4) is a result there,
+# not a failure, but an error (any other exit) fails the run.
 on:
   schedule:
     - cron: "23 6 * * 1"
@@ -44,8 +45,7 @@ jobs:
         run: mise install --locked
       - name: Compare and print, change nothing (a manual run with dry_run left on)
         if: github.event_name == 'workflow_dispatch' && inputs.dry_run
-        run: mise x -- bun runner/scripts/governance.ts drift
-        continue-on-error: true
+        run: mise x -- bun runner/scripts/governance.ts drift || [ $? -eq 4 ]
       - name: Compare, and open, update or close the drift issue
         if: github.event_name == 'schedule' || !inputs.dry_run
         run: mise x -- bun runner/scripts/governance.ts drift --issue

@@ -46,6 +46,9 @@ test("the issue is touched only by the step that is told to, and a dry run never
   const dry = job.steps.filter((s) => s.run?.includes("governance.ts drift") && !s.run.includes("--issue"));
   expect(dry.length).toBe(1);
   expect(dry[0].if).toBe("github.event_name == 'workflow_dispatch' && inputs.dry_run");
+  // Drift (exit 4) is a result of a dry run. Any other failure is an error and must fail the run, so nothing is allowed to continue on error.
+  expect(dry[0].run).toBe("mise x -- bun runner/scripts/governance.ts drift || [ $? -eq 4 ]");
+  expect(text).not.toContain("continue-on-error");
 });
 
 test("no run script interpolates anything: nothing a dispatcher controls reaches a shell", () => {

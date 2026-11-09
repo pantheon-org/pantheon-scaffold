@@ -1,0 +1,20 @@
+{
+  "owner": "pantheon-org",
+  "repos": {
+    "pantheon-adr": [
+      "protect-main"
+    ],
+    "pantheon-agentic-harness-dev-kit": [
+      "protect-main",
+      "require-cargo-deny"
+    ],
+    "pantheon-journal": [
+      "protect-main",
+      "require-cargo-deny"
+    ],
+    "pantheon-skill-auditor": [
+      "protect-main",
+      "require-cargo-deny"
+    ]
+  }
+}

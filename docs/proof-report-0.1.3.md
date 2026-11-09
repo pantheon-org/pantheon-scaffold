@@ -454,22 +454,29 @@ The repository was deleted by the owner in the web UI on 09-11-2026. `gh api rep
 
 Task 7.5 and the sign-off of task 7.2. Candidate: v0.1.5. `runner/scripts/proof-dossier.ts` (read-only, repeatable: two runs give identical files) writes two documents from the published package and assets:
 
-- [security-dossier-0.1.5.md](security-dossier-0.1.5.md): every rendered workflow for the four repositories (16 workflow files, 18 distinct rows: triggers, permissions, secrets, tokens, action pins, untrusted input), the review of the one `pull_request_target` workflow, what the package does and does not cover of `release.yml`, the App key custody questions (left for the owner), and a scan of the 8 assets and the release notes (0 token or key matches).
+- [security-dossier-0.1.5.md](security-dossier-0.1.5.md): every rendered workflow for the four repositories (16 workflow files, 18 distinct rows: triggers, permissions, secrets, tokens, action pins, untrusted input), the review of the one `pull_request_target` workflow, what the package does and does not cover of `release.yml`, the App key custody section (the questions were answered by the owner and are held privately), and a scan of the 8 assets and the release notes (0 token or key matches).
 - [sample-check-0.1.5.md](sample-check-0.1.5.md): 19 of the 94 categorised differences (20 percent rounded up, at least one per category), chosen with the written seed `pantheon-scaffold-0.1.5-wave-e`, each with its diff and a box for the owner.
 
 ### What this does not establish
 
 - **Security approval is not obtained** (decision 78, an accepted risk). The dossier is input for a Security review, not a substitute.
 - **The review is not independent.** The maintainer, the owner of the four repositories and the reviewer are the same person (decisions 69, 70 and 72). A second reviewer is not named.
-- **App key custody is not verified.** The files show how the key is read, and the review token cannot read organisation or App settings. No written custody decision was found, so the six questions in the dossier are for the owner to answer, and an empty answer is a finding.
+- **App key custody is not verified here.** The files show how the key is read, and the review token cannot read organisation or App settings. The custody questions were put to the owner and answered on 09-11-2026. The answers are held privately, because this repository is public, and the dossier does not claim that the custody is verified.
 
 ### Sign-off
 
-A sign-off is never defaulted (decision 68). Each row stays "not signed" until the owner records it. A repository the owner has not signed is reported as not signed.
+Signed by the owner on 09-11-2026, after the walk-through of the sample check (19 of 19 confirmed) and the wave A diff report, for release v0.1.5. A sign-off is never defaulted (decision 68): each row below was given by the owner in the session, in answer to a direct question.
 
 | Repository | Diff report | Sample check (diffs ticked) | Signed by, date |
 |---|---|---|---|
-| pantheon-adr | wave A and this report | 4 of 4 confirmed, 09-11-2026 | not signed |
-| pantheon-journal | wave A and this report | 5 of 5 confirmed, 09-11-2026 | not signed |
-| pantheon-skill-auditor | wave A and this report | 5 of 5 confirmed, 09-11-2026 | not signed |
-| pantheon-agentic-harness-dev-kit (library, a render only, not a proof repository) | wave A and this report | 5 of 5 confirmed, 09-11-2026 | not signed |
+| pantheon-adr | wave A and this report | 4 of 4 confirmed, 09-11-2026 | Thomas Roche, 09-11-2026 |
+| pantheon-journal | wave A and this report | 5 of 5 confirmed, 09-11-2026 | Thomas Roche, 09-11-2026 |
+| pantheon-skill-auditor | wave A and this report | 5 of 5 confirmed, 09-11-2026 | Thomas Roche, 09-11-2026 |
+| pantheon-agentic-harness-dev-kit (library, a render only, not a proof repository) | wave A and this report | 5 of 5 confirmed, 09-11-2026 | Thomas Roche, 09-11-2026 |
+
+What this sign-off is not:
+
+- **It is not a Security approval.** Security approval is not obtained (decision 78, an accepted risk).
+- **It is not independent.** The signer is the owner of the four repositories and the maintainer of the package (decisions 69, 70 and 72). A second reviewer is not named, so the independent steps of the plan (the independent sample check and the promotion approval of Phase 8) are still unmet.
+- **It does not cover the App key custody.** The custody questions were answered privately (see the dossier) and the answers are not part of this report.
+- **It does not adopt the package.** No repository has adopted v0.1.5. Adoption stays with each repository's owner (decision 48).

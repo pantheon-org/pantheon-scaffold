@@ -504,3 +504,31 @@ Verdict: PASS. Every command in the guide's first-time setup worked as written.
 What it showed that the guide now says: `mise install` also installs hk's git hooks into the repository (through `git config`), so a clone you adopt in gains the hook commands.
 
 What it does not show: `hk check --all` (compared before and after in wave A), an upgrade or a detach (wave B), adoption in a real repository, and the platforms the runner has no binary for.
+
+## Phase 6: governance
+
+09-11-2026. Tasks 6.1 to 6.4 of the shared plan (6.3 as changed by decision 76: repository rulesets, not an organisation ruleset). The code is in `runner/src/governance/` and `governance/`, described in [governance/README.md](../governance/README.md). **Nothing was applied to any repository or setting.** Every real run below only read.
+
+| Exit criterion of the plan | Where it is shown |
+|---|---|
+| Ruleset JSON validated against a read-only GET | PR 54: the desired rulesets mirror the live ones, `governance.ts check` reports no drift for all four repositories, and the conversion is tested on recorded GETs of the live rulesets |
+| Required check names match the names GitHub reports | PR 54: a test renders the standard workflows for each repository's options and checks every required check is a job name the package renders, plus a rename transition test. Read-only check on GitHub: on the latest merged pull request of each of the four repositories, all five required checks are reported. On the head of `main` four of five are, because "Conventional Commit Title" runs on pull requests only |
+| Per-repository ruleset task validated in a dry run | PR 56: the dry run on the live repositories shows no change. With a changed desired state in a scratch folder it plans one replacement (each difference in words) and one creation. 15 tests against a fake GitHub, including the rollback path |
+| Repository settings task validated in a dry run | PR 55: the dry run finds 3 changes in each of the four repositories (merge commits off, rebase merges off, delete branch on merge on), sent nowhere. 14 tests, including a restore from the record |
+| Scheduled drift workflow with a named owner | PR 57: `governance-drift.yml`, owner in `governance/drift-owner.json`. Run twice on GitHub with the real token: a dry run and a run with the dry run off, both with no drift and no issue. A changed desired state prints the issue it would open, and no issue exists afterwards |
+
+Mutation checks over the governance code: 66 of 66 caught (`tmp/phase-6-governance`). Each tool is dry-run by default, writes a record before any change, verifies after it, and sends only what differs.
+
+### Findings
+
+1. **A token that is not an admin never sees bypass actors or merge settings.** Checked unauthenticated on 09-11-2026 and seen in the real workflow run. So the scheduled run does not compare bypass actors (and says so), and does not compare settings at all. Both are compared by hand with an admin token. The ruleset task now refuses a token that cannot see bypass actors, because a plan made from that would drop them.
+2. **The live "Protect main" already restricts a pull request to squash merges,** while the four repositories' settings still allow merge commits and rebase merges. The settings task would change that in each repository. It has not been applied.
+3. **The repositories differ in structure:** `pantheon-adr` has one ruleset, the other three have two, and the second only repeats a check the first already requires. Whether to keep it is a decision of the owner.
+4. **A flaw in the first version of the workflow, found and fixed here:** the manual dry run used `continue-on-error`, which would have hidden a real error. It now accepts only the drift exit code (4) and fails on any other.
+
+### Not shown
+
+- Applying a ruleset or a setting to a real repository, or restoring one. The ruleset create and update calls carry parameters (for example `dismissal_restriction`) that have not been tried against the real API. The owner chose not to run a throwaway-repository test.
+- The real issue writes of the workflow (opening, updating and closing the drift issue) have been tested against a fake GitHub only.
+- The bypass actors and the merge settings in the scheduled run (see finding 1).
+- The policy decisions that follow from the live state, which are the owner's and are kept privately.

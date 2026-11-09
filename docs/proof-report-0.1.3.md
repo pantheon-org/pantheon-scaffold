@@ -439,7 +439,7 @@ Task 7.3, 09-11-2026. The candidate is v0.1.5. The repository was `pantheon-org/
 
 ### Findings
 
-1. **A new repository in the organisation can see the organisation's secrets.** Before any run, the repository listed 6 organisation secrets (`CEREBRAS_API_KEY`, `GEMINI_API_KEY`, `GH_APP_PRIVATE_KEY`, `MISTRAL_API_KEY`, `NPM_TOKEN`, `TESSL_TOKEN`) and 4 organisation variables (`CEREBRAS_MODEL`, `GEMINI_CLI_VERSION`, `GEMINI_MODEL`, `GH_APP_ID`). The fake repository secret shadowed `GH_APP_PRIVATE_KEY`, and no pushed workflow references any of the other five secrets (a search of the site found only `secrets.GH_APP_PRIVATE_KEY` and `secrets.GITHUB_TOKEN`). The visibility is an organisation setting and not a property of the package, so it is for the owner to review (the secrets are visible to all repositories). Nothing was changed.
+1. **A new repository in the organisation can see the organisation's secrets.** Before any run, the repository listed 6 organisation secrets and 4 organisation variables. The names are not recorded here because this repository is public. The fake repository secret shadowed the one the workflows use, and no pushed workflow references any of the others (a search of the site found only the App key secret and the automatic `GITHUB_TOKEN`). The visibility is an organisation setting and not a property of the package, so it is for the owner to review (the secrets are visible to all repositories). Nothing was changed.
 2. **`[skip ci]` does not stop Dependabot.** The rendered `dependabot.yml` started two Dependabot Updates runs (cargo and github-actions) on the first push. Both succeeded and opened no pull request.
 
 ### Not exercised

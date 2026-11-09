@@ -85,7 +85,7 @@ Token and key patterns are the GitHub token prefixes, `github_pat_`, AWS access 
 
 ## Findings carried from the earlier waves
 
-1. **Organisation secrets are visible to a new repository** (wave C). The proof report lists their names, and this repository is public, so those names (not their values) are public too. The owner decides whether that is acceptable.
+1. **Organisation secrets are visible to a new repository** (wave C). The names are deliberately not recorded in this repository, which is public. The owner reviews the organisation setting.
 2. **`[skip ci]` does not stop Dependabot** (wave C): the rendered `dependabot.yml` starts Dependabot updates on the first push of a new repository.
 3. **`rumdl` fails in all four repositories today** (decision 80): fix or exempt each before `hk check --all` is enforced in CI.
 4. **`sync-labels.sh` becomes executable** in each adopting repository (decision 79).

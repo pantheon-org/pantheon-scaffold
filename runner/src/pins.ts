@@ -12,6 +12,8 @@ export type NewPins = { version: string; checksum: string };
 
 // All pin locations live in this file, so a consumer that keeps the pin somewhere else (a PklProject) changes one place (decision 45).
 const AMENDS = /(amends "package:\/\/github\.com\/pantheon-org\/pantheon-scaffold\/releases\/download\/v)([^/"]+)(\/pantheon-scaffold@)([^:#"]+)(?:::sha256:([0-9a-f]{64}))?(#\/Config\.pkl")/g;
+// Every import of the same package (Builtins.pkl, Tools.pkl, ...) has to move with the amends line, or the render mixes two versions of the package.
+const PACKAGE_IMPORT = /(import\*? "package:\/\/github\.com\/pantheon-org\/pantheon-scaffold\/releases\/download\/v)([^/"]+)(\/pantheon-scaffold@)([^:#"]+)(?:::sha256:[0-9a-f]{64})?(#\/[^"]+")/g;
 const TOOL_STRING = new RegExp(`^(\\s*"${RUNNER_TOOL}"\\s*=\\s*")([^"]+)(")`, "gm");
 // The section form mise writes when a tool has options: [tools."..."] followed by lines that do not open another section, one of them the version.
 const TOOL_SECTION = new RegExp(`^(\\[tools\\."${RUNNER_TOOL}"\\][ \\t]*\\n(?:(?!\\[)[^\\n]*\\n)*?[ \\t]*version[ \\t]*=[ \\t]*")([^"]+)(")`, "gm");
@@ -43,6 +45,11 @@ export function readPins(root: string, config: string): Pins {
   return { packageVersion: a[4], ...(a[5] ? { checksum: a[5] } : {}), runnerVersion: tool[2] };
 }
 
+/** How many imports of the package the config has, which move with the amends line. */
+export function countPackageImports(root: string, config: string): number {
+  return [...readText(root, config).matchAll(PACKAGE_IMPORT)].length;
+}
+
 /** Rewrites both files in memory first, and writes either only when both rewrites worked. */
 export function writePins(root: string, config: string, next: NewPins): void {
   if (!parseSemver(next.version)) throw new PinError(`${JSON.stringify(next.version)} is not a version`);
@@ -51,7 +58,9 @@ export function writePins(root: string, config: string, next: NewPins): void {
   const mise = readText(root, "mise.toml");
   only(pkl, AMENDS, "no amends line for the pantheon-scaffold package", config);
   const tool = toolMatch(mise);
-  const newPkl = pkl.replace(AMENDS, (_m, p1, _v, p3, _v2, _s, p6) => `${p1}${next.version}${p3}${next.version}::sha256:${next.checksum}${p6}`);
+  const newPkl = pkl
+    .replace(AMENDS, (_m, p1, _v, p3, _v2, _s, p6) => `${p1}${next.version}${p3}${next.version}::sha256:${next.checksum}${p6}`)
+    .replace(PACKAGE_IMPORT, (_m, p1, _v, p3, _v2, p5) => `${p1}${next.version}${p3}${next.version}::sha256:${next.checksum}${p5}`);
   const newMise = mise.slice(0, tool.index) + tool[0].replace(tool[2], next.version) + mise.slice(tool.index + tool[0].length);
   writeFileSync(join(root, config), newPkl);
   writeFileSync(join(root, "mise.toml"), newMise);

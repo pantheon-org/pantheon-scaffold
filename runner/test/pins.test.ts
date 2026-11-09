@@ -113,3 +113,38 @@ test("a section for a different tool is not mistaken for the runner", () => {
   put(root, "mise.toml", `[tools."github:other/tool"]\nversion = "1.0.0"\n`);
   expect(() => readPins(root, "pantheon.pkl")).toThrow(`no ${RUNNER_TOOL}`);
 });
+
+// Phase 7 finding: a consumer that uses builtins also imports them from the package URI, and upgrade moved only the amends line, so the
+// render mixed the new Config with the old Builtins and failed. Every import of the package moves with the amends line.
+const imp = (file: string, v: string, sum?: string, keyword = "import") =>
+  `${keyword} "package://github.com/pantheon-org/pantheon-scaffold/releases/download/v${v}/pantheon-scaffold@${v}${sum ? `::sha256:${sum}` : ""}#/${file}"`;
+const withImports = (v: string, sum: string | undefined, ...imports: string[]) => `${amends(v, sum)}\n${imports.join("\n")}\n\noptions { toolchain = "1.96.1" }\n`;
+
+test("every import of the package moves to the new version and checksum with the amends line, and nothing else changes", () => {
+  const root = repo();
+  put(root, "pantheon.pkl", withImports("0.1.0", h("a"), imp("Builtins.pkl", "0.1.0", h("a")), imp("Tools.pkl", "0.1.0", h("a"))));
+  writePins(root, "pantheon.pkl", { version: "0.2.0", checksum: h("c") });
+  expect(get(root, "pantheon.pkl")).toBe(withImports("0.2.0", h("c"), imp("Builtins.pkl", "0.2.0", h("c")), imp("Tools.pkl", "0.2.0", h("c"))));
+});
+
+test("an import* and an import with no checksum yet are moved too, and get the checksum", () => {
+  const root = repo();
+  put(root, "pantheon.pkl", withImports("0.1.0", h("a"), imp("Builtins.pkl", "0.1.0", undefined), imp("Pins.pkl", "0.1.0", h("a"), "import*")));
+  writePins(root, "pantheon.pkl", { version: "0.2.0", checksum: h("c") });
+  expect(get(root, "pantheon.pkl")).toBe(withImports("0.2.0", h("c"), imp("Builtins.pkl", "0.2.0", h("c")), imp("Pins.pkl", "0.2.0", h("c"), "import*")));
+});
+
+test("an import that was left on an older version is brought to the new one", () => {
+  const root = repo();
+  put(root, "pantheon.pkl", withImports("0.2.0", h("c"), imp("Builtins.pkl", "0.1.0", h("a"))));
+  writePins(root, "pantheon.pkl", { version: "0.3.0", checksum: h("d") });
+  expect(get(root, "pantheon.pkl")).toBe(withImports("0.3.0", h("d"), imp("Builtins.pkl", "0.3.0", h("d"))));
+});
+
+test("an import of something else, a local file or another package, is left alone", () => {
+  const root = repo();
+  const others = [`import "pkl:reflect"`, `import "../local/Builtins.pkl"`, `import "package://github.com/pantheon-org/pantheon-adr/releases/download/v1.0.0/pantheon-adr@1.0.0#/X.pkl"`];
+  put(root, "pantheon.pkl", withImports("0.1.0", h("a"), ...others, imp("Builtins.pkl", "0.1.0", h("a"))));
+  writePins(root, "pantheon.pkl", { version: "0.2.0", checksum: h("c") });
+  expect(get(root, "pantheon.pkl")).toBe(withImports("0.2.0", h("c"), ...others, imp("Builtins.pkl", "0.2.0", h("c"))));
+});

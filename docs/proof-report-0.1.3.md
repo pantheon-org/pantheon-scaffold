@@ -449,3 +449,27 @@ The `push`, `pull_request`, `pull_request_target` and `schedule` triggers; a rea
 ### Cleanup
 
 The repository was deleted by the owner in the web UI on 09-11-2026. `gh api repos/pantheon-org/pantheon-wave-c-throwaway` returns 404 and the organisation's repository list holds no repository with "throwaway" in its name. The repository secret went with it. The token of the maintainer was not given the `delete_repo` scope (decision of 09-11-2026). The scratch copy and runner are in the session's temporary folder.
+
+## Wave E: the dossier, the sample check and the sign-off
+
+Task 7.5 and the sign-off of task 7.2. Candidate: v0.1.5. `runner/scripts/proof-dossier.ts` (read-only, repeatable: two runs give identical files) writes two documents from the published package and assets:
+
+- [security-dossier-0.1.5.md](security-dossier-0.1.5.md): every rendered workflow for the four repositories (16 workflow files, 18 distinct rows: triggers, permissions, secrets, tokens, action pins, untrusted input), the review of the one `pull_request_target` workflow, what the package does and does not cover of `release.yml`, the App key custody questions (left for the owner), and a scan of the 8 assets and the release notes (0 token or key matches).
+- [sample-check-0.1.5.md](sample-check-0.1.5.md): 19 of the 94 categorised differences (20 percent rounded up, at least one per category), chosen with the written seed `pantheon-scaffold-0.1.5-wave-e`, each with its diff and a box for the owner.
+
+### What this does not establish
+
+- **Security approval is not obtained** (decision 78, an accepted risk). The dossier is input for a Security review, not a substitute.
+- **The review is not independent.** The maintainer, the owner of the four repositories and the reviewer are the same person (decisions 69, 70 and 72). A second reviewer is not named.
+- **App key custody is not verified.** The files show how the key is read, and the review token cannot read organisation or App settings. No written custody decision was found, so the six questions in the dossier are for the owner to answer, and an empty answer is a finding.
+
+### Sign-off
+
+A sign-off is never defaulted (decision 68). Each row stays "not signed" until the owner records it. A repository the owner has not signed is reported as not signed.
+
+| Repository | Diff report | Sample check (diffs ticked) | Signed by, date |
+|---|---|---|---|
+| pantheon-adr | wave A and this report | not done | not signed |
+| pantheon-journal | wave A and this report | not done | not signed |
+| pantheon-skill-auditor | wave A and this report | not done | not signed |
+| pantheon-agentic-harness-dev-kit (library, a render only, not a proof repository) | wave A and this report | not done | not signed |

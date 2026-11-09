@@ -9,6 +9,7 @@ const M: [string, string, string, string][] = [
   [B, `read("assets/dist-workspace.toml").text`, `read("assets/actionlint.yaml").text`, "dist-workspace.toml is the pinned file"],
   [B, `[".github/actionlint.yaml"] = new Config.GenFile { content = read("assets/actionlint.yaml").text }`, `[".github/actionlint.yaml"] = new Config.GenFile { content = read("assets/actionlint.yaml").text; executable = true }`, "actionlint.yaml is not executable"],
   ["pkl/assets/gitignore", `target/\n`, `/target\n`, ".gitignore is the decided target/ pick"],
+  ["pkl/assets/gitignore", `.pkl-gen/cache/\n`, ``, ".gitignore ignores the runner's package cache (decision 87)"],
   [B, `  [".gitignore"] = new Config.GenFile { content = read("assets/gitignore").text }\n  when`, `  when`, ".gitignore is rendered for every repository"],
   ["pkl/assets/actionlint.yaml", `\n`, `\n\n`, "actionlint.yaml is the pinned file"],
 ];

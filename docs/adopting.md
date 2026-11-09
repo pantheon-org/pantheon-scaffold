@@ -58,7 +58,7 @@ mise install --locked
 mise x -- pantheon-scaffold --version     # prints VERSION
 ```
 
-`mise install --locked` fails on a checksum that does not match or an attestation that does not verify.
+`mise install --locked` fails on a checksum that does not match or an attestation that does not verify. It also installs hk's git hooks into the repository (through `git config`), so expect the hook commands to appear.
 
 ### 2. Get the package checksum, from a release you have verified
 
@@ -228,6 +228,7 @@ A claim in this guide, and the test or the proof line that shows it. A path is a
 | Each option adds and removes exactly the files listed | `runner/test/phase5-toggles.test.ts`, [feature-toggles.md](feature-toggles.md); Report, wave A (the four repositories cover the variants) |
 | A toggle that needs a name stops with an error naming the option | `runner/test/phase5-toggles.test.ts` |
 | The render changes a real repository only in the ways listed | Report, wave A (every difference categorised, none uncategorised) and the sample check ([sample-check-0.1.5.md](sample-check-0.1.5.md), 19 of 19 confirmed) |
+| The first-time setup works as written: install, checksum, `pantheon.pkl`, dry run, render, `check`, a second render that writes 0 files, and the rendered tree builds and passes its tests | Report, Phase 8 wave E (every step of this guide run on a scratch clone of `pantheon-adr`: 188 tests passed, 0 failed), `runner/scripts/proof-adoption.ts` |
 | `mise.toml` changes by about ten lines added and four removed | `runner/scripts/proof-categories.ts` (the rule), Report, wave A |
 | The `hk.pkl` migration keeps the hook results | `runner/test/hk.test.ts`, `runner/test/tooling.test.ts`; Report, wave A (`hk check --all` the same before and after) |
 | `rumdl` findings exist before and after, unchanged by the render | Report, wave A (findings per repository) |

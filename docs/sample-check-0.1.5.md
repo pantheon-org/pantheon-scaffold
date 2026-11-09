@@ -621,5 +621,11 @@ The owner reads each diff below and ticks it. A sample the owner does not finish
 - Owner reviewed: [ ]
 
 ```diff
-
+@@ -36,5 +36,4 @@ In scope:
+ 
+-- The `pantheon-skill-auditor` CLI and the crates under `crates/`.
++- The `pantheon-skill-auditor` CLI under `crates/skill-auditor/`, including `skill install`.
+ - The bundled `skill-quality-auditor` skill and its scripts.
+-- The `action.yml` composite action, including its checksum verification.
+ - The release installers and archives built by the release workflow.
 ```

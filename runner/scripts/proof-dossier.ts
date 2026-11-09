@@ -100,7 +100,12 @@ async function main(): Promise<void> {
       let unified = "";
       if (theirs === undefined) unified = `(new file, ${f.content!.split("\n").length - 1} lines)`;
       else if (theirs === f.content) unified = `(content identical, mode ${tracked.has(f.path) ? modeOf(tracked.get(f.path)!) : "?"} to ${f.mode})`;
-      else unified = (await sh(["git", "diff", "--no-color", "-U1", "HEAD", "--", f.path], repo)).out.split("\n").slice(4).join("\n");
+      else {
+        // The two texts are compared directly: a seeded file that exists is kept by the render, so the clone's own diff of it would be empty.
+        writeFileSync(join(work, "theirs.tmp"), theirs);
+        writeFileSync(join(work, "mine.tmp"), f.content!);
+        unified = (await sh(["git", "diff", "--no-index", "--no-color", "-U1", "theirs.tmp", "mine.tmp"], work)).out.split("\n").slice(4).join("\n");
+      }
       diffs.push({ repo: spec.name, path: f.path, category: r.category, detail: r.detail, unified });
     }
   }

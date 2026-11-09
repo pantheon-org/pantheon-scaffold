@@ -4,7 +4,7 @@
 // Nothing is written to the four repositories: they are cloned (https, depth 1) into a temporary folder. Nothing in the output is a secret, a personal
 // e-mail address or a user name: the scan reports counts, file names and domains, never the matched value.
 // usage: bun runner/scripts/proof-dossier.ts [version]   (default: the version in pkl/PklProject)
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { categorise } from "./proof-categories";
@@ -148,7 +148,10 @@ async function main(): Promise<void> {
   const ids = REPOS.map((r) => `${r.name}: ${identical.get(r.name) ?? 0} identical, ${diffs.filter((d) => d.repo === r.name).length} differences`);
 
   writeFileSync(join(root, `docs/security-dossier-${version}.md`), dossier({ wfTable, flags, scan, visibility, workflowCount, ids, files: [...sums.keys()] }));
-  writeFileSync(join(root, `docs/sample-check-${version}.md`), sampleDoc({ sample, diffs: diffs.length, categoryRows, target }));
+  // A sample check the owner has reviewed holds their ticks and the review record: it is never regenerated over.
+  const samplePath = join(root, `docs/sample-check-${version}.md`);
+  const reviewed = existsSync(samplePath) && readFileSync(samplePath, "utf8").includes("**Review record (");
+  if (!reviewed) writeFileSync(samplePath, sampleDoc({ sample, diffs: diffs.length, categoryRows, target }));
   console.log(`dossier and sample written: ${workflowCount} workflow files, ${wfTable.length} table rows, ${diffs.length} differences, ${sample.length} sampled, ${scan.findings.length} scan finding lines`);
 
   function dossier(d: { wfTable: string[]; flags: string[]; scan: Scan; visibility: string; workflowCount: number; ids: string[]; files: string[] }): string {
@@ -180,18 +183,9 @@ The package does **not** render \`release.yml\`. \`cargo-dist\` generates it in 
 
 What the files show: the workflows \`pr-auto-rebase.yml\`, \`release-automerge.yml\` and \`release-please.yml\` read the organisation secret \`GH_APP_PRIVATE_KEY\` and mint a short-lived installation token for the App \`pantheon-ai-bot\` (its client id is written in the file: a public identifier). Each asks for contents and pull-requests write on the repository it runs in. The token step runs before every other step, and a key that is not valid stops the job there (shown in the wave C run).
 
-What is **not** established here, because it is not in the files and the review token cannot read organisation or App settings:
+What is **not** in the files, and that the review token cannot read (organisation and App settings): the App's permission scope and installation list, who holds the key and where, rotation, who can read the organisation secret, and whether the custody is written down. Six questions about these were put to the owner and answered on 09-11-2026.
 
-| Question | Answer |
-|---|---|
-| Is the App's permission scope recorded and as small as the three workflows need (contents write and pull requests write)? | Owner to answer |
-| On which repositories is the App installed (all repositories or a list)? | Owner to answer |
-| Who holds the private key, and where is it stored apart from the organisation secret? | Owner to answer |
-| Is there a rotation date or rule for the key? | Owner to answer |
-| Which repositories can read the organisation secret \`GH_APP_PRIVATE_KEY\`? Wave C showed that a newly created private repository in the organisation could list it, which means "all repositories" | Owner to answer |
-| Is there a written decision on key custody (plan P.4 says it is decided before phase 4)? None was found in the plan or the docs | Owner to answer |
-
-An empty answer is a finding, not a pass.
+The answers are **not recorded in this repository**, which is public: they describe how a secret is held and who can reach it. They are held in the owner's private record, together with an analysis of what the key could do if it were misused and the gaps that analysis found. This dossier therefore does not claim that the custody is verified. It records that the questions were asked and answered, that the answers are held privately, and that the private record lists open items.
 
 ## What the public release reveals
 

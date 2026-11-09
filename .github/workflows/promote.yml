@@ -1,9 +1,11 @@
 name: promote
 
-# Promotes a published pre-release to a stable release (decisions 46, 56, 60 and 90). By hand only, from main.
+# Promotes a published pre-release to a stable release (decisions 46, 56, 60, 90 and 91). By hand only, from main.
 # The first job runs every guard and edits nothing: it is the whole of a dry run, and it never touches the environment.
-# The second job is the only one that can edit a release. It sits behind the protected environment "promote", runs every
-# guard again, removes the pre-release flag, and checks that the assets and checksums.txt did not change.
+# The second job is the only one that can edit a release. It names the environment "promote", runs every guard again,
+# removes the pre-release flag, and checks that the assets and checksums.txt did not change. The environment has no
+# protection rules while the repository has one contributor (decision 91), so it records the run and does not gate it:
+# see "Before onboarding a contributor" in docs/release-process.md.
 on:
   workflow_dispatch:
     inputs:

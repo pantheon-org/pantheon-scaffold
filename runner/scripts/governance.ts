@@ -4,16 +4,22 @@
 //        bun runner/scripts/governance.ts settings [repo ...]          dry run of the merge settings task: what would change, nothing is sent
 //        bun runner/scripts/governance.ts settings <repo> --apply --confirm <owner>/<repo> [--record-dir <dir>]
 //        bun runner/scripts/governance.ts settings-restore <record file> [--apply --confirm <owner>/<repo>]
+//        bun runner/scripts/governance.ts rulesets [repo ...] [--show-body]   dry run of the ruleset task: what would be created or replaced, nothing is sent
+//        bun runner/scripts/governance.ts rulesets <repo> --apply --confirm <owner>/<repo> [--record-dir <dir>]
+//        bun runner/scripts/governance.ts rulesets-restore <record file> [--apply --confirm <owner>/<repo>]
+// option: --desired-dir <dir> reads the desired state from another folder (a dry run of a change before it is committed)
 // env:   GH_TOKEN (any token that can read the repositories: the rulesets of a public repository are public)
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { realGh } from "../src/governance/gh";
+import { applyRulesets, dryRunRulesets, restoreRulesets, type RulesetPlan } from "../src/governance/rulesetTask";
 import { checkRepo, type Api, type DesiredRepos } from "../src/governance/live";
 import { applySettings, dryRunSettings, parseDesiredSettings, restoreSettings, type SettingsPlan } from "../src/governance/settings";
 import { toCreateShape, type Ruleset } from "../src/governance/ruleset";
 
 const root = join(import.meta.dir, "../..");
-const desiredDir = join(root, "governance/desired");
+const desiredIdx = Bun.argv.indexOf("--desired-dir");
+const desiredDir = desiredIdx < 0 ? join(root, "governance/desired") : resolve(Bun.argv[desiredIdx + 1]);
 
 const api: Api = async (path) => {
   const p = Bun.spawn(["gh", "api", path], { stdout: "pipe", stderr: "pipe" });
@@ -31,11 +37,24 @@ const flag = (name: string): string | undefined => {
 };
 const apply = Bun.argv.includes("--apply");
 const recordDir = flag("--record-dir") ?? join(root, ".context/governance");
-const positional = Bun.argv.slice(3).filter((a, i, all) => !a.startsWith("--") && !["--confirm", "--record-dir"].includes(all[i - 1] ?? ""));
+const positional = Bun.argv.slice(3).filter((a, i, all) => !a.startsWith("--") && !["--confirm", "--record-dir", "--desired-dir"].includes(all[i - 1] ?? ""));
 const describe = (p: SettingsPlan): string =>
   p.changes.length
     ? `CHANGE ${p.repo}\n${p.changes.map((c) => `  ${c.key}: ${c.from} -> ${c.to}`).join("\n")}\n  would send: ${p.request!.method} ${p.request!.path} ${JSON.stringify(p.request!.body)}`
     : `ok     ${p.repo}: the merge settings already match`;
+
+const showBody = Bun.argv.includes("--show-body");
+const describeRulesets = (p: RulesetPlan): string => {
+  const lines = p.actions.map((a) => {
+    if (a.kind === "unchanged") return `  unchanged ${JSON.stringify(a.name)}`;
+    if (a.kind === "untouched") return `  untouched ${JSON.stringify(a.name)}: ${a.reason}`;
+    if (a.kind === "delete") return `  delete    ${JSON.stringify(a.name)}\n    would send: ${a.request.method} ${a.request.path}`;
+    const what = a.kind === "create" ? `  create    ${JSON.stringify(a.name)}` : `  replace   ${JSON.stringify(a.name)} (id ${a.id})\n${a.differences.map((d) => `      ${d}`).join("\n")}`;
+    return `${what}\n    would send: ${a.request.method} ${a.request.path}${showBody ? ` ${JSON.stringify(a.request.body)}` : ""}`;
+  });
+  const pending = p.actions.some((a) => a.kind === "create" || a.kind === "update" || a.kind === "delete");
+  return `${pending ? "CHANGE" : "ok    "} ${p.repo}\n${lines.join("\n")}`;
+};
 
 const [cmd, ...rest] = Bun.argv.slice(2);
 try {
@@ -71,6 +90,27 @@ try {
     const r = await restoreSettings(realGh(), positional[0], { governed: Object.keys(desired.repos), apply, confirm: flag("--confirm") });
     console.log(describe(r.plan));
     console.log(r.restored ? "restored." : "dry run: nothing was sent.");
+  } else if (cmd === "rulesets") {
+    const governed = Object.keys(desired.repos);
+    const repos = positional.length ? positional : governed;
+    if (apply) {
+      if (repos.length !== 1) throw new Error("apply works on one repository at a time: name it");
+      const r = await applyRulesets(realGh(), desired.owner, repos[0], desired.repos[repos[0]].map(loadRuleset), { governed, recordDir, confirm: flag("--confirm") });
+      console.log(r.applied ? `${describeRulesets(r.plan)}\napplied. Restore with: rulesets-restore ${r.recordFile}` : describeRulesets(r.plan));
+    } else {
+      let n = 0;
+      for (const repo of repos) {
+        if (!desired.repos[repo]) throw new Error(`${repo} is not one of the governed repositories (${governed.join(", ")})`);
+        const plan = await dryRunRulesets(realGh(), governed, desired.owner, repo, desired.repos[repo].map(loadRuleset));
+        console.log(describeRulesets(plan));
+        n += plan.actions.filter((a) => a.kind === "create" || a.kind === "update" || a.kind === "delete").length;
+      }
+      console.log(`dry run: ${n} request(s) would be sent for ${repos.length} repositories. Nothing was sent.`);
+    }
+  } else if (cmd === "rulesets-restore" && positional.length === 1) {
+    const r = await restoreRulesets(realGh(), positional[0], { governed: Object.keys(desired.repos), apply, confirm: flag("--confirm") });
+    console.log(describeRulesets(r.plan));
+    console.log(r.restored ? "restored." : "dry run: nothing was sent.");
   } else if (cmd === "show" && rest.length === 2) {
     const [repo, name] = rest;
     if (!desired.repos[repo]) throw new Error(`${repo} is not one of the governed repositories`);
@@ -79,7 +119,7 @@ try {
     if (hit.length !== 1) throw new Error(`${repo} has ${hit.length} rulesets named ${JSON.stringify(name)}`);
     console.log(JSON.stringify(toCreateShape((await api(`repos/${desired.owner}/${repo}/rulesets/${hit[0].id}`)) as Record<string, unknown>), null, 2));
   } else {
-    console.error("usage: governance.ts check [repo ...] | show <repo> <ruleset name> | settings [repo ...] [--apply --confirm <owner>/<repo>] | settings-restore <record> [--apply --confirm <owner>/<repo>]");
+    console.error("usage: governance.ts check [repo ...] | show <repo> <ruleset name> | settings [repo ...] | settings-restore <record> | rulesets [repo ...] [--apply --confirm <owner>/<repo>] | rulesets-restore <record>");
     process.exit(2);
   }
 } catch (e) {

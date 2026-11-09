@@ -41,13 +41,30 @@ bun runner/scripts/governance.ts settings-restore <record file> [--apply --confi
 - **It reads again afterwards** and fails, naming the record, if a setting is not what it should be.
 - **`settings-restore`** puts the recorded settings back from the record alone, as a dry run unless applied and confirmed, sending only what differs now.
 
+## The ruleset task
+
+```sh
+bun runner/scripts/governance.ts rulesets                      # a dry run for the four repositories
+bun runner/scripts/governance.ts rulesets pantheon-adr --show-body
+bun runner/scripts/governance.ts rulesets pantheon-adr --desired-dir <folder>    # a dry run of a change before it is committed
+bun runner/scripts/governance.ts rulesets pantheon-adr --apply --confirm pantheon-org/pantheon-adr
+bun runner/scripts/governance.ts rulesets-restore <record file> [--apply --confirm pantheon-org/pantheon-adr]
+```
+
+- **A dry run is the default.** For each repository it says which rulesets are unchanged, which would be created, which would be replaced (with each difference in words), and which are not in the desired state and are left alone.
+- **Applying works on one repository at a time,** with `--confirm <owner>/<repo>` spelled out, like the settings task. Every ruleset as it is now is written to a record first (untracked `.context/governance/`, never overwritten). The requests are sent in order and stop at the first failure, which names the record. Afterwards the rulesets are read again and must equal the desired ones. A second apply sends nothing.
+- **It never deletes a ruleset it was not asked about.** A live ruleset that the desired state does not mention is reported as untouched.
+- **`rulesets-restore`** is the rollback, from the record alone: a recorded ruleset that differs is replaced by the recorded one, one that is gone is created again, and a ruleset the apply created (and only that) is deleted. A ruleset someone adds later is left alone. It is a dry run unless applied and confirmed, and it reads again afterwards.
+
+**Not yet proven against the real API.** The tests use a fake GitHub. The rulesets read from GitHub carry parameters (for example `dismissal_restriction`) that the create and update calls have not been tried with. A dry run prints the request it would send (`--show-body`), and the first real apply, on a throwaway repository, is the way to find out. Nothing has been applied to any repository.
+
 ## The required checks and the package
 
 A required check is a job name. `runner/test/governance-checks.test.ts` renders the standard workflows for each repository's options and checks that every required check is the name of a job the package renders. It also tests what happens when a job is renamed: the required check is reported missing, and a renamed job would block every pull request until the ruleset follows. The jobs the package renders that nothing requires (for example `Scaffold check`) are reported as unrequired. Requiring them is a decision for each owner.
 
 ## What the tools do not do
 
-- They do not apply rulesets yet (the ruleset task is the next change). Nothing has been applied to any repository.
+- They have never been run against a real repository to change it. Nothing has been applied.
 - They do not compare bypass actors when the token cannot see them.
 - They do not govern the package repository `pantheon-scaffold` itself.
 

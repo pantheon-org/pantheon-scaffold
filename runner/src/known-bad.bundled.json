@@ -3,6 +3,14 @@
     {
       "version": "0.1.0",
       "reason": "the runner cannot read the version of a package pinned with its checksum, so it fails on every real consumer. Use 0.1.1 or later"
+    },
+    {
+      "version": "0.1.3",
+      "reason": "its upgrade command moves only the amends line and not the imports of the package, so the render fails for a consumer that imports the builtins, and for a consumer that renders mise.toml the render then refuses it as edited by hand. Use 0.1.5 or later"
+    },
+    {
+      "version": "0.1.4",
+      "reason": "for a consumer that renders mise.toml, its upgrade command rewrites the runner pin and the render then refuses mise.toml as edited by hand (exit 3). Use 0.1.5 or later"
     }
   ]
 }

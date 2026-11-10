@@ -20,7 +20,7 @@ jobs:
   checks:
     name: Checks
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 15
     permissions:
       contents: read
     env:
@@ -63,11 +63,36 @@ jobs:
         run: mise x -- cargo test -p scaffold-core --locked
       - name: Check the Rust dependencies (licences, advisories, sources)
         run: mise x -- cargo-deny check
-      # mise has no macOS arm64 build of cargo-mutants, so it is built from source at a pinned version.
-      - name: Mutation-test the Rust core
+
+  # Mutation testing takes about ten minutes, so it runs beside the other checks and not inside them.
+  mutation:
+    name: Mutation tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5.2.0
+        with:
+          version: 2026.10.25
+          install: false
+          cache: false
+      - name: Install the pinned tools from the lock file
+        run: mise install --locked
+      - name: Install the Rust toolchain
         run: |
-          cargo install cargo-mutants --version 27.1.0 --locked
-          mise x -- cargo mutants --package scaffold-core --jobs 2
+          rustup toolchain install 1.96.1 --profile minimal --component rustfmt,clippy
+          rustup default 1.96.1
+      # mise has no macOS arm64 build of cargo-mutants, so it is built from source at a pinned version.
+      - name: Install cargo-mutants
+        run: cargo install cargo-mutants --version 27.1.0 --locked
+      - name: Mutation-test the Rust core
+        run: mise x -- cargo mutants --package scaffold-core --jobs 2
 
   build:
     name: Build the binaries

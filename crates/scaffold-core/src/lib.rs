@@ -11,6 +11,9 @@ pub mod paths;
 pub mod pkl;
 pub mod schema;
 
+pub mod check;
 pub mod equality;
+pub mod render;
 #[cfg(test)]
 mod testutil;
+pub mod versions;

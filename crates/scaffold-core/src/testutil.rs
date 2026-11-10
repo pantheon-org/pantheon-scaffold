@@ -46,3 +46,50 @@ pub fn git_repo(files: &[(&str, &str)]) -> Repo {
     git(&root, &["commit", "-q", "-m", "initial"]);
     Repo { _dir: dir, root }
 }
+
+use crate::contract::{Contract, ContractFile, EscapeHatch, FileClass, Mode};
+
+pub fn owned(path: &str, content: &str, mode: Mode) -> ContractFile {
+    ContractFile {
+        path: path.into(),
+        class: FileClass::Owned,
+        mode,
+        content: Some(content.into()),
+        remove_on_detach: None,
+    }
+}
+
+pub fn seed(path: &str, content: &str) -> ContractFile {
+    ContractFile {
+        path: path.into(),
+        class: FileClass::Seed,
+        mode: Mode::Regular,
+        content: Some(content.into()),
+        remove_on_detach: None,
+    }
+}
+
+pub fn external(path: &str) -> ContractFile {
+    ContractFile {
+        path: path.into(),
+        class: FileClass::External,
+        mode: Mode::Regular,
+        content: None,
+        remove_on_detach: None,
+    }
+}
+
+pub fn contract_of(files: Vec<ContractFile>) -> Contract {
+    Contract {
+        schema_version: 1,
+        files,
+        pins: Vec::new(),
+        escape_hatch: EscapeHatch {
+            uses: 0,
+            constructs: 0,
+        },
+        package_uri: None,
+        requires: None,
+        security_builtins: None,
+    }
+}

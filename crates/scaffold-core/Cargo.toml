@@ -13,6 +13,8 @@ serde_json = { version = "1", features = ["preserve_order"] }
 regex = "1"
 time = { version = "0.3", features = ["formatting", "parsing", "macros"] }
 sha2 = "0.10"
+saphyr = "0.3.3"
+saphyr-parser = "0.3.3"
 
 [dev-dependencies]
 tempfile = "3"

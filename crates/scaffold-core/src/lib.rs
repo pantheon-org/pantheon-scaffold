@@ -11,5 +11,6 @@ pub mod paths;
 pub mod pkl;
 pub mod schema;
 
+pub mod equality;
 #[cfg(test)]
 mod testutil;

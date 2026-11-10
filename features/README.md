@@ -4,7 +4,7 @@ The behaviour of the runner, written as cucumber features. They are black-box: e
 
 ## Run them
 
-Build a binary, name it in `SCAFFOLD_BIN`, and run the harness. It needs `pkl` and `git` on the PATH, and Rust 1.96.1 (see `rust-toolchain.toml`).
+Build a binary, name it in `SCAFFOLD_BIN`, and run the harness. It needs `pkl` and `git` on the PATH, and Rust 1.96.1. The version is named in three places that must agree: `rust-toolchain.toml`, `mise.toml` and the rustup steps in `.github/workflows/ci.yml`. mise cannot lock Rust, so the workflows set `MISE_DISABLE_TOOLS=rust` and `mise install --locked` skips it.
 
 ```bash
 mise x -- bun runner/scripts/build.ts --out dist --targets darwin-arm64

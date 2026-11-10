@@ -18,6 +18,10 @@ concurrency:
   group: release
   cancel-in-progress: false
 
+env:
+  # mise cannot lock Rust, so `mise install --locked` must skip it. Jobs that need Rust install it with rustup (see rust-toolchain.toml).
+  MISE_DISABLE_TOOLS: rust
+
 jobs:
   prepare:
     name: Check the version

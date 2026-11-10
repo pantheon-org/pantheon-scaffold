@@ -478,10 +478,39 @@ fn stub_known_bad(world: &mut ScaffoldWorld, list: String) {
         .push(("PANTHEON_SCAFFOLD_KNOWN_BAD_URL".to_string(), url));
 }
 
+/// Scenarios tagged with any of these (comma-separated in `SCAFFOLD_SKIP_TAGS`, without the `@`) are not run. The Rust
+/// runner uses it for the commands it has not ported yet; the TypeScript runner runs everything. The skipped tags are
+/// printed, so a skip never goes unnoticed.
+fn skipped_tags() -> Vec<String> {
+    std::env::var("SCAFFOLD_SKIP_TAGS")
+        .unwrap_or_default()
+        .split(',')
+        .map(str::trim)
+        .filter(|tag| !tag.is_empty())
+        .map(str::to_owned)
+        .collect()
+}
+
 #[tokio::main]
 async fn main() {
+    let skip = skipped_tags();
+    if !skip.is_empty() {
+        eprintln!(
+            "SCAFFOLD_SKIP_TAGS: not running scenarios tagged {}",
+            skip.join(", ")
+        );
+    }
     ScaffoldWorld::cucumber()
         .fail_on_skipped()
-        .run_and_exit(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../features"))
+        .filter_run_and_exit(
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../features"),
+            move |feature, _, scenario| {
+                !feature
+                    .tags
+                    .iter()
+                    .chain(&scenario.tags)
+                    .any(|tag| skip.contains(tag))
+            },
+        )
         .await;
 }

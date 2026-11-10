@@ -13,6 +13,9 @@ confidence-threshold = 0.9
 [bans]
 multiple-versions = "warn"
 wildcards = "deny"
+# A path dependency on a sibling crate of this workspace has no version to pin. Every crate here is publish = false, and
+# registry dependencies still need a version.
+allow-wildcard-paths = true
 
 [sources]
 unknown-registry = "deny"

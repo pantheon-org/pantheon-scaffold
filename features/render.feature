@@ -50,6 +50,7 @@ Feature: render, check and detach
     Then the exit code is 0
     And the file "rust-toolchain.toml" does not have the content "# mine\n"
 
+  @detach
   Scenario: detach removes the manifest directory and leaves the files
     Given a new empty repository
     And I run "render <fixture:minimal> --root <repo> --allow-local-package <package>"

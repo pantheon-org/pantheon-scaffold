@@ -14,7 +14,9 @@ pub mod schema;
 pub mod apply;
 pub mod check;
 pub mod equality;
+pub mod preflight;
 pub mod render;
+pub mod semver;
 #[cfg(test)]
 mod testutil;
 pub mod versions;

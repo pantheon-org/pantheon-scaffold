@@ -1010,6 +1010,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "scaffold-cli"
+version = "0.0.0"
+dependencies = [
+ "scaffold-core",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "scaffold-core"
 version = "0.0.0"
 dependencies = [

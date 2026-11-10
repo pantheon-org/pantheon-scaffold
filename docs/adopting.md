@@ -1,6 +1,6 @@
 # Adopting pantheon-scaffold in a repository
 
-How to put one Rust repository under the scaffold, keep it there, and take it out again. Written for the owner of a repository. Everything below was run in the Phase 7 proof, against scratch clones of the real repositories, with the published release ([proof-report-0.1.3.md](proof-report-0.1.3.md)).
+How to put one Rust repository under the scaffold, keep it there, and take it out again. Written for the owner of a repository. Everything below was run in the Phase 7 proof, against scratch clones of the real repositories, with the published release ([proof-report-0.1.3.md](../archive/proof/docs/proof-report-0.1.3.md)).
 
 **Status.** No repository has adopted the package yet. Adopting stays the decision of each repository's owner. Check the release you pick: some early releases are on the known-bad list (see "Choosing a version").
 
@@ -208,12 +208,12 @@ Most rendered workflows use no secret: they use the built-in `GITHUB_TOKEN` with
 
 - It does not write `release.yml` (it checks it, with `binary`).
 - It does not manage your source, your `Cargo.toml` or your branch rules.
-- It does not give you a second reviewer. Security approval of the release workflow is not obtained, and the Phase 7 sign-off is not independent: [proof-report-0.1.3.md](proof-report-0.1.3.md), [security-dossier-0.1.5.md](security-dossier-0.1.5.md).
+- It does not give you a second reviewer. Security approval of the release workflow is not obtained, and the Phase 7 sign-off is not independent: [proof-report-0.1.3.md](../archive/proof/docs/proof-report-0.1.3.md), [security-dossier-0.1.5.md](../archive/proof/docs/security-dossier-0.1.5.md).
 - It has no runner for Intel Macs, Windows or musl Linux.
 
 ## Every claim, and where it is shown
 
-A claim in this guide, and the test or the proof line that shows it. A path is a file in this repository. "Report" is [proof-report-0.1.3.md](proof-report-0.1.3.md), with the wave named.
+A claim in this guide, and the test or the proof line that shows it. A path is a file in this repository. "Report" is [proof-report-0.1.3.md](../archive/proof/docs/proof-report-0.1.3.md), with the wave named.
 
 | Claim | Shown by |
 |---|---|
@@ -227,9 +227,9 @@ A claim in this guide, and the test or the proof line that shows it. A path is a
 | Workflows keep their triggers, permissions and `run:` scripts when re-rendered | `runner/test/equality.test.ts`, `runner/test/workflows-a.test.ts`, `workflows-b.test.ts`, `workflows-c.test.ts`; Report, wave A (zero uncategorised differences) |
 | Each option adds and removes exactly the files listed | `runner/test/phase5-toggles.test.ts`, [feature-toggles.md](feature-toggles.md); Report, wave A (the four repositories cover the variants) |
 | A toggle that needs a name stops with an error naming the option | `runner/test/phase5-toggles.test.ts` |
-| The render changes a real repository only in the ways listed | Report, wave A (every difference categorised, none uncategorised) and the sample check ([sample-check-0.1.5.md](sample-check-0.1.5.md), 19 of 19 confirmed) |
-| The first-time setup works as written: install, checksum, `pantheon.pkl`, dry run, render, `check`, a second render that writes 0 files, and the rendered tree builds and passes its tests | Report, Phase 8 wave E (every step of this guide run on a scratch clone of `pantheon-adr`: 188 tests passed, 0 failed), `runner/scripts/proof-adoption.ts` |
-| `mise.toml` changes by about ten lines added and four removed | `runner/scripts/proof-categories.ts` (the rule), Report, wave A |
+| The render changes a real repository only in the ways listed | Report, wave A (every difference categorised, none uncategorised) and the sample check ([sample-check-0.1.5.md](../archive/proof/docs/sample-check-0.1.5.md), 19 of 19 confirmed) |
+| The first-time setup works as written: install, checksum, `pantheon.pkl`, dry run, render, `check`, a second render that writes 0 files, and the rendered tree builds and passes its tests | Report, Phase 8 wave E (every step of this guide run on a scratch clone of `pantheon-adr`: 188 tests passed, 0 failed), `archive/proof/scripts/proof-adoption.ts` |
+| `mise.toml` changes by about ten lines added and four removed | `archive/proof/scripts/proof-categories.ts` (the rule), Report, wave A |
 | The `hk.pkl` migration keeps the hook results | `runner/test/hk.test.ts`, `runner/test/tooling.test.ts`; Report, wave A (`hk check --all` the same before and after) |
 | `rumdl` findings exist before and after, unchanged by the render | Report, wave A (findings per repository) |
 | The runner deletes only from a clean tracked tree, and only tracked files | `runner/test/guard.test.ts`, [runner-safety.md](runner-safety.md) |
@@ -239,7 +239,7 @@ A claim in this guide, and the test or the proof line that shows it. A path is a
 | `detach` keeps every file, and a `git revert` restores the management | `runner/test/detach.test.ts`; Report, wave B ("detach, then a git revert") |
 | A known-bad version produces a warning, and a refusal with `--strict` | `runner/test/knownbad.test.ts`, `runner/test/preflight.test.ts`, [runner-lifecycle.md](runner-lifecycle.md) |
 | Releases 0.1.0 to 0.1.4 are on the known-bad list | `known-bad.json`, `runner/test/knownbad.test.ts` (the bundled list is a subset of it) |
-| Three workflows need the App key secret; the others use only `GITHUB_TOKEN` | [security-dossier-0.1.5.md](security-dossier-0.1.5.md) (the workflow table); Report, wave C (the three fail closed with a bad key) |
+| Three workflows need the App key secret; the others use only `GITHUB_TOKEN` | [security-dossier-0.1.5.md](../archive/proof/docs/security-dossier-0.1.5.md) (the workflow table); Report, wave C (the three fail closed with a bad key) |
 | `release.yml` is not rendered; `dist-check.yml` checks it | `runner/test/phase5-dist.test.ts`, [feature-toggles.md](feature-toggles.md) (wave D) |
 | A release is built, attested and verified on three platforms before it is published | `runner/test/release-workflow.test.ts`, [release-process.md](release-process.md) |
 | A pre-release is promoted only after its guards pass, and the guards are tested | `runner/test/promote.test.ts`, `runner/test/promote-workflow.test.ts`, the dry run of the promote workflow on v0.1.5 (Actions run 42625442636) |

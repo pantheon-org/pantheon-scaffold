@@ -62,7 +62,7 @@ None of the four repositories has a `mise.lock` or a `.mise/` folder today, so a
 | `hk.shared.pkl` | owned | The steps every repository shares, as two functions, `preCommit()` and `prePush()`. Rendered by the runner. Do not edit it. |
 | `hk.pkl` | seed | Written once. Amends the hk config package, imports `hk.shared.pkl` and holds only the hooks. Yours to edit. |
 
-The steps are copied by script from the `hk.pkl` of `pantheon-adr` at `1e2fd46`, and tests compare them byte for byte with it. A spike (`tmp/phase-3-hk-spike/spike.sh`) showed first that hk 2.10.0 accepts a seeded `hk.pkl` that imports a rendered local file and still merges the repository's own steps.
+The steps are copied by script from the `hk.pkl` of `pantheon-adr` at `1e2fd46`, and tests compare them byte for byte with it. A spike (`archive/spikes/phase-3-hk-spike/spike.sh`) showed first that hk 2.10.0 accepts a seeded `hk.pkl` that imports a rendered local file and still merges the repository's own steps.
 
 ### Adding a step of your own
 
@@ -92,4 +92,4 @@ Each repository already has an `hk.pkl` with the steps inline, so the seed is no
 
 ## Wave D: the four real repositories
 
-A read-only render of everything Phase 3 owns into scratch clones of the four repositories passes for all four, with the verbatim files byte for byte equal, `mise.toml` changed by exactly the named lines, and `hk check --all` giving the same result before and after. The results, the named differences and a finding that is not ours (`rumdl` fails in all four repositories today) are in [real-repo-tooling.md](real-repo-tooling.md).
+A read-only render of everything Phase 3 owns into scratch clones of the four repositories passes for all four, with the verbatim files byte for byte equal, `mise.toml` changed by exactly the named lines, and `hk check --all` giving the same result before and after. The results, the named differences and a finding that is not ours (`rumdl` fails in all four repositories today) are in [real-repo-tooling.md](../archive/proof/docs/real-repo-tooling.md).

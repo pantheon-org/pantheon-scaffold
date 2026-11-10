@@ -114,8 +114,8 @@ The App token asks for `contents`, `pull-requests` and `workflows` write. `workf
 
 ### How it is checked
 
-Mutation check: `tmp/phase-4-wave-c/mutate.ts` (20 properties, all caught). Both workflows pass `actionlint`.
+Mutation check: `archive/spikes/phase-4-wave-c/mutate.ts` (20 properties, all caught). Both workflows pass `actionlint`.
 
 ## Wave D: the real repositories
 
-All thirteen workflow builtins render for each of the four real repositories, and each rendered file is equal to the repository's own under P.1, with the same job ids and names and the same directive comments, and passes `actionlint`. The per-file result, including the comment-only differences, is in [real-repo-workflows.md](real-repo-workflows.md).
+All thirteen workflow builtins render for each of the four real repositories, and each rendered file is equal to the repository's own under P.1, with the same job ids and names and the same directive comments, and passes `actionlint`. The per-file result, including the comment-only differences, is in [real-repo-workflows.md](../archive/proof/docs/real-repo-workflows.md).

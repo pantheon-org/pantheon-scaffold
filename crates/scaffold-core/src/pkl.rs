@@ -86,6 +86,30 @@ struct Run {
     code: i32,
 }
 
+/// Starts the process. A binary that is open for writing is refused by Linux ("text file busy"), which happens for a
+/// moment while an installer replaces it, so that one error is retried for up to a second.
+fn spawn(command: &mut std::process::Command) -> std::io::Result<std::process::Child> {
+    retry_while_busy(50, Duration::from_millis(20), || command.spawn())
+}
+
+/// Runs `attempt`, and runs it again after `delay` for as long as it fails with "executable file busy", at most
+/// `retries` more times. Any other result is returned at once.
+fn retry_while_busy<T>(
+    retries: u32,
+    delay: Duration,
+    mut attempt: impl FnMut() -> std::io::Result<T>,
+) -> std::io::Result<T> {
+    for _ in 0..retries {
+        match attempt() {
+            Err(e) if e.kind() == std::io::ErrorKind::ExecutableFileBusy => {
+                std::thread::sleep(delay)
+            }
+            other => return other,
+        }
+    }
+    attempt()
+}
+
 fn once(config: &Path, cwd: &Path, opts: &EvalOptions) -> Result<Run, ContractError> {
     use std::io::Read;
     use std::process::{Command, Stdio};
@@ -105,7 +129,7 @@ fn once(config: &Path, cwd: &Path, opts: &EvalOptions) -> Result<Run, ContractEr
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
     let binary = opts.binary.to_string_lossy();
-    let mut child = command.spawn().map_err(|e| {
+    let mut child = spawn(&mut command).map_err(|e| {
         ContractError(if e.kind() == std::io::ErrorKind::NotFound {
             format!("{binary} was not found: install the pinned pkl with mise")
         } else {
@@ -366,6 +390,86 @@ mod tests {
             eval_contract_json(Path::new("x.pkl"), dir.path(), &opts).unwrap()["ok"],
             true
         );
+    }
+
+    fn busy() -> std::io::Error {
+        std::io::Error::from(std::io::ErrorKind::ExecutableFileBusy)
+    }
+
+    #[test]
+    fn a_busy_start_is_retried_until_it_works() {
+        let mut calls = 0;
+        let result = retry_while_busy(5, Duration::ZERO, || {
+            calls += 1;
+            if calls <= 5 { Err(busy()) } else { Ok(calls) }
+        });
+        assert_eq!(
+            result.unwrap(),
+            6,
+            "five busy answers use all five retries, the sixth call is the last"
+        );
+    }
+
+    #[test]
+    fn a_start_that_stays_busy_gives_up_after_the_retries() {
+        let mut calls = 0;
+        let result: std::io::Result<()> = retry_while_busy(5, Duration::ZERO, || {
+            calls += 1;
+            Err(busy())
+        });
+        assert_eq!(
+            result.unwrap_err().kind(),
+            std::io::ErrorKind::ExecutableFileBusy
+        );
+        assert_eq!(calls, 6);
+    }
+
+    #[test]
+    fn any_other_error_is_returned_at_once() {
+        let mut calls = 0;
+        let result: std::io::Result<()> = retry_while_busy(5, Duration::ZERO, || {
+            calls += 1;
+            Err(std::io::Error::from(std::io::ErrorKind::NotFound))
+        });
+        assert_eq!(result.unwrap_err().kind(), std::io::ErrorKind::NotFound);
+        assert_eq!(calls, 1);
+    }
+
+    #[test]
+    fn a_success_is_returned_at_once() {
+        let mut calls = 0;
+        let result = retry_while_busy(5, Duration::from_secs(60), || {
+            calls += 1;
+            Ok::<_, std::io::Error>(7)
+        });
+        assert_eq!((result.unwrap(), calls), (7, 1));
+    }
+
+    #[test]
+    fn a_binary_that_is_briefly_busy_is_started_once_it_is_free() {
+        // Linux refuses to run a file that is open for writing ("text file busy"). That happens for a moment when an
+        // installer is still replacing the binary, and in tests when another thread forks while a script is written.
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("fake-pkl");
+        std::fs::write(&path, "#!/bin/sh\necho '{\"ok\":true}'\n").unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let writer = std::fs::OpenOptions::new()
+            .append(true)
+            .open(&path)
+            .unwrap();
+        let release = std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(100));
+            drop(writer);
+        });
+        let opts = EvalOptions {
+            binary: path.into_os_string(),
+            ..fast()
+        };
+        assert_eq!(
+            eval_contract_json(Path::new("x.pkl"), dir.path(), &opts).unwrap()["ok"],
+            true
+        );
+        release.join().unwrap();
     }
 
     #[test]

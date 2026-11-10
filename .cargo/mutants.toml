@@ -1,0 +1,4 @@
+# cargo-mutants 27.1.0 (installed with `cargo install cargo-mutants --version 27.1.0 --locked`).
+# The features crate only drives a binary, so it holds nothing to mutate. The unit tests of the other crates kill the
+# mutants.
+exclude_globs = ["crates/scaffold-features/**"]

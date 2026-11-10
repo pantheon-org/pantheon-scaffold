@@ -11,6 +11,7 @@ pub mod paths;
 pub mod pkl;
 pub mod schema;
 
+pub mod apply;
 pub mod check;
 pub mod equality;
 pub mod render;

@@ -67,7 +67,7 @@ jobs:
       - name: Mutation-test the Rust core
         run: |
           cargo install cargo-mutants --version 27.1.0 --locked
-          cargo mutants --package scaffold-core
+          mise x -- cargo mutants --package scaffold-core
 
   build:
     name: Build the binaries

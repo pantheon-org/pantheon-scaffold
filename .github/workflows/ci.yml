@@ -59,6 +59,8 @@ jobs:
         run: cargo fmt --all --check
       - name: Lint the Rust code
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: Run the Rust unit tests
+        run: cargo test -p scaffold-core --locked
 
   build:
     name: Build the binaries

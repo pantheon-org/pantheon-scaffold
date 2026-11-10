@@ -4,6 +4,12 @@
 //! messages follow `runner/src/contract.ts` and `runner/src/manifest.ts`.
 
 pub mod contract;
+pub mod guard;
+pub mod lock;
 pub mod manifest;
+pub mod paths;
 pub mod pkl;
 pub mod schema;
+
+#[cfg(test)]
+mod testutil;

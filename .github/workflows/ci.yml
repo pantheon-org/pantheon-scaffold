@@ -20,7 +20,7 @@ jobs:
   checks:
     name: Checks
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
     permissions:
       contents: read
     env:
@@ -67,7 +67,7 @@ jobs:
       - name: Mutation-test the Rust core
         run: |
           cargo install cargo-mutants --version 27.1.0 --locked
-          mise x -- cargo mutants --package scaffold-core
+          mise x -- cargo mutants --package scaffold-core --jobs 2
 
   build:
     name: Build the binaries

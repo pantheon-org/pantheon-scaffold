@@ -93,3 +93,34 @@ pub fn contract_of(files: Vec<ContractFile>) -> Contract {
         security_builtins: None,
     }
 }
+
+pub fn get(root: &Path, rel: &str) -> String {
+    std::fs::read_to_string(root.join(rel)).unwrap()
+}
+
+pub fn has(root: &Path, rel: &str) -> bool {
+    root.join(rel).exists()
+}
+
+/// The permission bits as an octal string such as `0755`.
+pub fn mode_of(root: &Path, rel: &str) -> String {
+    use std::os::unix::fs::PermissionsExt;
+    format!(
+        "{:04o}",
+        std::fs::metadata(root.join(rel))
+            .unwrap()
+            .permissions()
+            .mode()
+            & 0o777
+    )
+}
+
+pub fn set_mode(root: &Path, rel: &str, mode: u32) {
+    use std::os::unix::fs::PermissionsExt;
+    std::fs::set_permissions(root.join(rel), std::fs::Permissions::from_mode(mode)).unwrap();
+}
+
+pub fn commit_all(root: &Path, message: &str) {
+    git(root, &["add", "-A"]);
+    git(root, &["commit", "-q", "-m", message]);
+}

@@ -60,14 +60,14 @@ jobs:
       - name: Lint the Rust code
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - name: Run the Rust unit tests
-        run: cargo test -p scaffold-core --locked
+        run: mise x -- cargo test -p scaffold-core --locked
       - name: Check the Rust dependencies (licences, advisories, sources)
         run: mise x -- cargo-deny check
       # mise has no macOS arm64 build of cargo-mutants, so it is built from source at a pinned version.
       - name: Mutation-test the Rust core
         run: |
           cargo install cargo-mutants --version 27.1.0 --locked
-          cargo mutants --package scaffold-core
+          mise x -- cargo mutants --package scaffold-core
 
   build:
     name: Build the binaries

@@ -4,6 +4,9 @@ use serde::{Deserialize, Serialize};
 
 pub const SUPPORTED_SCHEMA_VERSION: u32 = 1;
 
+/// The schema the pkl package is held to, compiled in so the runner needs no file next to it.
+const SCHEMA: &str = include_str!("../../../contract.schema.json");
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum FileClass {
@@ -96,6 +99,15 @@ pub fn parse_contract(json: &serde_json::Value) -> Result<Contract, ContractErro
         let shown = version.map_or_else(|| "undefined".to_owned(), ToString::to_string);
         return Err(ContractError(format!(
             "unsupported contract schemaVersion {shown}, this runner supports {SUPPORTED_SCHEMA_VERSION}"
+        )));
+    }
+    let schema: serde_json::Value =
+        serde_json::from_str(SCHEMA).expect("contract.schema.json is valid JSON");
+    let problems = crate::schema::validate(json, &schema, "#");
+    if !problems.is_empty() {
+        return Err(ContractError(format!(
+            "contract does not match the schema:\n  {}",
+            problems.join("\n  ")
         )));
     }
     let contract: Contract = serde_json::from_value(json.clone())
@@ -209,13 +221,29 @@ mod tests {
     }
 
     #[test]
-    fn a_contract_that_does_not_match_the_structure_is_refused() {
+    fn a_contract_that_does_not_match_the_schema_is_refused_with_every_problem_listed() {
         let mut j = base();
         j["files"][0]["class"] = json!("weird");
-        assert!(err(&j).starts_with("contract does not match the schema:"));
-        let mut j = base();
+        j["files"][0]["mode"] = json!("0777");
+        j["pins"][0]["sha"] = json!("abc");
         j["extra"] = json!(true);
-        assert!(err(&j).starts_with("contract does not match the schema:"));
+        assert_eq!(
+            err(&j),
+            "contract does not match the schema:\n  \
+             #/files/0/class: must be one of [\"owned\",\"seed\",\"external\"]\n  \
+             #/files/0/mode: must be one of [\"0644\",\"0755\"]\n  \
+             #/pins/0/sha: does not match ^[0-9a-f]{40}$\n  #: unexpected extra"
+        );
+    }
+
+    #[test]
+    fn the_schema_rejects_a_missing_required_key() {
+        let mut j = base();
+        j.as_object_mut().unwrap().remove("escapeHatch");
+        assert_eq!(
+            err(&j),
+            "contract does not match the schema:\n  #: missing escapeHatch"
+        );
     }
 
     #[test]

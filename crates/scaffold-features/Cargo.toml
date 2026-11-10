@@ -1,0 +1,20 @@
+[package]
+name = "scaffold-features"
+version = "0.0.0"
+description = "Black-box BDD features for the pantheon-scaffold runner. They drive a binary named by SCAFFOLD_BIN."
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dev-dependencies]
+cucumber = "0.23"
+tempfile = "3"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
+[[test]]
+name = "features"
+harness = false
+
+[lints]
+workspace = true

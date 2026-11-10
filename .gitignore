@@ -4,3 +4,4 @@ target/
 .stage/
 .aislop/
 archive/spikes/pkl-s1-spike/out/
+mutants.out*/

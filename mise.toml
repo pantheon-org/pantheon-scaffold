@@ -5,6 +5,7 @@ locked_verify_provenance = true
 [tools]
 actionlint = "1.7.12"
 bun = "1.4.2"
+cargo-deny = "0.20.2"
 hk = "2.10.0"
 pkl = "0.32.2"
 # Same toolchain as rust-toolchain.toml and the rustup step in .github/workflows/ci.yml. mise cannot lock it, so the

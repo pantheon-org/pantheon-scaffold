@@ -7,3 +7,6 @@ actionlint = "1.7.12"
 bun = "1.4.2"
 hk = "2.10.0"
 pkl = "0.32.2"
+# Same toolchain as rust-toolchain.toml and the rustup step in .github/workflows/ci.yml. mise cannot lock it, so the
+# workflows set MISE_DISABLE_TOOLS=rust and `mise install --locked` skips it.
+rust = "1.96.1"

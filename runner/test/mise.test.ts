@@ -101,7 +101,8 @@ test("real mise reads both files, adds the repo's own tool and lets the owned mi
   writeFileSync(join(dir, "mise.toml"), file("mise.toml").content!);
   // The seed ends with an empty [tools] section, so a repository adds its tools right after it.
   writeFileSync(join(dir, ".mise/conf.d/repo.toml"), `${file(".mise/conf.d/repo.toml").content!}jq = "1.6"\ntokei = "13.0.0"\n`);
-  const env = { ...process.env, MISE_DATA_DIR: join(dir, "data"), MISE_CEILING_PATHS: dirname(dir), MISE_TRUSTED_CONFIG_PATHS: dir, MISE_GLOBAL_CONFIG_FILE: empty, MISE_SYSTEM_CONFIG_FILE: empty };
+  // MISE_DISABLE_TOOLS is cleared because the workflows set it to skip Rust in the locked install, and this test needs Rust listed.
+  const env = { ...process.env, MISE_DISABLE_TOOLS: "", MISE_DATA_DIR: join(dir, "data"), MISE_CEILING_PATHS: dirname(dir), MISE_TRUSTED_CONFIG_PATHS: dir, MISE_GLOBAL_CONFIG_FILE: empty, MISE_SYSTEM_CONFIG_FILE: empty };
   const r = Bun.spawnSync(["mise", "ls", "--current", "--json"], { cwd: dir, env, stdout: "pipe", stderr: "pipe" });
   expect(r.exitCode, r.stderr.toString()).toBe(0);
   const tools = JSON.parse(r.stdout.toString()) as Record<string, { requested_version: string; source: { path: string } }[]>;

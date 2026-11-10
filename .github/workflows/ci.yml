@@ -12,6 +12,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # mise cannot lock Rust, so `mise install --locked` must skip it. Jobs that need Rust install it with rustup (see rust-toolchain.toml).
+  MISE_DISABLE_TOOLS: rust
+
 jobs:
   checks:
     name: Checks

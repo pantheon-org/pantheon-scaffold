@@ -21,9 +21,12 @@ The step definitions are in `crates/scaffold-features/tests/features.rs`. They s
 |---|---|
 | `render.feature` | `render`, `check` and `detach` on a fresh repository: the files written, the executable bit, a second render, drift, a hand edit refused, `--force`. |
 | `cli.feature` | `--version`, a usage error, an unknown option, `contract`. |
-| `safety.feature` | The lock, an existing file that is not adopted, `--dry-run` and its exit code, a manifest that is not JSON or from a newer format, case collisions and a case-only rename, deleting an orphan (clean git tree, dirty tree, no git). |
+| `safety.feature` | The lock (held, a process that has gone, older than ten minutes, and on CI), an existing file that is not adopted, `--dry-run` and its exit code, a manifest that is not JSON or from a newer format, case collisions and a case-only rename, deleting an orphan (clean git tree, dirty tree, no git), a path that escapes the repository, an absolute path, a symlink that points outside. |
+| `lifecycle.feature` | Seeds (written once, kept, dropped from the config, turned into an owned file), an orphan edited by hand with and without `--force`, `--repair`, and `detach` (dry run, an edited file, `--force`, no manifest). |
 
 `--version` is checked against `SCAFFOLD_VERSION` (default `0.0.0`, which is what `runner/scripts/build.ts` builds unless told otherwise). CI sets it to the version it built.
+
+The harness removes `CI` from the environment the binary sees, because the runner judges a stale lock differently on CI. A scenario that needs it says `Given the environment variable "CI" is "true"`.
 
 ## The pkl version
 
@@ -37,13 +40,8 @@ What the TypeScript runner does, and where it is specified or will be. A behavio
 |---|---|
 | Render, executable bit, second render, `check`, drift, a hand edit refused, `--force`, `detach` | `render.feature` |
 | Version, usage, `contract` | `cli.feature` |
-| Lock held, an existing file not adopted, dry run, bad manifest, case rules, orphan deletion and its guard | `safety.feature` |
-| A seeded file written once and kept when edited; a seed edited then turned into an owned file | Feature to write, needs a fixture with a seed |
-| `--repair` of a manifest that cannot be read | Feature to write |
-| A path that escapes the repository, an absolute path, a symlink that points outside | Feature to write, needs fixtures |
-| A hand-edited orphan is not deleted, and `--force` deletes it | Feature to write |
-| `detach` with `--dry-run`, and refusing a hand-edited file | Feature to write |
-| A lock that is stale (dead process, or older than 10 minutes), and on CI only the age counts | Feature to write |
+| Lock held, stale (dead process, older than ten minutes, on CI only the age), an existing file not adopted, dry run, bad manifest, case rules, orphan deletion and its guard, unsafe paths | `safety.feature` |
+| Seeds, a hand-edited orphan and `--force`, `--repair`, `detach` and its options | `lifecycle.feature` |
 | Package version rules: an older package is refused, `--strict`, a known-bad version | Feature to write, needs a stubbed release list |
 | `upgrade`, `latest`, `freshness` | Feature to write, needs a stubbed release server |
 | CRLF checkouts, Unicode path normalisation, an interrupted write | Feature to write |

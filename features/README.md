@@ -23,10 +23,13 @@ The step definitions are in `crates/scaffold-features/tests/features.rs`. They s
 | `cli.feature` | `--version`, a usage error, an unknown option, `contract`. |
 | `safety.feature` | The lock (held, a process that has gone, older than ten minutes, and on CI), an existing file that is not adopted, `--dry-run` and its exit code, a manifest that is not JSON or from a newer format, case collisions and a case-only rename, deleting an orphan (clean git tree, dirty tree, no git), a path that escapes the repository, an absolute path, a symlink that points outside. |
 | `lifecycle.feature` | Seeds (written once, kept, dropped from the config, turned into an owned file), an orphan edited by hand with and without `--force`, `--repair`, and `detach` (dry run, an edited file, `--force`, no manifest). |
+| `releases.feature` | `latest` (newest stable, pre-releases, known-bad, a tag that is not a version, nothing qualifies, a failed or malformed list), `freshness` (fresh, stale, `--max-age-days`, a malformed record, a record from the future, a failed fetch), and the checks `upgrade` makes before it reaches the network. |
 
 `--version` is checked against `SCAFFOLD_VERSION` (default `0.0.0`, which is what `runner/scripts/build.ts` builds unless told otherwise). CI sets it to the version it built.
 
 The harness removes `CI` from the environment the binary sees, because the runner judges a stale lock differently on CI. A scenario that needs it says `Given the environment variable "CI" is "true"`.
+
+A scenario that needs a web server starts one with `Given the stub server answers "/path" with '...'` (or `with status 500`, or `with a freshness record from N days ago`) and uses `<stub>` for its address in a command line or an environment value. `Given the stub server serves the known-bad list '...'` points `PANTHEON_SCAFFOLD_KNOWN_BAD_URL` at it, so no scenario reaches the network.
 
 ## The pkl version
 
@@ -42,7 +45,8 @@ What the TypeScript runner does, and where it is specified or will be. A behavio
 | Version, usage, `contract` | `cli.feature` |
 | Lock held, stale (dead process, older than ten minutes, on CI only the age), an existing file not adopted, dry run, bad manifest, case rules, orphan deletion and its guard, unsafe paths | `safety.feature` |
 | Seeds, a hand-edited orphan and `--force`, `--repair`, `detach` and its options | `lifecycle.feature` |
-| Package version rules: an older package is refused, `--strict`, a known-bad version | Feature to write, needs a stubbed release list |
-| `upgrade`, `latest`, `freshness` | Feature to write, needs a stubbed release server |
+| Package version rules: an older package is refused, `--strict`, a known-bad version | Rust unit tests in Phase 2 (`preflight`). A black-box run needs a `package://` download, and a local package has no version, so no scenario can reach it without a real release |
+| `latest`, `freshness`, and what `upgrade` checks before the network | `releases.feature` |
+| `upgrade` past the checksums download (attestation through `gh`, `mise install`, `mise lock`, rollback) | Rust unit tests in Phase 2, with the three outside calls replaced. A black-box run needs a real release and `gh attestation verify` |
 | CRLF checkouts, Unicode path normalisation, an interrupted write | Feature to write |
 | Freshness, latest, preflight, lock check, pins, checksums, semver, contract and schema validation, package-URI handling, versions, the known-bad list, the equality rule's edge cases | Rust unit tests in Phase 2 |

@@ -3,13 +3,26 @@
 //!
 //! Needs `pkl` and `git` on the PATH, and a checkout of this repository for the pkl package and the fixtures.
 
+use std::collections::HashMap;
 use std::fs;
+use std::io::{BufRead, BufReader, Write};
+use std::net::{TcpListener, TcpStream};
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::{Arc, Mutex};
 
 use cucumber::{World, given, then, when};
 use tempfile::TempDir;
+
+/// What the stub server answers, by path: a status and a body.
+type Routes = Arc<Mutex<HashMap<String, (u16, String)>>>;
+
+#[derive(Debug)]
+struct Stub {
+    port: u16,
+    routes: Routes,
+}
 
 /// What one run of the binary printed and returned.
 #[derive(Debug, Clone)]
@@ -29,6 +42,8 @@ struct ScaffoldWorld {
     last: Option<Run>,
     /// Variables a scenario sets for the binary, on top of the clean environment.
     env: Vec<(String, String)>,
+    /// A local HTTP server standing in for the release list, the freshness record and the known-bad list. Started by the first step that needs it.
+    stub: Option<Stub>,
 }
 
 impl ScaffoldWorld {
@@ -50,6 +65,7 @@ impl ScaffoldWorld {
             checkout,
             last: None,
             env: Vec::new(),
+            stub: None,
         }
     }
 
@@ -71,11 +87,29 @@ impl ScaffoldWorld {
                 .display()
                 .to_string();
         }
+        let word = if word.contains("<stub>") {
+            word.replace("<stub>", &self.stub_url())
+        } else {
+            word.to_string()
+        };
         word.replace("<repo>", &self.repo().display().to_string())
             .replace(
                 "<package>",
                 &self.checkout.join("pkl").display().to_string(),
             )
+    }
+
+    /// The address of the stub server, started on first use.
+    fn stub_url(&self) -> String {
+        let stub = self
+            .stub
+            .as_ref()
+            .expect("a step started the stub server before this one");
+        format!("http://127.0.0.1:{}", stub.port)
+    }
+
+    fn stub(&mut self) -> &Stub {
+        self.stub.get_or_insert_with(start_stub)
     }
 
     fn last(&self) -> &Run {
@@ -271,11 +305,11 @@ fn output_is_expected_version(world: &mut ScaffoldWorld) {
 }
 
 /// UTC time `age_secs` ago as an ISO 8601 string with milliseconds, which is how the runner writes the time in its lock file.
-fn iso_ago(age_secs: u64) -> String {
+fn iso_ago(age_secs: i64) -> String {
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .expect("the clock is after 1970");
-    let (secs, millis) = (now.as_secs() as i64 - age_secs as i64, now.subsec_millis());
+    let (secs, millis) = (now.as_secs() as i64 - age_secs, now.subsec_millis());
     let (days, rem) = (secs.div_euclid(86_400), secs.rem_euclid(86_400));
     // Civil date from days since 1970-01-01 (Howard Hinnant's algorithm).
     let z = days + 719_468;
@@ -296,7 +330,7 @@ fn iso_ago(age_secs: u64) -> String {
 }
 
 /// Writes the runner's lock file as a process with `pid` took it `age_secs` ago.
-fn write_lock(world: &ScaffoldWorld, pid: u32, age_secs: u64) {
+fn write_lock(world: &ScaffoldWorld, pid: u32, age_secs: i64) {
     let dir = world.repo().join(".pkl-gen");
     fs::create_dir_all(&dir).expect("the tool directory");
     let held = format!("{{\"pid\":{pid},\"started\":\"{}\"}}", iso_ago(age_secs));
@@ -322,12 +356,13 @@ fn lock_held_by_dead_process(world: &mut ScaffoldWorld) {
 }
 
 #[given(expr = "the write lock is held by a running process and is {int} minutes old")]
-fn lock_held_and_old(world: &mut ScaffoldWorld, minutes: u64) {
+fn lock_held_and_old(world: &mut ScaffoldWorld, minutes: i64) {
     write_lock(world, std::process::id(), minutes * 60);
 }
 
 #[given(expr = "the environment variable {string} is {string}")]
 fn set_env(world: &mut ScaffoldWorld, name: String, value: String) {
+    let value = world.expand(&value);
     world.env.push((name, value));
 }
 
@@ -346,6 +381,101 @@ fn outside_missing(world: &mut ScaffoldWorld, name: String) {
         !world.base.path().join("outside").join(&name).exists(),
         "{name} was written outside the repository"
     );
+}
+
+/// Starts the stub server on a free port. It answers every request from its route table, and 404 for a path it does not know.
+fn start_stub() -> Stub {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("a free port");
+    let port = listener.local_addr().expect("the address").port();
+    let routes: Routes = Arc::default();
+    let shared = Arc::clone(&routes);
+    std::thread::spawn(move || {
+        for stream in listener.incoming().flatten() {
+            answer(stream, &shared);
+        }
+    });
+    Stub { port, routes }
+}
+
+fn answer(mut stream: TcpStream, routes: &Routes) {
+    let Ok(clone) = stream.try_clone() else {
+        return;
+    };
+    let mut reader = BufReader::new(clone);
+    let mut request_line = String::new();
+    if reader.read_line(&mut request_line).unwrap_or(0) == 0 {
+        return;
+    }
+    loop {
+        let mut header = String::new();
+        if reader.read_line(&mut header).unwrap_or(0) == 0 || header.trim().is_empty() {
+            break;
+        }
+    }
+    let path = request_line
+        .split_whitespace()
+        .nth(1)
+        .unwrap_or("/")
+        .to_string();
+    let (status, body) = routes
+        .lock()
+        .expect("the route table")
+        .get(&path)
+        .cloned()
+        .unwrap_or((404, "not found".to_string()));
+    let reply = format!(
+        "HTTP/1.1 {status} stub\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+        body.len()
+    );
+    let _ = stream.write_all(reply.as_bytes());
+}
+
+fn set_route(world: &mut ScaffoldWorld, path: String, status: u16, body: String) {
+    world
+        .stub()
+        .routes
+        .lock()
+        .expect("the route table")
+        .insert(path, (status, body));
+}
+
+#[given(expr = "the stub server answers {string} with {string}")]
+fn stub_answers(world: &mut ScaffoldWorld, path: String, body: String) {
+    set_route(world, path, 200, body);
+}
+
+#[given(expr = "the stub server answers {string} with status {int}")]
+fn stub_answers_status(world: &mut ScaffoldWorld, path: String, status: u16) {
+    set_route(world, path, status, "stub failure".to_string());
+}
+
+/// A freshness record whose last successful check was `days` days ago, or ahead when `days` is negative.
+fn freshness_record(days: i64) -> String {
+    let when = iso_ago(days * 86_400);
+    format!(
+        "{{\"schemaVersion\":1,\"lastSuccessfulPinCheck\":\"{}Z\"}}",
+        &when[..19]
+    )
+}
+
+#[given(expr = "the stub server answers {string} with a freshness record from {int} days ago")]
+fn stub_freshness_ago(world: &mut ScaffoldWorld, path: String, days: i64) {
+    set_route(world, path, 200, freshness_record(days));
+}
+
+#[given(expr = "the stub server answers {string} with a freshness record dated {int} days ahead")]
+fn stub_freshness_ahead(world: &mut ScaffoldWorld, path: String, days: i64) {
+    set_route(world, path, 200, freshness_record(-days));
+}
+
+/// The runner asks for its known-bad list on every `render` and `latest`; point it at the stub so no test reaches the network.
+#[given(expr = "the stub server serves the known-bad list {string}")]
+fn stub_known_bad(world: &mut ScaffoldWorld, list: String) {
+    set_route(world, "/known-bad.json".to_string(), 200, list);
+    let url = format!("{}/known-bad.json", world.stub_url());
+    world
+        .env
+        .push(("PANTHEON_SCAFFOLD_KNOWN_BAD_URL".to_string(), url));
 }
 
 #[tokio::main]

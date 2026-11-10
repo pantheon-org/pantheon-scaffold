@@ -27,6 +27,8 @@ struct ScaffoldWorld {
     binary: PathBuf,
     checkout: PathBuf,
     last: Option<Run>,
+    /// Variables a scenario sets for the binary, on top of the clean environment.
+    env: Vec<(String, String)>,
 }
 
 impl ScaffoldWorld {
@@ -47,6 +49,7 @@ impl ScaffoldWorld {
             binary,
             checkout,
             last: None,
+            env: Vec::new(),
         }
     }
 
@@ -82,10 +85,11 @@ impl ScaffoldWorld {
     }
 }
 
-/// The environment the binary sees: the current one, without anything git reads from it.
+/// The environment the binary sees: the current one, without anything git reads from it and without `CI`, which changes how
+/// the runner judges a stale lock. A scenario that needs it sets it with a step.
 fn clean_env() -> Vec<(String, String)> {
     std::env::vars()
-        .filter(|(k, _)| !k.starts_with("GIT_"))
+        .filter(|(k, _)| !k.starts_with("GIT_") && k != "CI")
         .collect()
 }
 
@@ -139,6 +143,7 @@ fn run_binary(world: &mut ScaffoldWorld, command: String) {
         .current_dir(world.base.path())
         .env_clear()
         .envs(clean_env())
+        .envs(world.env.iter().cloned())
         .output()
         .expect("the binary runs");
     world.last = Some(Run {
@@ -265,12 +270,12 @@ fn output_is_expected_version(world: &mut ScaffoldWorld) {
     assert_eq!(last.out, expected, "stderr: {}", last.err);
 }
 
-/// UTC time as an ISO 8601 string with milliseconds, which is how the runner writes the time in its lock file.
-fn iso_now() -> String {
+/// UTC time `age_secs` ago as an ISO 8601 string with milliseconds, which is how the runner writes the time in its lock file.
+fn iso_ago(age_secs: u64) -> String {
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .expect("the clock is after 1970");
-    let (secs, millis) = (now.as_secs() as i64, now.subsec_millis());
+    let (secs, millis) = (now.as_secs() as i64 - age_secs as i64, now.subsec_millis());
     let (days, rem) = (secs.div_euclid(86_400), secs.rem_euclid(86_400));
     // Civil date from days since 1970-01-01 (Howard Hinnant's algorithm).
     let z = days + 719_468;
@@ -290,16 +295,57 @@ fn iso_now() -> String {
     )
 }
 
-#[given("the write lock is held by a running process")]
-fn lock_held(world: &mut ScaffoldWorld) {
+/// Writes the runner's lock file as a process with `pid` took it `age_secs` ago.
+fn write_lock(world: &ScaffoldWorld, pid: u32, age_secs: u64) {
     let dir = world.repo().join(".pkl-gen");
     fs::create_dir_all(&dir).expect("the tool directory");
-    let held = format!(
-        "{{\"pid\":{},\"started\":\"{}\"}}",
-        std::process::id(),
-        iso_now()
-    );
+    let held = format!("{{\"pid\":{pid},\"started\":\"{}\"}}", iso_ago(age_secs));
     fs::write(dir.join("lock"), held).expect("the lock file");
+}
+
+/// The id of a process that has already finished, so nothing is running under it.
+fn dead_pid() -> u32 {
+    let mut child = Command::new("true").spawn().expect("true runs");
+    let pid = child.id();
+    child.wait().expect("true finishes");
+    pid
+}
+
+#[given("the write lock is held by a running process")]
+fn lock_held(world: &mut ScaffoldWorld) {
+    write_lock(world, std::process::id(), 0);
+}
+
+#[given("the write lock is held by a process that no longer exists")]
+fn lock_held_by_dead_process(world: &mut ScaffoldWorld) {
+    write_lock(world, dead_pid(), 0);
+}
+
+#[given(expr = "the write lock is held by a running process and is {int} minutes old")]
+fn lock_held_and_old(world: &mut ScaffoldWorld, minutes: u64) {
+    write_lock(world, std::process::id(), minutes * 60);
+}
+
+#[given(expr = "the environment variable {string} is {string}")]
+fn set_env(world: &mut ScaffoldWorld, name: String, value: String) {
+    world.env.push((name, value));
+}
+
+#[given(expr = "the file {string} is a symbolic link to a file outside the repository")]
+fn link_outside(world: &mut ScaffoldWorld, path: String) {
+    let outside = world.base.path().join("outside");
+    fs::create_dir_all(&outside).expect("the outside directory");
+    let link = world.repo().join(path);
+    fs::create_dir_all(link.parent().expect("a parent directory")).expect("the parent directory");
+    std::os::unix::fs::symlink(outside.join("target.txt"), link).expect("the symbolic link");
+}
+
+#[then(expr = "the file {string} does not exist outside the repository")]
+fn outside_missing(world: &mut ScaffoldWorld, name: String) {
+    assert!(
+        !world.base.path().join("outside").join(&name).exists(),
+        "{name} was written outside the repository"
+    );
 }
 
 #[tokio::main]

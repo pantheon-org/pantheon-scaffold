@@ -3,4 +3,4 @@ dist/
 target/
 .stage/
 .aislop/
-tmp/pkl-s1-spike/out/
+archive/spikes/pkl-s1-spike/out/

@@ -369,7 +369,7 @@ Verdict: PASS
 
 Notes on the scenarios:
 
-- **Pin-back is two steps by design.** `upgrade 0.1.1 --force` moves the pins, and the render that follows is refused with exit 3 because the package is older than the one that last rendered (the version rule of [runner-lifecycle.md](runner-lifecycle.md)). The consumer then renders once more with `render --force`, and the files are byte for byte the 0.1.1 render again. `upgrade` does not pass `--force` on to the render, because `--force` would also overwrite hand edits.
+- **Pin-back is two steps by design.** `upgrade 0.1.1 --force` moves the pins, and the render that follows is refused with exit 3 because the package is older than the one that last rendered (the version rule of [runner-lifecycle.md](../../../docs/runner-lifecycle.md)). The consumer then renders once more with `render --force`, and the files are byte for byte the 0.1.1 render again. `upgrade` does not pass `--force` on to the render, because `--force` would also overwrite hand edits.
 - **A package that drops or renames a file needs a clean tree.** The runner deletes an orphan only from a clean tracked tree, so the consumer commits the config change and then renders. After `upgrade` the pins are changed and uncommitted, so if the new package drops a file the render is refused (exit 3) until the pin change is committed, and then `render` finishes the job.
 - **`detach` keeps every rendered file** as a plain file and removes the manifest; a `git revert` of the detach commit brings the manifest back, and `check` passes and a render writes nothing.
 
@@ -483,7 +483,7 @@ What this sign-off is not:
 
 ## Phase 8 wave E: the adoption guide followed literally
 
-09-11-2026, after v0.1.5 was promoted to a stable release. `runner/scripts/proof-adoption.ts` follows [adopting.md](adopting.md) command by command on a scratch clone of `pantheon-adr`, against the published release, in isolated mise folders. Nothing is pushed and the four repositories are not touched. The clone and everything downloaded are deleted afterwards.
+09-11-2026, after v0.1.5 was promoted to a stable release. `runner/scripts/proof-adoption.ts` follows [adopting.md](../../../docs/adopting.md) command by command on a scratch clone of `pantheon-adr`, against the published release, in isolated mise folders. Nothing is pushed and the four repositories are not touched. The clone and everything downloaded are deleted afterwards.
 
 | Step of the guide | Result |
 |---|---|
@@ -507,7 +507,7 @@ What it does not show: `hk check --all` (compared before and after in wave A), a
 
 ## Phase 6: governance
 
-09-11-2026. Tasks 6.1 to 6.4 of the shared plan (6.3 as changed by decision 76: repository rulesets, not an organisation ruleset). The code is in `runner/src/governance/` and `governance/`, described in [governance/README.md](../governance/README.md). **Nothing was applied to any repository or setting.** Every real run below only read.
+09-11-2026. Tasks 6.1 to 6.4 of the shared plan (6.3 as changed by decision 76: repository rulesets, not an organisation ruleset). The code is in `runner/src/governance/` and `governance/`, described in [governance/README.md](../../governance/README.md). **Nothing was applied to any repository or setting.** Every real run below only read.
 
 | Exit criterion of the plan | Where it is shown |
 |---|---|

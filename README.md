@@ -24,7 +24,9 @@ Dropped for now: repository governance (rulesets, merge settings and drift check
 | Install the runner, and what `upgrade`, `render`, `check` and `detach` do | [docs/runner-install.md](docs/runner-install.md), [docs/runner-upgrade.md](docs/runner-upgrade.md), [docs/runner-lifecycle.md](docs/runner-lifecycle.md), [docs/runner-safety.md](docs/runner-safety.md) |
 | Run `check` in CI | [docs/check-in-ci.md](docs/check-in-ci.md) |
 | See what the package renders | [docs/tooling-layer.md](docs/tooling-layer.md), [docs/workflow-layer.md](docs/workflow-layer.md), [docs/feature-toggles.md](docs/feature-toggles.md) |
-| See the evidence for a release | [docs/proof-report-0.1.3.md](docs/proof-report-0.1.3.md), [docs/security-dossier-0.1.5.md](docs/security-dossier-0.1.5.md) |
+| See the evidence for a release | [archive/proof/docs/proof-report-0.1.3.md](archive/proof/docs/proof-report-0.1.3.md), [archive/proof/docs/security-dossier-0.1.5.md](archive/proof/docs/security-dossier-0.1.5.md) |
 | See what changed in the refocus, and what was dropped | [docs/refocus-2026-11-10.md](docs/refocus-2026-11-10.md) |
+| See what was archived, and how to re-run it | [archive/README.md](archive/README.md) |
+| See which runner files move to Rust, stay, or are re-pointed | [docs/runner-file-sort.md](docs/runner-file-sort.md) |
 
 Licence: MIT.

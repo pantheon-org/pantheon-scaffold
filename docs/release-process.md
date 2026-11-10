@@ -30,7 +30,7 @@ A version is never re-published. If a release is bad, cut the next patch version
 
 ## Safety properties
 
-They are asserted by `runner/test/release-workflow.test.ts` and kept honest by `tmp/phase-2b-wave-d/mutate.ts`:
+They are asserted by `runner/test/release-workflow.test.ts` and kept honest by `archive/spikes/phase-2b-wave-d/mutate.ts`:
 
 - Only a `v[0-9]*` tag push or a manual run starts it, never `pull_request_target`.
 - Every job asks for its own permissions, and only `release` can write.

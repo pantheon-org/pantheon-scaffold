@@ -24,6 +24,7 @@ The step definitions are in `crates/scaffold-features/tests/features.rs`. They s
 | `safety.feature` | The lock (held, a process that has gone, older than ten minutes, and on CI), an existing file that is not adopted, `--dry-run` and its exit code, a manifest that is not JSON or from a newer format, case collisions and a case-only rename, deleting an orphan (clean git tree, dirty tree, no git), a path that escapes the repository, an absolute path, a symlink that points outside. |
 | `lifecycle.feature` | Seeds (written once, kept, dropped from the config, turned into an owned file), an orphan edited by hand with and without `--force`, `--repair`, and `detach` (dry run, an edited file, `--force`, no manifest). |
 | `releases.feature` | `latest` (newest stable, pre-releases, known-bad, a tag that is not a version, nothing qualifies, a failed or malformed list), `freshness` (fresh, stale, `--max-age-days`, a malformed record, a record from the future, a failed fetch), and the checks `upgrade` makes before it reaches the network. |
+| `encoding.feature` | An owned file whose line endings became CRLF (a recorded gap, see below), and a file name with an accented letter. |
 
 `--version` is checked against `SCAFFOLD_VERSION` (default `0.0.0`, which is what `runner/scripts/build.ts` builds unless told otherwise). CI sets it to the version it built.
 
@@ -48,5 +49,16 @@ What the TypeScript runner does, and where it is specified or will be. A behavio
 | Package version rules: an older package is refused, `--strict`, a known-bad version | Rust unit tests in Phase 2 (`preflight`). A black-box run needs a `package://` download, and a local package has no version, so no scenario can reach it without a real release |
 | `latest`, `freshness`, and what `upgrade` checks before the network | `releases.feature` |
 | `upgrade` past the checksums download (attestation through `gh`, `mise install`, `mise lock`, rollback) | Rust unit tests in Phase 2, with the three outside calls replaced. A black-box run needs a real release and `gh attestation verify` |
-| CRLF checkouts, Unicode path normalisation, an interrupted write | Feature to write |
+| CRLF checkouts, an accented file name | `encoding.feature` |
+| Unicode normalisation (a name written two ways) and an interrupted write | Not a feature, see "Gaps" |
 | Freshness, latest, preflight, lock check, pins, checksums, semver, contract and schema validation, package-URI handling, versions, the known-bad list, the equality rule's edge cases | Rust unit tests in Phase 2 |
+
+## Gaps
+
+Where a scenario and the runner disagree, or a behaviour cannot be a black-box scenario, it is recorded here. The owner decides each one: the Rust build reproduces it (the scenario stays) or fixes it (the scenario changes with the fix).
+
+| Gap | What happens today | Decision |
+|---|---|---|
+| CRLF line endings | The runner compares bytes. A checkout that turned every line ending of an owned file into CRLF (for example git `autocrlf` on Windows) is refused as a hand edit by `render` (exit 3) and reported as drift by `check` (exit 4), and the printed diff shows identical lines. `--force` rewrites the file with LF. Scenarios in `encoding.feature` record this. | Open |
+| Unicode normalisation of paths | Two paths that differ only in how an accented letter is written (one character, or a letter and a combining mark) are not detected as a collision: the runner lowercases names and nothing else. On a filesystem that treats them as one file (macOS) they would overwrite each other. Not a scenario, because the outcome depends on the filesystem. Not tried on a real filesystem. | Open |
+| An interrupted write | Each file is written to a staging folder inside `.pkl-gen` and renamed into place, so a half-written file should never appear at its path. A black-box run cannot stop the runner part-way, so no scenario shows it. To be a Rust unit test in Phase 2. | Open |

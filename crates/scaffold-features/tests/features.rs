@@ -153,9 +153,9 @@ fn run_git(dir: &Path, args: &[&str]) {
     );
 }
 
-/// `\n` in a feature file means a newline, so file contents can be written on one line.
+/// `\n` and `\r` in a feature file mean a newline and a carriage return, so file contents can be written on one line.
 fn unescape(text: &str) -> String {
-    text.replace("\\n", "\n")
+    text.replace("\\n", "\n").replace("\\r", "\r")
 }
 
 #[given("a new empty repository")]

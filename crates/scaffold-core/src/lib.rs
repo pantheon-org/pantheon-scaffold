@@ -13,12 +13,15 @@ pub mod schema;
 
 pub mod apply;
 pub mod check;
+pub mod checksums;
 pub mod detach;
 pub mod equality;
 pub mod freshness;
 pub mod http;
 pub mod knownbad;
 pub mod latest;
+pub mod lockcheck;
+pub mod pins;
 pub mod preflight;
 pub mod render;
 pub mod semver;

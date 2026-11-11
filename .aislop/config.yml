@@ -1,0 +1,11 @@
+version: 1
+# archive/ holds retired spikes and tmp/ is working scratch; runner/ is the TypeScript runner, which is removed in task 3.4 of the plan
+# and is tested by its own suite. None of it is maintained code, so it is not scored.
+exclude:
+  - archive/**
+  - tmp/**
+  - runner/**
+ci:
+  # The score today is 66 (29 warnings, no errors): 23 non-test unwraps, 3 long files, 2 hardcoded URLs, 1 long function. The gate is
+  # set just under it so that it fails on any regression. Raise it as the findings are fixed.
+  failBelow: 65

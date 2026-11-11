@@ -222,7 +222,7 @@ jobs:
       GITHUB_TOKEN: ${{ github.token }}
       SCAFFOLD_VERSION: 0.0.1-ci.${{ github.run_number }}
       SCAFFOLD_BIN: ${{ github.workspace }}/target/debug/pantheon-scaffold
-      SCAFFOLD_SKIP_TAGS: latest,freshness,upgrade
+      SCAFFOLD_SKIP_TAGS: latest,upgrade
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

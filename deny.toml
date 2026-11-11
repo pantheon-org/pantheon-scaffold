@@ -7,7 +7,17 @@ all-features = true
 ignore = []
 
 [licenses]
-allow = ["MIT", "Apache-2.0", "BSD-3-Clause", "Unicode-3.0", "Zlib"]
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "BSD-3-Clause",
+    "Unicode-3.0",
+    "Zlib",
+    # ureq: ring ("Apache-2.0 AND ISC") and rustls-webpki.
+    "ISC",
+    # ureq: webpki-roots, the Mozilla CA list as data.
+    "CDLA-Permissive-2.0",
+]
 confidence-threshold = 0.9
 
 [bans]

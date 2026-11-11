@@ -15,6 +15,8 @@ pub mod apply;
 pub mod check;
 pub mod detach;
 pub mod equality;
+pub mod freshness;
+pub mod http;
 pub mod preflight;
 pub mod render;
 pub mod semver;

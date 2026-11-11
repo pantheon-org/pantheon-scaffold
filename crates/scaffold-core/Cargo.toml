@@ -11,6 +11,7 @@ publish = false
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 regex = "1"
+ureq = "3"
 time = { version = "0.3", features = ["formatting", "parsing", "macros"] }
 sha2 = "0.10"
 saphyr = "0.3.3"

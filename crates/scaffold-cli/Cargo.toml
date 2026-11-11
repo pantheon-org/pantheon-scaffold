@@ -18,9 +18,11 @@ path = "src/main.rs"
 [dependencies]
 scaffold-core = { path = "../scaffold-core" }
 serde_json = { version = "1", features = ["preserve_order"] }
+time = "0.3"
 
 [dev-dependencies]
 tempfile = "3"
+time = { version = "0.3", features = ["formatting", "macros"] }
 
 [lints]
 workspace = true

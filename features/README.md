@@ -1,6 +1,6 @@
 # Features
 
-The behaviour of the runner, written as cucumber features. They are black-box: each scenario runs a binary and looks at its exit code, its output and the files it leaves, so the same files run against any build of the runner. There are two builds: the TypeScript build, which passes every scenario, and the Rust build (`crates/scaffold-cli`), which has to pass the same files (Phase 2 of the refocus plan). The Rust build does not have `upgrade` yet, so CI skips the scenarios tagged for them (see below).
+The behaviour of the runner, written as cucumber features. They are black-box: each scenario runs a binary and looks at its exit code, its output and the files it leaves, so the same files run against any build of the runner. There are two builds, and both pass every scenario: the TypeScript build, and the Rust build (`crates/scaffold-cli`), which Phase 2 of the refocus plan made pass the same files.
 
 ## Run them
 
@@ -17,10 +17,10 @@ Use the target that matches your machine: `linux-x64`, `linux-arm64` or `darwin-
 
 ```bash
 cargo build -p scaffold-cli
-SCAFFOLD_SKIP_TAGS=upgrade SCAFFOLD_BIN=target/debug/pantheon-scaffold cargo test -p scaffold-features
+SCAFFOLD_BIN=target/debug/pantheon-scaffold cargo test -p scaffold-features
 ```
 
-`SCAFFOLD_SKIP_TAGS` is a comma-separated list of tags, without the `@`. Scenarios carrying any of them are not run, and the harness prints the list at the start. The scenarios for a command the Rust build has not ported carry its tag (`@upgrade`; `@detach`, `@freshness` and `@latest` were removed from the list when those commands were ported). When a command is ported, remove its tag from the list in the `features-rust` job of `.github/workflows/ci.yml` and the scenarios start to count. Without the variable every scenario runs, which is how the TypeScript build is tested.
+`SCAFFOLD_SKIP_TAGS` is a comma-separated list of tags, without the `@`. Scenarios carrying any of them are not run, and the harness prints the list at the start. It was used while the Rust build was missing commands: the scenarios for each carried its tag (`@detach`, `@freshness`, `@latest`, `@upgrade`), and the tag left the list in CI when the command was ported. All four are ported, so CI sets nothing and every scenario runs. The tags stay on the scenarios, and the variable stays in the harness, for the next command that is added to one build before the other.
 
 ## Write a scenario
 

@@ -27,4 +27,5 @@ pub mod render;
 pub mod semver;
 #[cfg(test)]
 mod testutil;
+pub mod upgrade;
 pub mod versions;

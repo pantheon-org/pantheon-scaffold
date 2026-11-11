@@ -14,6 +14,8 @@ A `pantheon.pkl` in your repository says which options you use. The runner rende
 | **Seeded** | Written once if it does not exist, then yours | `hk.pkl`, `SECURITY.md`, `.mise/conf.d/repo.toml` |
 | **External** | Listed so it is known, never written by the runner | `mise.lock`, and `release.yml` written by `cargo-dist` |
 
+To change what the package renders without giving up the rest of a Builtin, use a Preset: [presets.md](presets.md).
+
 What the package does **not** touch: your source, your `Cargo.toml`, and anything it does not list. It never deletes a file it did not render, and it deletes an orphan only from a clean tracked tree.
 
 ## Before you start

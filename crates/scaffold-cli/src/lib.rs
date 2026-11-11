@@ -1,7 +1,7 @@
 //! The pantheon-scaffold command line, ported from `runner/src/cli.ts`.
 //!
-//! This build handles `--version`, `contract`, `render`, `check`, `detach`, `freshness` and `latest`. `upgrade` parses its
-//! options like the TypeScript runner but stops with an error until it is ported.
+//! This build handles every command of the TypeScript runner: `--version`, `contract`, `render`, `check`, `detach`,
+//! `freshness`, `latest` and `upgrade`.
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -151,6 +151,8 @@ pub struct Env {
     pub known_bad_url: Option<String>,
     /// `GITHUB_TOKEN`, or `GH_TOKEN` when that is not set: sent to the GitHub API by `latest`.
     pub github_token: Option<String>,
+    /// `PANTHEON_SCAFFOLD_RELEASE_BASE`: where `upgrade` downloads a release's checksums from.
+    pub release_base: Option<String>,
 }
 
 impl Env {
@@ -160,6 +162,7 @@ impl Env {
             freshness_url: var("PANTHEON_SCAFFOLD_FRESHNESS_URL"),
             known_bad_url: var("PANTHEON_SCAFFOLD_KNOWN_BAD_URL"),
             github_token: github_token(var("GITHUB_TOKEN"), var("GH_TOKEN")),
+            release_base: var("PANTHEON_SCAFFOLD_RELEASE_BASE"),
         }
     }
 }
@@ -215,6 +218,10 @@ pub fn run_with_env(
         "detach" => finish(run_detach(&flags, &mut io), &mut io),
         "freshness" => finish(run_freshness(&flags, env, &mut io), &mut io),
         "latest" => finish(run_latest(&flags, env, &mut io), &mut io),
+        "upgrade" => {
+            let version = config.expect("checked above");
+            finish(run_upgrade(version, &flags, env, &mut io), &mut io)
+        }
         _ => {
             io.complain(&format!(
                 "{cmd} is not available in the Rust runner yet, use the TypeScript runner"
@@ -271,6 +278,43 @@ fn run_latest(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
             Ok(EXIT_ERROR)
         }
     }
+}
+
+fn run_upgrade(version: &str, flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
+    use scaffold_core::upgrade::{SystemDeps, UpgradeOptions, upgrade};
+    let options = UpgradeOptions {
+        config: flags.config.clone(),
+        dry_run: flags.dry_run,
+        force: flags.force,
+        no_render: flags.no_render,
+        base_url: env.release_base.clone(),
+        ..UpgradeOptions::default()
+    };
+    let report = upgrade(&flags.root, version, &options, &SystemDeps::default())
+        .map_err(|e| e.to_string())?;
+    let verb = if report.dry_run {
+        "would change"
+    } else {
+        "changed"
+    };
+    for change in &report.changes {
+        io.say(&format!("{verb}  {change}"));
+    }
+    if report.dry_run {
+        io.say("dry run: the release was verified, nothing was changed");
+        return Ok(EXIT_OK);
+    }
+    if let Some(code) = report.render_exit.filter(|code| *code != 0) {
+        io.complain(&format!("upgrade: the pins are updated, but the render exited {code}. Fix what it reports and run render again."));
+        return Ok(code);
+    }
+    let hint = if report.render_exit.is_none() {
+        ", run render with the new runner"
+    } else {
+        ""
+    };
+    io.say(&format!("upgraded {} -> {}{hint}", report.from, report.to));
+    Ok(EXIT_OK)
 }
 
 /// An error stops the command with exit 1 and its message.
@@ -775,13 +819,86 @@ mod tests {
         assert_eq!(go(&["latest", "--url"], &here()).0, EXIT_USAGE);
     }
 
+    /// A repository pinned to 0.1.0, for the refusals `upgrade` makes before it reaches for the network.
+    fn pinned_repo() -> tempfile::TempDir {
+        let repo = tempfile::tempdir().unwrap();
+        std::fs::write(
+            repo.path().join("pantheon.pkl"),
+            "amends \"package://github.com/pantheon-org/pantheon-scaffold/releases/download/v0.1.0/pantheon-scaffold@0.1.0#/Config.pkl\"\n",
+        )
+        .unwrap();
+        std::fs::write(
+            repo.path().join("mise.toml"),
+            "[tools]\n\"github:pantheon-org/pantheon-scaffold\" = \"0.1.0\"\n",
+        )
+        .unwrap();
+        repo
+    }
+
+    fn upgrade_in(repo: &Path, version: &str, extra: &[&str]) -> (i32, String, String) {
+        let root = repo.display().to_string();
+        let mut items = vec!["upgrade", version, "--root", root.as_str()];
+        items.extend_from_slice(extra);
+        // Nothing listens at the release address, so a run that got past the refusals would fail on the download.
+        let env = Env {
+            release_base: Some("http://127.0.0.1:1".to_owned()),
+            ..Env::default()
+        };
+        go_env(&items, &env, &here())
+    }
+
     #[test]
-    fn commands_that_are_not_ported_stop_with_an_error() {
-        let (code, out, err) = go(&["upgrade", "1.0.0"], &here());
-        assert_eq!((code, out.as_str()), (EXIT_ERROR, ""));
+    fn upgrade_refuses_a_version_that_is_not_a_version() {
+        let repo = pinned_repo();
+        let (code, out, err) = upgrade_in(repo.path(), "banana", &[]);
+        assert_eq!(
+            (code, out.as_str(), err.as_str()),
+            (EXIT_ERROR, "", "\"banana\" is not a version\n")
+        );
+    }
+
+    #[test]
+    fn upgrade_to_the_version_already_pinned_is_an_error() {
+        let repo = pinned_repo();
+        let (code, _, err) = upgrade_in(repo.path(), "0.1.0", &[]);
+        assert_eq!((code, err.as_str()), (EXIT_ERROR, "already at 0.1.0\n"));
+        assert_eq!(
+            upgrade_in(repo.path(), "v0.1.0", &[]).2,
+            "already at 0.1.0\n"
+        );
+    }
+
+    #[test]
+    fn upgrade_to_an_older_version_needs_force() {
+        let repo = pinned_repo();
+        let (code, _, err) = upgrade_in(repo.path(), "0.0.9", &[]);
+        assert_eq!(code, EXIT_ERROR);
         assert_eq!(
             err,
-            "upgrade is not available in the Rust runner yet, use the TypeScript runner\n"
+            "0.0.9 is older than 0.1.0, which is pinned now (use --force to go back)\n"
+        );
+        // With --force it gets past the refusal and fails on the download instead.
+        let (code, _, err) = upgrade_in(repo.path(), "0.0.9", &["--force"]);
+        assert_eq!(code, EXIT_ERROR);
+        assert!(
+            err.starts_with("could not fetch http://127.0.0.1:1/v0.0.9/checksums.txt: "),
+            "{err}"
+        );
+    }
+
+    #[test]
+    fn upgrade_needs_a_version_and_knows_its_options() {
+        assert_eq!(
+            go(&["upgrade"], &here()),
+            (EXIT_USAGE, String::new(), format!("{USAGE}\n"))
+        );
+        let (code, _, err) = go(&["upgrade", "0.2.0", "--nope"], &here());
+        assert_eq!(
+            (code, err.as_str()),
+            (
+                EXIT_USAGE,
+                format!("unknown option --nope\n{USAGE}\n").as_str()
+            )
         );
     }
 
@@ -1505,7 +1622,8 @@ mod tests {
                 .env_remove("GITHUB_TOKEN")
                 .env_remove("GH_TOKEN")
                 .env_remove("PANTHEON_SCAFFOLD_FRESHNESS_URL")
-                .env_remove("PANTHEON_SCAFFOLD_KNOWN_BAD_URL");
+                .env_remove("PANTHEON_SCAFFOLD_KNOWN_BAD_URL")
+                .env_remove("PANTHEON_SCAFFOLD_RELEASE_BASE");
             for (name, value) in vars {
                 command.env(name, value);
             }
@@ -1517,17 +1635,21 @@ mod tests {
             ("PANTHEON_SCAFFOLD_KNOWN_BAD_URL", "http://bad"),
             ("GITHUB_TOKEN", "from-github"),
             ("GH_TOKEN", "from-gh"),
+            ("PANTHEON_SCAFFOLD_RELEASE_BASE", "http://release"),
         ]);
         assert!(
-            all.contains("ENV freshness=Some(\"http://fresh\") known_bad=Some(\"http://bad\") token=Some(\"from-github\")"),
+            all.contains("ENV freshness=Some(\"http://fresh\") known_bad=Some(\"http://bad\") token=Some(\"from-github\") release=Some(\"http://release\")"),
             "{all}"
         );
         let gh_only = run_child(&[("GH_TOKEN", "from-gh")]);
         assert!(
-            gh_only.contains("ENV freshness=None known_bad=None token=Some(\"from-gh\")"),
+            gh_only
+                .contains("ENV freshness=None known_bad=None token=Some(\"from-gh\") release=None"),
             "{gh_only}"
         );
-        assert!(run_child(&[]).contains("ENV freshness=None known_bad=None token=None"));
+        assert!(
+            run_child(&[]).contains("ENV freshness=None known_bad=None token=None release=None")
+        );
     }
 
     #[test]
@@ -1535,8 +1657,8 @@ mod tests {
     fn child_reads_the_environment() {
         let env = Env::from_process();
         println!(
-            "ENV freshness={:?} known_bad={:?} token={:?}",
-            env.freshness_url, env.known_bad_url, env.github_token
+            "ENV freshness={:?} known_bad={:?} token={:?} release={:?}",
+            env.freshness_url, env.known_bad_url, env.github_token, env.release_base
         );
     }
 

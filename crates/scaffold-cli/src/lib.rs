@@ -1,6 +1,6 @@
 //! The pantheon-scaffold command line, ported from `runner/src/cli.ts`.
 //!
-//! This build handles `--version`, `contract`, `render`, `check` and `detach`. `latest`, `freshness` and `upgrade` parse
+//! This build handles `--version`, `contract`, `render`, `check`, `detach` and `freshness`. `latest` and `upgrade` parse
 //! their options like the TypeScript runner but stop with an error until they are ported.
 
 use std::io::Write;
@@ -173,13 +173,8 @@ pub fn run(argv: &[String], cwd: &Path, out: &mut dyn Write, err: &mut dyn Write
             let config = config.expect("checked above");
             command(cmd, config, cwd, &flags, &mut io)
         }
-        "detach" => match run_detach(&flags, &mut io) {
-            Ok(code) => code,
-            Err(message) => {
-                io.complain(&message);
-                EXIT_ERROR
-            }
-        },
+        "detach" => finish(run_detach(&flags, &mut io), &mut io),
+        "freshness" => finish(run_freshness(&flags, &mut io), &mut io),
         _ => {
             io.complain(&format!(
                 "{cmd} is not available in the Rust runner yet, use the TypeScript runner"
@@ -187,6 +182,50 @@ pub fn run(argv: &[String], cwd: &Path, out: &mut dyn Write, err: &mut dyn Write
             EXIT_ERROR
         }
     }
+}
+
+/// An error stops the command with exit 1 and its message.
+fn finish(result: Result<i32, String>, io: &mut Io) -> i32 {
+    result.unwrap_or_else(|message| {
+        io.complain(&message);
+        EXIT_ERROR
+    })
+}
+
+/// The record's address: the flag, then `PANTHEON_SCAFFOLD_FRESHNESS_URL`, then the package repository's own.
+fn freshness_url(flags: &Flags, env_value: Option<String>) -> String {
+    let from_env = env_value.filter(|value| !value.is_empty());
+    flags
+        .url
+        .clone()
+        .or(from_env)
+        .unwrap_or_else(|| scaffold_core::freshness::FRESHNESS_URL.to_owned())
+}
+
+fn run_freshness(flags: &Flags, io: &mut Io) -> Result<i32, String> {
+    use scaffold_core::freshness::{CheckOptions, State, check_freshness};
+    use std::time::Duration;
+    let url = freshness_url(flags, std::env::var("PANTHEON_SCAFFOLD_FRESHNESS_URL").ok());
+    let fetcher = |url: &str| scaffold_core::http::get_text(url, Duration::from_secs(15));
+    let options = CheckOptions {
+        fetcher: &fetcher,
+        url: &url,
+        now: time::OffsetDateTime::now_utc(),
+        max_age_days: flags.max_age_days,
+        attempts: flags.attempts,
+        delay: Duration::from_secs(2),
+    };
+    let result = check_freshness(&options).map_err(|e| e.to_string())?;
+    let when = format!("{} day(s) ago ({})", result.age_days, result.checked_at);
+    if result.state == State::Stale {
+        io.complain(&format!(
+            "stale: the last successful pin check was {when}, more than {}. The pin-update workflow has stopped running or failing.",
+            flags.max_age_days
+        ));
+        return Ok(EXIT_REFUSED);
+    }
+    io.say(&format!("fresh: the last successful pin check was {when}"));
+    Ok(EXIT_OK)
 }
 
 fn run_detach(flags: &Flags, io: &mut Io) -> Result<i32, String> {
@@ -642,7 +681,7 @@ mod tests {
 
     #[test]
     fn commands_that_are_not_ported_stop_with_an_error() {
-        for items in [&["latest"][..], &["freshness"], &["upgrade", "1.0.0"]] {
+        for items in [&["latest"][..], &["upgrade", "1.0.0"]] {
             let (code, out, err) = go(items, &here());
             assert_eq!((code, out.as_str()), (EXIT_ERROR, ""), "{items:?}");
             assert_eq!(
@@ -990,6 +1029,136 @@ mod tests {
             "{err}"
         );
         assert_eq!(detach_in(repo.path(), &["--force"]).0, EXIT_OK);
+    }
+
+    /// Serves one canned answer per connection, in order, and returns the address.
+    fn serve(answers: Vec<(u16, String)>) -> String {
+        use std::io::{Read, Write};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        std::thread::spawn(move || {
+            for (status, body) in answers {
+                let Ok((mut stream, _)) = listener.accept() else {
+                    return;
+                };
+                let mut seen = Vec::new();
+                let mut buffer = [0u8; 1024];
+                while !seen.windows(4).any(|w| w == b"\r\n\r\n") {
+                    match stream.read(&mut buffer) {
+                        Ok(0) | Err(_) => break,
+                        Ok(n) => seen.extend_from_slice(&buffer[..n]),
+                    }
+                }
+                let text = format!(
+                    "HTTP/1.1 {status} X\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                    body.len()
+                );
+                let _ = stream.write_all(text.as_bytes());
+            }
+        });
+        format!("http://{address}/freshness.json")
+    }
+
+    /// A freshness record for a check made `days` days ago (negative: ahead).
+    fn record_from(days: i64) -> String {
+        let when = time::OffsetDateTime::now_utc() - time::Duration::days(days);
+        let text = when
+            .format(&time::macros::format_description!(
+                "[year]-[month]-[day]T[hour]:[minute]:[second]Z"
+            ))
+            .unwrap();
+        format!("{{\"schemaVersion\":1,\"lastSuccessfulPinCheck\":\"{text}\"}}")
+    }
+
+    fn freshness_against(answer: (u16, String), extra: &[&str]) -> (i32, String, String) {
+        let url = serve(vec![answer]);
+        let mut items = vec!["freshness", "--url", url.as_str()];
+        items.extend_from_slice(extra);
+        go(&items, &here())
+    }
+
+    #[test]
+    fn a_recent_record_is_fresh() {
+        let (code, out, err) = freshness_against((200, record_from(3)), &[]);
+        assert_eq!((code, err.as_str()), (EXIT_OK, ""));
+        assert!(
+            out.starts_with("fresh: the last successful pin check was 3 day(s) ago ("),
+            "{out}"
+        );
+        assert!(out.ends_with("Z)\n"), "{out}");
+    }
+
+    #[test]
+    fn a_record_older_than_thirty_days_is_stale() {
+        let (code, out, err) = freshness_against((200, record_from(40)), &[]);
+        assert_eq!((code, out.as_str()), (EXIT_REFUSED, ""));
+        assert!(
+            err.starts_with("stale: the last successful pin check was 40 day(s) ago ("),
+            "{err}"
+        );
+        assert!(
+            err.ends_with(
+                "Z), more than 30. The pin-update workflow has stopped running or failing.\n"
+            ),
+            "{err}"
+        );
+    }
+
+    #[test]
+    fn the_age_limit_can_be_changed() {
+        let (code, _, err) = freshness_against((200, record_from(10)), &["--max-age-days", "5"]);
+        assert_eq!(code, EXIT_REFUSED);
+        assert!(err.contains("more than 5."), "{err}");
+        assert_eq!(
+            freshness_against((200, record_from(10)), &["--max-age-days", "11"]).0,
+            EXIT_OK
+        );
+    }
+
+    #[test]
+    fn a_record_that_cannot_be_used_is_an_error_with_its_reason() {
+        let cases = [
+            (200, "not json".to_owned(), "is not valid JSON"),
+            (
+                200,
+                "{\"schemaVersion\":2,\"lastSuccessfulPinCheck\":\"2026-11-08T12:00:00Z\"}"
+                    .to_owned(),
+                "this runner reads 1",
+            ),
+            (
+                200,
+                "{\"schemaVersion\":1,\"lastSuccessfulPinCheck\":\"2026-11-08T12:00:00+01:00\"}"
+                    .to_owned(),
+                "must be a UTC time",
+            ),
+            (200, record_from(-3), "dated in the future"),
+            (500, "boom".to_owned(), "failing closed: HTTP 500"),
+        ];
+        for (status, body, expected) in cases {
+            let (code, out, err) = freshness_against((status, body), &["--attempts", "1"]);
+            assert_eq!((code, out.as_str()), (EXIT_ERROR, ""), "{expected}");
+            assert!(err.contains(expected), "{expected}: {err}");
+        }
+    }
+
+    #[test]
+    fn the_url_comes_from_the_flag_then_the_environment_then_the_default() {
+        use scaffold_core::freshness::FRESHNESS_URL;
+        let with_flag = flags(&["--url", "http://flag"]);
+        assert_eq!(
+            freshness_url(&with_flag, Some("http://env".into())),
+            "http://flag"
+        );
+        assert_eq!(
+            freshness_url(&flags(&[]), Some("http://env".into())),
+            "http://env"
+        );
+        assert_eq!(freshness_url(&flags(&[]), None), FRESHNESS_URL);
+        assert_eq!(
+            freshness_url(&flags(&[]), Some(String::new())),
+            FRESHNESS_URL,
+            "an empty variable is not an address"
+        );
     }
 
     fn contract_with(uri: Option<&str>) -> Contract {

@@ -1386,8 +1386,21 @@ mod tests {
             ..SystemDeps::default()
         };
         let work = tempfile::tempdir().unwrap();
-        assert_eq!(deps.exec(&["mise", "install"], work.path()), Ok(0));
-        assert_eq!(deps.exec(&["mise", "lock"], work.path()), Ok(7));
+        // The script was written a moment ago; another test thread forking at that instant can make the first start fail with
+        // "Text file busy". Only that is retried, so a real failure still fails the test.
+        let exec = |args: &[&str]| {
+            let mut result = deps.exec(args, work.path());
+            for _ in 0..50 {
+                if !matches!(&result, Err(e) if e.contains("Text file busy")) {
+                    break;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(20));
+                result = deps.exec(args, work.path());
+            }
+            result
+        };
+        assert_eq!(exec(&["mise", "install"]), Ok(0));
+        assert_eq!(exec(&["mise", "lock"]), Ok(7));
         let lines: Vec<String> = std::fs::read_to_string(log)
             .unwrap()
             .lines()

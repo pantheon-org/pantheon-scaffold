@@ -14,7 +14,9 @@ use crate::manifest::{
     MANIFEST_PATH, Manifest, ManifestEntry, ManifestError, read_manifest, serialise_manifest,
     sha256,
 };
-use crate::pins::{NewPins, PinError, RUNNER_TOOL, count_package_imports, read_pins, write_pins};
+use crate::pins::{
+    NewPins, PinError, RUNNER_TOOL, config_after, count_package_imports, read_pins, write_pins,
+};
 use crate::semver::{compare_semver, parse_semver};
 
 pub const REPO: &str = "pantheon-org/pantheon-scaffold";
@@ -31,7 +33,7 @@ impl std::fmt::Display for UpgradeError {
 }
 impl std::error::Error for UpgradeError {}
 
-/// The three things upgrade reaches outside the repository for. Each can be replaced, which is how the tests run without a
+/// The four things upgrade reaches outside the repository for. Each can be replaced, which is how the tests run without a
 /// release.
 pub trait Deps {
     fn fetch_text(&self, url: &str) -> Result<String, String>;
@@ -39,12 +41,17 @@ pub trait Deps {
     fn verify_attestation(&self, file: &Path, repo: &str) -> Result<(), String>;
     /// Runs a program and returns its exit code. The error is a program that could not be started.
     fn exec(&self, cmd: &[&str], cwd: &Path) -> Result<i32, String>;
+    /// Evaluates a config with pkl and says what went wrong when it cannot be evaluated. The result is not looked at: only whether
+    /// the config, with its imports and Presets, evaluates against its package.
+    fn evaluate(&self, config: &Path) -> Result<(), String>;
 }
 
-/// The real thing: the release over HTTPS, `gh attestation verify`, and `mise`.
+/// The real thing: the release over HTTPS, `gh attestation verify`, `mise`, and `pkl`.
 pub struct SystemDeps {
     pub gh: OsString,
     pub mise: OsString,
+    /// How pkl is run for the evaluation that comes before the pins move.
+    pub eval: crate::pkl::EvalOptions,
 }
 
 impl Default for SystemDeps {
@@ -52,6 +59,7 @@ impl Default for SystemDeps {
         Self {
             gh: "gh".into(),
             mise: "mise".into(),
+            eval: crate::pkl::EvalOptions::default(),
         }
     }
 }
@@ -100,6 +108,77 @@ impl Deps for SystemDeps {
             .map_err(|e| e.to_string())?;
         Ok(status.code().unwrap_or(-1))
     }
+
+    fn evaluate(&self, config: &Path) -> Result<(), String> {
+        let folder = config.parent().unwrap_or_else(|| Path::new("."));
+        crate::pkl::eval_contract_json(config, folder, &self.eval)
+            .map(|_| ())
+            .map_err(|e| e.to_string())
+    }
+}
+
+/// A file made for the check before the pins move, removed on every way out, so the repository is as it was. It is made with
+/// `create_new`, so a file of the same name that was already there is never overwritten or deleted.
+struct CheckFile(PathBuf);
+
+impl CheckFile {
+    fn create(path: PathBuf, text: &str) -> Result<Self, UpgradeError> {
+        use std::io::Write;
+        let name = path
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        let failed = |e: std::io::Error| UpgradeError(format!("{name} could not be written: {e}"));
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&path)
+            .map_err(failed)?;
+        let made = Self(path);
+        file.write_all(text.as_bytes()).map_err(failed)?;
+        Ok(made)
+    }
+}
+
+impl Drop for CheckFile {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.0);
+    }
+}
+
+/// Evaluates the config as it will read after the upgrade, from a copy next to the original so its relative imports (the Presets)
+/// resolve, before anything in the repository is written. A Preset that the new package no longer fits fails here, with the
+/// message of its helper, and the repository is untouched.
+fn check_config_evaluates(
+    root: &Path,
+    config: &str,
+    to: &str,
+    checksum: &str,
+    deps: &dyn Deps,
+) -> Result<(), UpgradeError> {
+    let text = config_after(
+        root,
+        config,
+        &NewPins {
+            version: to,
+            checksum,
+        },
+    )?;
+    let original = root.join(config);
+    let stem = original
+        .file_stem()
+        .map(|s| s.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let copy = CheckFile::create(
+        original.with_file_name(format!("{stem}.upgrade-check.pkl")),
+        &text,
+    )?;
+    deps.evaluate(&copy.0).map_err(|message| {
+        UpgradeError(format!(
+            "{config} does not evaluate with {to}, so nothing was changed:\n{}",
+            message.trim_end()
+        ))
+    })
 }
 
 #[derive(Default)]
@@ -275,6 +354,7 @@ pub fn upgrade(
         ),
         format!("mise.toml: {RUNNER_TOOL} {} -> {to}", pins.runner_version),
     ];
+    check_config_evaluates(root, config, to, &checksum, deps)?;
     let report = |render_exit: Option<i32>, dry_run: bool| UpgradeReport {
         from: from.clone(),
         to: to.to_owned(),
@@ -422,6 +502,10 @@ mod tests {
         exits: HashMap<String, i32>,
         cannot_start: Option<String>,
         on_exec: Option<OnExec>,
+        /// What evaluating the config answers: nothing is wrong unless this holds pkl's message.
+        evaluate_error: Option<String>,
+        /// The file each evaluation was asked about, with its text at that moment.
+        evaluated: RefCell<Vec<(std::path::PathBuf, String)>>,
     }
 
     impl Deps for Fake {
@@ -461,6 +545,17 @@ mod tests {
                 return Err("No such file or directory".to_owned());
             }
             Ok(self.exits.get(&line).copied().unwrap_or(0))
+        }
+
+        fn evaluate(&self, config: &Path) -> Result<(), String> {
+            self.calls.borrow_mut().push(format!(
+                "evaluate {}",
+                config.file_name().unwrap().to_string_lossy()
+            ));
+            self.evaluated
+                .borrow_mut()
+                .push((config.to_owned(), std::fs::read_to_string(config).unwrap()));
+            self.evaluate_error.clone().map_or(Ok(()), Err)
         }
     }
 
@@ -545,6 +640,7 @@ mod tests {
             [
                 format!("fetch {BASE}/v0.2.0/checksums.txt"),
                 "verify pantheon-org/pantheon-scaffold".to_owned(),
+                "evaluate pantheon.upgrade-check.pkl".to_owned(),
                 "exec mise install".to_owned(),
                 "exec mise lock".to_owned(),
                 format!("exec {}", render_line(dir.path(), "pantheon.pkl")),
@@ -554,6 +650,128 @@ mod tests {
             (r.from.as_str(), r.to.as_str(), r.dry_run, r.render_exit),
             ("0.1.0", "0.2.0", false, Some(0))
         );
+    }
+
+    // The config is evaluated as it will read after the upgrade, before anything is written, so a Preset that no longer fits is
+    // found while the repository is still untouched.
+    #[test]
+    fn the_config_is_evaluated_with_the_new_package_next_to_the_original_and_the_check_file_is_removed()
+     {
+        let dir = repo("0.1.0");
+        let f = fake();
+        run(dir.path(), &f, "0.2.0").unwrap();
+        let evaluated = f.evaluated.borrow();
+        assert_eq!(evaluated.len(), 1);
+        assert_eq!(
+            evaluated[0].0,
+            dir.path().join("pantheon.upgrade-check.pkl")
+        );
+        assert_eq!(evaluated[0].1, amends("0.2.0", &h('c')));
+        assert!(!has(dir.path(), "pantheon.upgrade-check.pkl"));
+    }
+
+    #[test]
+    fn a_config_that_does_not_evaluate_stops_the_upgrade_before_any_file_is_touched() {
+        let dir = repo("0.1.0");
+        let before = snapshot(dir.path());
+        let f = Fake {
+            evaluate_error: Some(
+                "preset: job \"build\" does not exist in workflow \"Rust CI\". Jobs: build-test"
+                    .to_owned(),
+            ),
+            ..fake()
+        };
+        let error = run(dir.path(), &f, "0.2.0").unwrap_err().0;
+        assert_eq!(
+            error,
+            "pantheon.pkl does not evaluate with 0.2.0, so nothing was changed:\npreset: job \"build\" does not exist in workflow \"Rust CI\". Jobs: build-test"
+        );
+        assert_eq!(snapshot(dir.path()), before);
+        assert!(
+            !calls(&f).iter().any(|c| c.starts_with("exec ")),
+            "{:?}",
+            calls(&f)
+        );
+        assert!(!has(dir.path(), "pantheon.upgrade-check.pkl"));
+        assert!(!has(dir.path(), ".pkl-gen/lock"));
+    }
+
+    #[test]
+    fn a_dry_run_evaluates_the_config_too_and_still_changes_nothing() {
+        let dir = repo("0.1.0");
+        let before = snapshot(dir.path());
+        let f = fake();
+        let dry = UpgradeOptions {
+            dry_run: true,
+            ..opts()
+        };
+        run_with(dir.path(), &f, "0.2.0", dry).unwrap();
+        assert_eq!(f.evaluated.borrow().len(), 1);
+        assert_eq!(snapshot(dir.path()), before);
+        assert!(!has(dir.path(), "pantheon.upgrade-check.pkl"));
+        let broken = Fake {
+            evaluate_error: Some("boom".to_owned()),
+            ..fake()
+        };
+        let dry = UpgradeOptions {
+            dry_run: true,
+            ..opts()
+        };
+        assert!(run_with(dir.path(), &broken, "0.2.0", dry).is_err());
+    }
+
+    #[test]
+    fn nothing_is_evaluated_when_the_release_cannot_be_verified() {
+        let dir = repo("0.1.0");
+        let f = Fake {
+            fail_verify: true,
+            ..fake()
+        };
+        assert!(run(dir.path(), &f, "0.2.0").is_err());
+        assert!(f.evaluated.borrow().is_empty());
+    }
+
+    #[test]
+    fn a_config_in_a_folder_is_evaluated_in_that_folder_so_its_relative_imports_resolve() {
+        let dir = tempfile::tempdir().unwrap();
+        put(dir.path(), "conf/pantheon.pkl", &amends("0.1.0", &h('a')));
+        put(dir.path(), "mise.toml", &mise("0.1.0"));
+        put(dir.path(), "mise.lock", "# lock\n");
+        let f = fake();
+        let o = UpgradeOptions {
+            config: Some("conf/pantheon.pkl".to_owned()),
+            ..opts()
+        };
+        run_with(dir.path(), &f, "0.2.0", o).unwrap();
+        assert_eq!(
+            f.evaluated.borrow()[0].0,
+            dir.path().join("conf/pantheon.upgrade-check.pkl")
+        );
+        assert!(!has(dir.path(), "conf/pantheon.upgrade-check.pkl"));
+    }
+
+    #[test]
+    fn the_check_file_is_removed_even_when_the_evaluation_fails() {
+        let dir = repo("0.1.0");
+        let f = Fake {
+            evaluate_error: Some("boom".to_owned()),
+            ..fake()
+        };
+        assert!(run(dir.path(), &f, "0.2.0").is_err());
+        assert!(!has(dir.path(), "pantheon.upgrade-check.pkl"));
+    }
+
+    #[test]
+    fn a_check_file_that_cannot_be_written_is_an_error_and_nothing_is_changed() {
+        let dir = repo("0.1.0");
+        let before = snapshot(dir.path());
+        std::fs::create_dir(dir.path().join("pantheon.upgrade-check.pkl")).unwrap();
+        let error = run(dir.path(), &fake(), "0.2.0").unwrap_err().0;
+        assert!(
+            error.starts_with("pantheon.upgrade-check.pkl could not be written: "),
+            "{error}"
+        );
+        assert_eq!(snapshot(dir.path()), before);
     }
 
     #[test]
@@ -613,6 +831,9 @@ mod tests {
                 }
                 fn exec(&self, _: &[&str], _: &Path) -> Result<i32, String> {
                     Ok(0)
+                }
+                fn evaluate(&self, _: &Path) -> Result<(), String> {
+                    Ok(())
                 }
             }
             let _ = upgrade(dir.path(), "0.2.0", &opts(), &Spy(seen.clone(), fail));
@@ -868,7 +1089,8 @@ mod tests {
     }
 
     #[test]
-    fn dry_run_downloads_and_verifies_lists_what_would_change_and_writes_and_runs_nothing() {
+    fn dry_run_downloads_verifies_and_evaluates_lists_what_would_change_and_writes_and_runs_nothing()
+     {
         let dir = repo("0.1.0");
         let before = snapshot(dir.path());
         let f = fake();
@@ -887,7 +1109,7 @@ mod tests {
             .iter()
             .map(|c| c.split(' ').next().unwrap().to_owned())
             .collect();
-        assert_eq!(kinds, ["fetch", "verify"]);
+        assert_eq!(kinds, ["fetch", "verify", "evaluate"]);
         assert!(r.dry_run);
         assert!(r.changes.join("\n").contains("0.1.0 -> 0.2.0"));
         assert_eq!(r.render_exit, None);
@@ -1366,6 +1588,52 @@ mod tests {
                 .verify_attestation(Path::new("f"), "o/r")
                 .unwrap_err()
                 .contains("could not run")
+        );
+    }
+
+    #[test]
+    fn the_system_evaluate_runs_pkl_in_the_folder_of_the_config_and_says_what_pkl_said_when_it_fails()
+     {
+        let dir = tempfile::tempdir().unwrap();
+        let log = dir.path().join("log");
+        let pkl = script(
+            dir.path(),
+            "pkl",
+            &format!(
+                "echo \"$PWD\" >> '{0}'; if [ -n \"$PKL_FAIL\" ]; then echo \"$PKL_FAIL\" >&2; exit 1; fi; echo '{{}}'",
+                log.display()
+            ),
+        );
+        let conf = dir.path().join("conf");
+        std::fs::create_dir(&conf).unwrap();
+        let config = conf.join("pantheon.pkl");
+        std::fs::write(&config, "amends \"x\"\n").unwrap();
+        let eval = |fail: Option<&str>| crate::pkl::EvalOptions {
+            binary: pkl.clone(),
+            attempts: 1,
+            env: fail
+                .map(|m| vec![("PKL_FAIL".to_owned(), m.to_owned())])
+                .unwrap_or_default(),
+            ..crate::pkl::EvalOptions::default()
+        };
+        let ok = SystemDeps {
+            eval: eval(None),
+            ..SystemDeps::default()
+        };
+        assert_eq!(ok.evaluate(&config), Ok(()));
+        assert_eq!(
+            std::fs::read_to_string(&log).unwrap().trim(),
+            conf.canonicalize().unwrap().display().to_string()
+        );
+        let broken = SystemDeps {
+            eval: eval(Some("preset: step \"x\" does not exist")),
+            ..SystemDeps::default()
+        };
+        let error = broken.evaluate(&config).unwrap_err();
+        assert!(error.starts_with("pkl eval failed (exit 1)"), "{error}");
+        assert!(
+            error.contains("preset: step \"x\" does not exist"),
+            "{error}"
         );
     }
 

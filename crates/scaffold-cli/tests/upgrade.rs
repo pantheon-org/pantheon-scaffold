@@ -38,6 +38,15 @@ struct Run {
 fn setup(checksums: Option<String>) -> Setup {
     let bin = tempfile::tempdir().unwrap();
     std::fs::write(bin.path().join("calls"), "").unwrap();
+    // A fake pkl: it records the file it was asked about and what that file said, and prints an empty contract, or fails with
+    // PKL_FAIL as its message.
+    let pkl = format!(
+        "#!/bin/sh\nfor last; do :; done\necho \"pkl $*\" >> \"{calls}\"\ncat \"$last\" >> \"{calls}.pkl\"\nif [ -n \"$PKL_FAIL\" ]; then echo \"$PKL_FAIL\" >&2; exit 1; fi\necho '{{}}'\n",
+        calls = bin.path().join("calls").display()
+    );
+    let pkl_path = bin.path().join("pkl");
+    std::fs::write(&pkl_path, pkl).unwrap();
+    std::fs::set_permissions(&pkl_path, std::fs::Permissions::from_mode(0o755)).unwrap();
     for name in ["mise", "gh"] {
         let script = format!(
             "#!/bin/sh\necho \"{name} $*\" >> \"{calls}\"\nif [ \"{name}\" = gh ] && [ -n \"$GH_FAIL\" ]; then echo \"no valid attestation\" >&2; exit 1; fi\nif [ \"{name}\" = mise ] && [ \"$1\" = x ] && [ -n \"$MISE_RENDER_EXIT\" ]; then exit \"$MISE_RENDER_EXIT\"; fi\nexit 0\n",
@@ -117,6 +126,11 @@ impl Setup {
             .collect()
     }
 
+    /// What the fake pkl was shown: the text of the config it was asked to evaluate.
+    fn pkl_saw(&self) -> String {
+        std::fs::read_to_string(self.bin.path().join("calls.pkl")).unwrap()
+    }
+
     fn get(&self, file: &str) -> String {
         std::fs::read_to_string(self.repo.path().join(file)).unwrap()
     }
@@ -142,8 +156,14 @@ fn upgrade_verifies_the_release_rewrites_the_pins_refreshes_mise_and_re_renders(
         "{}",
         calls[0]
     );
+    // The new config is evaluated, from a copy next to the original, before the first thing mise does.
+    assert!(
+        calls[1].starts_with("pkl ") && calls[1].ends_with("pantheon.upgrade-check.pkl"),
+        "{}",
+        calls[1]
+    );
     assert_eq!(
-        calls[1..],
+        calls[2..],
         [
             "mise install",
             "mise lock",
@@ -153,6 +173,83 @@ fn upgrade_verifies_the_release_rewrites_the_pins_refreshes_mise_and_re_renders(
             )
         ]
     );
+    assert_eq!(s.pkl_saw(), amends("0.2.0", &h('c')));
+    assert!(!s.repo.path().join("pantheon.upgrade-check.pkl").exists());
+}
+
+#[test]
+fn a_config_that_the_new_package_cannot_evaluate_stops_the_upgrade_before_anything_is_changed() {
+    let s = setup(default_checksums());
+    let message = "preset: job \"build\" does not exist in workflow \"Rust CI\". Jobs: build-test";
+    let r = s.run(
+        &["upgrade", "0.2.0", "--root", &s.root()],
+        &[("PKL_FAIL", message)],
+    );
+    assert_eq!(r.code, 1, "{}", r.out);
+    assert!(
+        r.err
+            .starts_with("pantheon.pkl does not evaluate with 0.2.0, so nothing was changed:\n"),
+        "{}",
+        r.err
+    );
+    assert!(r.err.contains(message), "{}", r.err);
+    assert_eq!(s.get("pantheon.pkl"), amends("0.1.0", &h('a')));
+    assert_eq!(s.get("mise.toml"), mise_toml("0.1.0"));
+    assert!(
+        s.calls()
+            .iter()
+            .all(|c| c.starts_with("gh") || c.starts_with("pkl")),
+        "mise must not run: {:?}",
+        s.calls()
+    );
+    assert!(!s.repo.path().join("pantheon.upgrade-check.pkl").exists());
+    assert!(!s.repo.path().join(".pkl-gen/lock").exists());
+}
+
+#[test]
+fn the_evaluation_gets_the_cache_folder_and_the_local_package_folders_of_the_command_line() {
+    let s = setup(default_checksums());
+    let extra = tempfile::tempdir().unwrap();
+    let cache = extra.path().join("cache").display().to_string();
+    let local = extra.path().join("pkgs").display().to_string();
+    let r = s.run(
+        &[
+            "upgrade",
+            "0.2.0",
+            "--root",
+            &s.root(),
+            "--dry-run",
+            "--cache-dir",
+            &cache,
+            "--allow-local-package",
+            &local,
+            "--attempts",
+            "1",
+        ],
+        &[],
+    );
+    assert_eq!(r.code, 0, "{}", r.err);
+    let call = s
+        .calls()
+        .into_iter()
+        .find(|c| c.starts_with("pkl "))
+        .unwrap();
+    assert!(call.contains(&format!("--cache-dir {cache}")), "{call}");
+    // pkl is given the folder as an escaped pattern, so only its last part is looked for.
+    assert!(call.contains("pkgs/"), "{call}");
+}
+
+#[test]
+fn a_dry_run_evaluates_the_config_too() {
+    let s = setup(default_checksums());
+    let message = "preset: workflow \"rust-cii\" is not a builtin of this package version";
+    let r = s.run(
+        &["upgrade", "0.2.0", "--root", &s.root(), "--dry-run"],
+        &[("PKL_FAIL", message)],
+    );
+    assert_eq!(r.code, 1);
+    assert!(r.err.contains(message), "{}", r.err);
+    assert_eq!(s.get("pantheon.pkl"), amends("0.1.0", &h('a')));
 }
 
 #[test]
@@ -203,7 +300,12 @@ fn dry_run_verifies_and_lists_the_change_and_writes_and_runs_nothing_else() {
         r.out
     );
     assert_eq!(s.get("mise.toml"), mise_toml("0.1.0"));
-    assert!(s.calls().iter().all(|c| c.starts_with("gh")));
+    assert!(
+        s.calls()
+            .iter()
+            .all(|c| c.starts_with("gh") || c.starts_with("pkl"))
+    );
+    assert_eq!(s.calls().iter().filter(|c| c.starts_with("pkl")).count(), 1);
 }
 
 #[test]

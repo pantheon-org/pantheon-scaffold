@@ -25,6 +25,8 @@ pub struct ManifestEntry {
 pub struct Manifest {
     pub package_version: Option<String>,
     pub files: BTreeMap<String, ManifestEntry>,
+    /// The Preset files the last render applied, by path, with the hash of each: inputs, never written by the runner.
+    pub presets: BTreeMap<String, String>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -42,6 +44,7 @@ impl Manifest {
         Self {
             package_version: None,
             files: BTreeMap::new(),
+            presets: BTreeMap::new(),
         }
     }
 }
@@ -71,6 +74,22 @@ impl Serialize for Files<'_> {
     }
 }
 
+/// The presets map, in the same order as the files map.
+struct Presets<'a>(&'a BTreeMap<String, String>);
+
+impl Serialize for Presets<'_> {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeMap;
+        let mut entries: Vec<_> = self.0.iter().collect();
+        entries.sort_by(|a, b| a.0.encode_utf16().cmp(b.0.encode_utf16()));
+        let mut map = s.serialize_map(Some(entries.len()))?;
+        for (path, hash) in entries {
+            map.serialize_entry(path, hash)?;
+        }
+        map.end()
+    }
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Document<'a> {
@@ -78,6 +97,8 @@ struct Document<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     package_version: Option<&'a str>,
     files: Files<'a>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    presets: Option<Presets<'a>>,
 }
 
 /// Deterministic text: sorted keys, two-space indent, one trailing newline, so a merge conflict stays small.
@@ -86,6 +107,7 @@ pub fn serialise_manifest(m: &Manifest) -> String {
         manifest_version: MANIFEST_VERSION,
         package_version: m.package_version.as_deref(),
         files: Files(&m.files),
+        presets: (!m.presets.is_empty()).then_some(Presets(&m.presets)),
     };
     let mut text = serde_json::to_string_pretty(&document).expect("a manifest always serialises");
     text.push('\n');
@@ -122,6 +144,20 @@ pub fn parse_manifest(text: &str) -> Result<Manifest, ManifestError> {
         Some(Value::String(v)) => Some(v.clone()),
         Some(_) => return fail("has a packageVersion that is not text"),
     };
+    let presets = match parsed.get("presets") {
+        None => BTreeMap::new(),
+        Some(Value::Object(map)) => {
+            let mut presets = BTreeMap::new();
+            for (path, hash) in map {
+                let Value::String(hash) = hash else {
+                    return fail(format!("has a hash for preset {path:?} that is not text"));
+                };
+                presets.insert(path.clone(), hash.clone());
+            }
+            presets
+        }
+        Some(_) => return fail("has a presets map that is not an object"),
+    };
     let mut entries = BTreeMap::new();
     for (path, value) in files {
         match serde_json::from_value::<ManifestEntry>(value.clone()) {
@@ -132,6 +168,7 @@ pub fn parse_manifest(text: &str) -> Result<Manifest, ManifestError> {
     Ok(Manifest {
         package_version,
         files: entries,
+        presets,
     })
 }
 
@@ -293,6 +330,55 @@ mod tests {
         assert_eq!(
             sha256("abc"),
             "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
+    }
+    #[test]
+    fn presets_are_written_after_the_files_sorted_and_read_back() {
+        let mut m = Manifest::empty();
+        m.presets.insert("presets/b.pkl".into(), "2".into());
+        m.presets.insert("presets/a.pkl".into(), "1".into());
+        let text = serialise_manifest(&m);
+        assert_eq!(
+            text,
+            "{\n  \"manifestVersion\": 1,\n  \"files\": {},\n  \"presets\": {\n    \"presets/a.pkl\": \"1\",\n    \"presets/b.pkl\": \"2\"\n  }\n}\n"
+        );
+        assert_eq!(parse_manifest(&text).unwrap(), m);
+    }
+
+    #[test]
+    fn a_manifest_with_no_presets_has_no_presets_key_and_reads_as_none() {
+        assert!(!serialise_manifest(&Manifest::empty()).contains("presets"));
+        let parsed = parse_manifest("{\"manifestVersion\":1,\"files\":{}}").unwrap();
+        assert!(parsed.presets.is_empty());
+    }
+
+    #[test]
+    fn preset_paths_sort_by_utf16_code_unit_like_the_files_do() {
+        let mut m = Manifest::empty();
+        m.presets.insert("presets/\u{FF5E}.pkl".into(), "x".into());
+        m.presets.insert("presets/\u{1F600}.pkl".into(), "y".into());
+        let text = serialise_manifest(&m);
+        assert!(
+            text.find("\u{1F600}").unwrap() < text.find("\u{FF5E}").unwrap(),
+            "{text}"
+        );
+    }
+
+    #[test]
+    fn a_presets_value_that_is_not_a_map_of_text_is_refused() {
+        assert_eq!(
+            parse_manifest("{\"manifestVersion\":1,\"files\":{},\"presets\":[]}")
+                .unwrap_err()
+                .to_string(),
+            ".pkl-gen/manifest.json has a presets map that is not an object"
+        );
+        assert_eq!(
+            parse_manifest(
+                "{\"manifestVersion\":1,\"files\":{},\"presets\":{\"presets/a.pkl\":3}}"
+            )
+            .unwrap_err()
+            .to_string(),
+            ".pkl-gen/manifest.json has a hash for preset \"presets/a.pkl\" that is not text"
         );
     }
 }

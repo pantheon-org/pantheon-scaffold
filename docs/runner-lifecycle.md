@@ -6,7 +6,7 @@ How the runner treats the package it renders from, over time. Added in phase 2b,
 
 A released package is loaded from a `package://` URI that carries its version. The package reports that URI in the contract (`packageUri`, set by `Config.pkl` from the module's own location), and the runner reads the version from it. A package loaded from a local folder has no `packageUri`, so none of the rules below apply to it.
 
-A package URI with no readable version is an error, never ignored. After every render the runner records the version in `.pkl-gen/manifest.json` as `packageVersion`.
+A package URI with no readable version is an error, never ignored. After every render the runner records the version in `.pkl-gen/manifest.json` as `packageVersion`, and the Presets the config applied as `presets` (path to hash; see [presets-design.md](presets-design.md)).
 
 ## Rules checked before anything is rendered
 

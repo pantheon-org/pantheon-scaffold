@@ -290,8 +290,11 @@ fn run_upgrade(version: &str, flags: &Flags, env: &Env, io: &mut Io) -> Result<i
         base_url: env.release_base.clone(),
         ..UpgradeOptions::default()
     };
-    let report = upgrade(&flags.root, version, &options, &SystemDeps::default())
-        .map_err(|e| e.to_string())?;
+    let deps = SystemDeps {
+        eval: eval_options(flags),
+        ..SystemDeps::default()
+    };
+    let report = upgrade(&flags.root, version, &options, &deps).map_err(|e| e.to_string())?;
     let verb = if report.dry_run {
         "would change"
     } else {
@@ -423,15 +426,16 @@ fn command_inner(
         ));
         return Ok(EXIT_OK);
     }
+    let presets = read_presets(&contract, &resolve(cwd, config))?;
     let mode = mode_for(cmd);
     let package_version = match gate(&contract, flags, mode, env, io)? {
         Gate::Stop(code) => return Ok(code),
         Gate::Go(version) => version,
     };
     if cmd == "check" {
-        run_check(&contract, flags, io)
+        run_check(&contract, flags, &presets, io)
     } else {
-        run_render(&contract, flags, package_version, io)
+        run_render(&contract, flags, package_version, &presets, io)
     }
 }
 
@@ -457,14 +461,49 @@ fn eval_options(flags: &Flags) -> scaffold_core::pkl::EvalOptions {
     }
 }
 
-fn render_options(flags: &Flags, package_version: Option<String>) -> scaffold_core::apply::Options {
+fn render_options(
+    flags: &Flags,
+    package_version: Option<String>,
+    presets: &PresetInputs,
+) -> scaffold_core::apply::Options {
     scaffold_core::apply::Options {
         force: flags.force,
         dry_run: flags.dry_run,
         repair: flags.repair,
         package_version,
+        presets: presets.hashes.clone(),
         ..scaffold_core::apply::Options::default()
     }
+}
+
+/// The Preset files a config applies (see `scaffold_core::presets`): what the contract lists, with their hashes, and the files in
+/// `presets/` that nothing lists.
+struct PresetInputs {
+    config_name: String,
+    listed: Vec<String>,
+    hashes: std::collections::BTreeMap<String, String>,
+    unused: Vec<String>,
+}
+
+fn read_presets(
+    contract: &scaffold_core::contract::Contract,
+    config_path: &Path,
+) -> Result<PresetInputs, String> {
+    use scaffold_core::presets::{read_listed, unused};
+    let dir = config_path.parent().unwrap_or_else(|| Path::new("."));
+    let config_name = config_path
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let listed = contract.presets.clone().unwrap_or_default();
+    let hashes = read_listed(dir, &config_name, &listed).map_err(|e| e.to_string())?;
+    let unused = unused(dir, &listed);
+    Ok(PresetInputs {
+        config_name,
+        listed,
+        hashes,
+        unused,
+    })
 }
 
 fn load_contract(
@@ -542,10 +581,27 @@ fn gate(
 fn run_check(
     contract: &scaffold_core::contract::Contract,
     flags: &Flags,
+    presets: &PresetInputs,
     io: &mut Io,
 ) -> Result<i32, String> {
     use scaffold_core::check::{Reason, check};
     let result = check(contract, &flags.root).map_err(|e| e.to_string())?;
+    for path in &presets.listed {
+        io.say(&format!("preset {path}"));
+    }
+    // A broken manifest is the gate's to report; here it only means there is nothing recorded to compare with.
+    let recorded = scaffold_core::manifest::read_manifest(&flags.root)
+        .map(|m| m.presets)
+        .unwrap_or_default();
+    for path in scaffold_core::presets::changed(&recorded, &presets.hashes) {
+        io.complain(&format!("warning: {path} changed since the last render"));
+    }
+    for path in &presets.unused {
+        io.complain(&format!(
+            "warning: {path} is not applied by {}",
+            presets.config_name
+        ));
+    }
     if result.drift.is_empty() {
         io.say(&format!(
             "check ok: {} owned file(s) match the render",
@@ -583,10 +639,11 @@ fn run_render(
     contract: &scaffold_core::contract::Contract,
     flags: &Flags,
     package_version: Option<String>,
+    presets: &PresetInputs,
     io: &mut Io,
 ) -> Result<i32, String> {
     use scaffold_core::apply::{Kind, apply};
-    let options = render_options(flags, package_version);
+    let options = render_options(flags, package_version, presets);
     let report = apply(contract, &flags.root, &options).map_err(|e| e.to_string())?;
     for action in &report.actions {
         io.say(&format!("{:<9} {}", action.kind.name(), action.path));
@@ -934,17 +991,33 @@ mod tests {
         );
     }
 
+    fn preset_inputs(pairs: &[(&str, &str)]) -> PresetInputs {
+        PresetInputs {
+            config_name: "pantheon.pkl".into(),
+            listed: pairs.iter().map(|(p, _)| (*p).to_owned()).collect(),
+            hashes: pairs
+                .iter()
+                .map(|(p, h)| ((*p).to_owned(), (*h).to_owned()))
+                .collect(),
+            unused: Vec::new(),
+        }
+    }
+
     #[test]
-    fn the_render_options_come_from_the_flags() {
+    fn the_render_options_come_from_the_flags_and_carry_the_preset_hashes() {
         let o = render_options(
             &flags(&["--force", "--dry-run", "--repair"]),
             Some("1.2.3".into()),
+            &preset_inputs(&[("presets/a.pkl", "h1")]),
         );
         assert!(o.force && o.dry_run && o.repair);
         assert_eq!(o.package_version.as_deref(), Some("1.2.3"));
-        let o = render_options(&flags(&[]), None);
+        assert_eq!(o.presets.len(), 1);
+        assert_eq!(o.presets["presets/a.pkl"], "h1");
+        let o = render_options(&flags(&[]), None, &preset_inputs(&[]));
         assert!(!(o.force || o.dry_run || o.repair));
         assert_eq!(o.package_version, None);
+        assert!(o.presets.is_empty());
     }
 
     // The commands below run the real pkl against the fixtures of the TypeScript runner.
@@ -978,6 +1051,150 @@ mod tests {
         ];
         items.extend_from_slice(extra);
         go(&items, &here())
+    }
+
+    /// A project that applies one Preset (listed, not imported: the runner cares only that it is listed) and has one other file
+    /// under presets/ that nothing applies when `with_unused` is set.
+    fn preset_project(with_unused: bool) -> tempfile::TempDir {
+        let dir = tempfile::tempdir().unwrap();
+        let package = package();
+        std::fs::create_dir_all(dir.path().join("presets")).unwrap();
+        std::fs::write(
+            dir.path().join("pantheon.pkl"),
+            format!(
+                "amends \"{package}/Config.pkl\"\noptions {{ toolchain = \"1.96.1\" }}\npresets {{ \"presets/ci.pkl\" }}\nfiles {{ [\"a.txt\"] = new GenFile {{ content = \"one\\n\" }} }}\n"
+            ),
+        )
+        .unwrap();
+        std::fs::write(dir.path().join("presets/ci.pkl"), "// a preset\n").unwrap();
+        if with_unused {
+            std::fs::write(
+                dir.path().join("presets/forgotten.pkl"),
+                "// nothing applies me\n",
+            )
+            .unwrap();
+        }
+        dir
+    }
+
+    fn in_project(command: &str, extra: &[&str], dir: &Path) -> (i32, String, String) {
+        let (config, package, root) = (
+            dir.join("pantheon.pkl").display().to_string(),
+            package(),
+            dir.display().to_string(),
+        );
+        let mut items = vec![
+            command,
+            config.as_str(),
+            "--root",
+            root.as_str(),
+            "--allow-local-package",
+            package.as_str(),
+        ];
+        items.extend_from_slice(extra);
+        go(&items, &here())
+    }
+
+    #[test]
+    fn render_records_the_listed_presets_with_their_hashes_in_the_manifest() {
+        let project = preset_project(false);
+        let (code, _, err) = in_project("render", &[], project.path());
+        assert_eq!((code, err.as_str()), (EXIT_OK, ""));
+        let manifest = scaffold_core::manifest::read_manifest(project.path()).unwrap();
+        assert_eq!(
+            manifest.presets.into_iter().collect::<Vec<_>>(),
+            [(
+                "presets/ci.pkl".to_owned(),
+                scaffold_core::manifest::sha256("// a preset\n")
+            )]
+        );
+    }
+
+    #[test]
+    fn a_listed_preset_that_is_missing_stops_render_and_check_before_anything_is_written() {
+        let project = preset_project(false);
+        std::fs::remove_file(project.path().join("presets/ci.pkl")).unwrap();
+        for command in ["render", "check"] {
+            let (code, out, err) = in_project(command, &[], project.path());
+            assert_eq!(
+                (code, out.as_str(), err.as_str()),
+                (
+                    EXIT_ERROR,
+                    "",
+                    "preset presets/ci.pkl is listed by pantheon.pkl but the file does not exist\n"
+                ),
+                "{command}"
+            );
+        }
+        assert!(!project.path().join("a.txt").exists());
+        assert!(!project.path().join(".pkl-gen/manifest.json").exists());
+    }
+
+    #[test]
+    fn check_lists_the_presets_it_applies_in_order_before_its_verdict() {
+        let project = preset_project(false);
+        in_project("render", &[], project.path());
+        assert_eq!(
+            in_project("check", &[], project.path()),
+            (
+                EXIT_OK,
+                "preset presets/ci.pkl\ncheck ok: 1 owned file(s) match the render\n".to_owned(),
+                String::new()
+            )
+        );
+    }
+
+    #[test]
+    fn check_warns_about_a_file_in_presets_that_nothing_applies_but_still_passes() {
+        let project = preset_project(true);
+        in_project("render", &[], project.path());
+        let (code, out, err) = in_project("check", &[], project.path());
+        assert_eq!(code, EXIT_OK);
+        assert!(out.contains("preset presets/ci.pkl\n"), "{out}");
+        assert_eq!(
+            err,
+            "warning: presets/forgotten.pkl is not applied by pantheon.pkl\n"
+        );
+    }
+
+    #[test]
+    fn check_warns_about_a_preset_that_changed_since_the_last_render_and_still_passes() {
+        let project = preset_project(false);
+        in_project("render", &[], project.path());
+        std::fs::write(project.path().join("presets/ci.pkl"), "// edited\n").unwrap();
+        let (code, _, err) = in_project("check", &[], project.path());
+        assert_eq!(code, EXIT_OK);
+        assert_eq!(
+            err,
+            "warning: presets/ci.pkl changed since the last render\n"
+        );
+    }
+
+    #[test]
+    fn check_says_nothing_about_a_preset_when_the_last_render_recorded_none() {
+        let project = preset_project(false);
+        let manifest = project.path().join(".pkl-gen/manifest.json");
+        in_project("render", &[], project.path());
+        let text = std::fs::read_to_string(&manifest).unwrap();
+        let without = scaffold_core::manifest::parse_manifest(&text).map(|mut m| {
+            m.presets.clear();
+            scaffold_core::manifest::serialise_manifest(&m)
+        });
+        std::fs::write(&manifest, without.unwrap()).unwrap();
+        std::fs::write(project.path().join("presets/ci.pkl"), "// edited\n").unwrap();
+        let (code, _, err) = in_project("check", &[], project.path());
+        assert_eq!((code, err.as_str()), (EXIT_OK, ""));
+    }
+
+    #[test]
+    fn check_lists_the_presets_and_still_reports_drift() {
+        let project = preset_project(false);
+        in_project("render", &[], project.path());
+        std::fs::write(project.path().join("a.txt"), "edited\n").unwrap();
+        let (code, out, err) = in_project("check", &[], project.path());
+        assert_eq!(code, EXIT_DRIFT);
+        assert_eq!(out, "preset presets/ci.pkl\n");
+        assert!(err.starts_with("drift in 1 of 1 owned file(s):"), "{err}");
     }
 
     #[test]

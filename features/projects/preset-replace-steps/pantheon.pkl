@@ -1,0 +1,7 @@
+amends "@PACKAGE@/Config.pkl"
+import "@PACKAGE@/Builtins.pkl"
+import "presets/ci.pkl" as ci
+
+options { toolchain = "1.96.1" }
+
+workflows { ["rust-ci"] = ci.rustCi(Builtins.rustCi(options)) }

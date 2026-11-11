@@ -253,6 +253,10 @@ jobs:
         run: cargo build -p scaffold-cli --locked
       - name: Run the features against the Rust build
         run: mise x -- cargo test -p scaffold-features --locked
+      # Every fixture configuration (all of them build on the Builtins) rendered by both runners and compared byte for byte.
+      # It goes with the TypeScript runner when that is removed (plan task 3.4).
+      - name: Compare what the Rust and TypeScript runners write for every Builtin
+        run: mise x -- bun runner/scripts/builtin-differential.ts target/debug/pantheon-scaffold
 
   # The release binary, built the way a release builds it (runner/scripts/build-rust.ts: static musl on Linux, native on macOS),
   # with the smoke suite run against it, on every pull request. The release workflow runs the same two scripts on a tag.

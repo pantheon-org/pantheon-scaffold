@@ -27,3 +27,14 @@ function amendJob(
     throw("preset: job \"\(job)\" does not exist in workflow \"\(w.name)\". Jobs: \(w.jobs.keys.toList().sort().join(", "))")
   else
     (w) { jobs { [job] = change.apply(w.jobs[job]) } }
+
+/// Applies `change` to the file at `path` in `base` and returns the whole mapping. Fails, naming the files there are, when `base` has no such file.
+function amendFile(
+  base: Mapping<String, Config.GenFile>,
+  path: String,
+  change: (Config.GenFile) -> Config.GenFile
+): Mapping<String, Config.GenFile> =
+  if (!base.containsKey(path))
+    throw("preset: file \"\(path)\" is not rendered by the builtins of this package version. Files: \(base.keys.toList().sort().join(", "))")
+  else
+    (base) { [path] = change.apply(base[path]) }

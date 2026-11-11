@@ -1,0 +1,18 @@
+// The entries this repository needs beyond the rendered .gitignore.
+import "../pkl/Config.pkl"
+import "../pkl/Presets.pkl"
+
+function apply(files: Mapping<String, Config.GenFile>): Mapping<String, Config.GenFile> =
+  Presets.amendFile(files, ".gitignore", (f) -> (f) {
+    content = f.content + """
+
+      # This repository
+      node_modules/
+      dist/
+      .stage/
+      .aislop/
+      archive/spikes/pkl-s1-spike/out/
+      mutants.out*/
+
+      """
+  })

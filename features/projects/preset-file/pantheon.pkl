@@ -1,0 +1,9 @@
+amends "@PACKAGE@/Config.pkl"
+import "@PACKAGE@/Builtins.pkl"
+import "presets/ignore.pkl" as ignore
+
+options { toolchain = "1.96.1"; skills = false; binary = false }
+
+presets { "presets/ignore.pkl" }
+
+files = ignore.apply(Builtins.standardFiles(options))

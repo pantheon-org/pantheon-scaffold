@@ -1,6 +1,10 @@
+target/
+.context/
+.pkl-gen/cache/
+
+# This repository
 node_modules/
 dist/
-target/
 .stage/
 .aislop/
 archive/spikes/pkl-s1-spike/out/

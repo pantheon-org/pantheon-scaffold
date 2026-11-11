@@ -1,0 +1,6 @@
+// Adds this repository's own entries to the rendered .gitignore.
+import "@PACKAGE@/Config.pkl"
+import "@PACKAGE@/Presets.pkl"
+
+function apply(files: Mapping<String, Config.GenFile>): Mapping<String, Config.GenFile> =
+  Presets.amendFile(files, ".gitignore", (f) -> (f) { content = f.content + "\n# this repository\nmy-own-entry/\n" })

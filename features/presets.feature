@@ -84,6 +84,22 @@ Feature: Presets
     And the file ".github/workflows/rust-ci.yml" does not exist
     And the file ".pkl-gen/manifest.json" does not exist
 
+  Scenario: the file helper adds to a rendered file
+    Given a new empty repository
+    And the project "preset-file"
+    When I run "render <repo>/pantheon.pkl --root <repo> --allow-local-package <package>"
+    Then the exit code is 0
+    And the file ".gitignore" contains "my-own-entry/"
+    And the file ".gitignore" contains "target/"
+
+  Scenario: a Preset that names a file the Builtins do not render fails and says which files exist
+    Given a new empty repository
+    And the project "preset-missing-file"
+    When I run "render <repo>/pantheon.pkl --root <repo> --allow-local-package <package>"
+    Then the exit code is 1
+    And the error contains 'preset: file ".gitignorr" is not rendered by the builtins of this package version. Files: '
+    And the error contains ".gitignore"
+
   @pending-presets-runner
   Scenario: the manifest records every Preset as an input
     Given a new empty repository

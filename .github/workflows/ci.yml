@@ -63,6 +63,9 @@ jobs:
         run: mise x -- cargo test --workspace --exclude scaffold-features --locked
       - name: Check the Rust dependencies (licences, advisories, sources)
         run: mise x -- cargo-deny check
+      # Dog-food check (plan decision 6): this repository is rendered by its own scaffold, from the package in this checkout.
+      - name: Check that the repository matches its own pantheon.pkl
+        run: mise x -- cargo run -q -p scaffold-cli --locked -- check pantheon.pkl --allow-local-package pkl
 
   # Mutation testing takes about ten minutes in full, so it runs beside the other checks and not inside them. A pull request
   # mutates only the code its diff touches; every push to main runs the full set, so a survivor elsewhere cannot hide.

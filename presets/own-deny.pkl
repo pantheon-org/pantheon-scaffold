@@ -1,0 +1,6 @@
+// This repository keeps its own deny.toml: it names the licences its dependencies use and allows wildcard path dependencies,
+// which the shared policy of the Builtin does not. The cargo-deny workflow still runs against it.
+import "../pkl/Config.pkl"
+
+function apply(files: Mapping<String, Config.GenFile>): Mapping<String, Config.GenFile> =
+  files.toMap().filter((path, _) -> path != "deny.toml").toMapping()

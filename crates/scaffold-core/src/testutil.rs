@@ -91,6 +91,7 @@ pub fn contract_of(files: Vec<ContractFile>) -> Contract {
         package_uri: None,
         requires: None,
         security_builtins: None,
+        presets: None,
     }
 }
 

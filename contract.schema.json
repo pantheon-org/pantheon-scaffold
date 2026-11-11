@@ -55,6 +55,10 @@
         }
       }
     },
+    "presets": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^presets/([A-Za-z0-9_-][A-Za-z0-9_.-]*/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*\\.pkl$" }
+    },
     "escapeHatch": {
       "type": "object",
       "required": ["uses", "constructs"],

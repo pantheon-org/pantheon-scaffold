@@ -79,6 +79,9 @@ pub struct Contract {
     /// Builtins owned by Security: the runner warns when one is disabled.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub security_builtins: Option<Vec<SecurityBuiltin>>,
+    /// The Preset files the config applies, by path under `presets/`. Absent when it applies none.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub presets: Option<Vec<String>>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -148,6 +151,15 @@ pub fn parse_contract(json: &serde_json::Value) -> Result<Contract, ContractErro
         .find(|f| !seen.insert(f.path.as_str()))
     {
         return Err(ContractError(format!("{}: listed twice", dup.path)));
+    }
+    let mut seen = std::collections::HashSet::new();
+    if let Some(dup) = contract
+        .presets
+        .iter()
+        .flatten()
+        .find(|p| !seen.insert(p.as_str()))
+    {
+        return Err(ContractError(format!("{dup}: listed twice")));
     }
     Ok(contract)
 }
@@ -290,5 +302,72 @@ mod tests {
         let mut j = base();
         j["files"][1]["path"] = json!(".github/workflows/ci.yml");
         assert_eq!(err(&j), ".github/workflows/ci.yml: listed twice");
+    }
+    #[test]
+    fn the_presets_a_config_applies_are_read_and_written_back() {
+        let mut j = base();
+        j["presets"] = json!(["presets/ci.pkl", "presets/extra/more.pkl"]);
+        let c = parse_contract(&j).unwrap();
+        assert_eq!(
+            c.presets.as_deref(),
+            Some(
+                &[
+                    "presets/ci.pkl".to_owned(),
+                    "presets/extra/more.pkl".to_owned()
+                ][..]
+            )
+        );
+        assert_eq!(serde_json::to_value(c).unwrap(), j);
+    }
+
+    #[test]
+    fn a_contract_without_presets_has_none_and_writes_none() {
+        let c = parse_contract(&base()).unwrap();
+        assert_eq!(c.presets, None);
+        assert!(serde_json::to_value(c).unwrap().get("presets").is_none());
+    }
+
+    #[test]
+    fn a_preset_must_be_a_pkl_file_under_presets() {
+        for bad in [
+            "ci.pkl",
+            "presets/ci.yml",
+            "presets/",
+            "other/presets/ci.pkl",
+            "presets/../ci.pkl",
+            "/presets/ci.pkl",
+        ] {
+            let mut j = base();
+            j["presets"] = json!([bad]);
+            let message = err(&j);
+            assert!(
+                message.starts_with(
+                    "contract does not match the schema:\n  #/presets/0: does not match"
+                ),
+                "{bad}: {message}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_preset_listed_twice_is_refused() {
+        let mut j = base();
+        j["presets"] = json!(["presets/ci.pkl", "presets/ci.pkl"]);
+        assert_eq!(err(&j), "presets/ci.pkl: listed twice");
+    }
+
+    #[test]
+    fn presets_must_be_a_list_of_strings() {
+        let mut j = base();
+        j["presets"] = json!("presets/ci.pkl");
+        assert_eq!(
+            err(&j),
+            "contract does not match the schema:\n  #/presets: must be array, got string"
+        );
+        j["presets"] = json!([3]);
+        assert_eq!(
+            err(&j),
+            "contract does not match the schema:\n  #/presets/0: must be string, got integer"
+        );
     }
 }

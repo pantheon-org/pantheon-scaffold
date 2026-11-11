@@ -237,6 +237,17 @@ fn output_contains(world: &mut ScaffoldWorld, text: String) {
     );
 }
 
+#[then(expr = "the output does not contain {string}")]
+fn output_lacks(world: &mut ScaffoldWorld, text: String) {
+    let run = world.last();
+    assert!(
+        !run.out.contains(&unescape(&text)),
+        "stdout contains {text:?}, which it must not\nstdout: {}\nstderr: {}",
+        run.out,
+        run.err
+    );
+}
+
 #[then(expr = "the output is {string}")]
 fn output_is(world: &mut ScaffoldWorld, text: String) {
     let last = world.last();

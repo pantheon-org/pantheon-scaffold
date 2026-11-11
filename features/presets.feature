@@ -50,13 +50,36 @@ Feature: Presets
     And the file "presets/extra.pkl" exists
     And the file ".pkl-gen/manifest.json" does not exist
 
-  @pending-presets-api
+  Scenario: the helpers amend a workflow and one of its jobs, and the config names the Preset it applies
+    Given a new empty repository
+    And the project "preset-helpers"
+    When I run "render <repo>/pantheon.pkl --root <repo> --allow-local-package <package>"
+    Then the exit code is 0
+    And the file ".github/workflows/rust-ci.yml" contains "timeout-minutes: 30"
+    And the file ".github/workflows/cargo-deny.yml" exists
+
+  Scenario: a Preset that names a job the workflow does not have fails and says which jobs exist
+    Given a new empty repository
+    And the project "preset-missing-job"
+    When I run "render <repo>/pantheon.pkl --root <repo> --allow-local-package <package>"
+    Then the exit code is 1
+    And the error contains 'preset: job "build" does not exist in workflow "Rust CI". Jobs: build-test'
+    And the file ".github/workflows/rust-ci.yml" does not exist
+
+  Scenario: a config that lists a Preset outside presets/ is refused by the contract
+    Given a new empty repository
+    And the project "preset-bad-path"
+    When I run "render <repo>/pantheon.pkl --root <repo> --allow-local-package <package>"
+    Then the exit code is 1
+    And the error contains "#/presets/0: does not match"
+    And the file ".pkl-gen/manifest.json" does not exist
+
   Scenario: a Preset that names a workflow the Builtins do not have fails and writes nothing
     Given a new empty repository
     And the project "preset-missing"
     When I run "render <repo>/pantheon.pkl --root <repo> --allow-local-package <package>"
     Then the exit code is 1
-    And the error contains "preset: workflow \"rust-cii\" is not a builtin of this package version"
+    And the error contains 'preset: workflow "rust-cii" is not a builtin of this package version'
     And the error contains "rust-ci"
     And the file ".github/workflows/rust-ci.yml" does not exist
     And the file ".pkl-gen/manifest.json" does not exist
@@ -67,7 +90,7 @@ Feature: Presets
     And the project "preset-override"
     When I run "render <repo>/pantheon.pkl --root <repo> --allow-local-package <package>"
     Then the exit code is 0
-    And the file ".pkl-gen/manifest.json" contains "\"presets\""
+    And the file ".pkl-gen/manifest.json" contains '"presets"'
     And the file ".pkl-gen/manifest.json" contains "presets/ci.pkl"
 
   @pending-presets-runner

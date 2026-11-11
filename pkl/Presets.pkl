@@ -1,0 +1,29 @@
+/// Helpers for a Preset: a pkl file under presets/ that takes a Builtin and returns a changed one (docs/presets-design.md).
+/// Both helpers fail when what they are asked to change does not exist. Plain pkl does not: amending a workflow or a job that a
+/// newer package no longer has silently creates an empty one, so a Preset would stop working without anyone being told.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.Presets
+
+import "Config.pkl"
+
+/// Applies `change` to the workflow `key` of `base` and returns the whole mapping. Fails, naming the builtins there are, when `base` has no such workflow.
+function amendWorkflow(
+  base: Mapping<String, Config.Workflow>,
+  key: String,
+  change: (Config.Workflow) -> Config.Workflow
+): Mapping<String, Config.Workflow> =
+  if (!base.containsKey(key))
+    throw("preset: workflow \"\(key)\" is not a builtin of this package version. Builtins: \(base.keys.toList().sort().join(", "))")
+  else
+    (base) { [key] = change.apply(base[key]) }
+
+/// Applies `change` to the job `job` of the workflow `w` and returns the workflow. Fails, naming the jobs there are, when it has no such job.
+function amendJob(
+  w: Config.Workflow,
+  job: String,
+  change: (Config.Job) -> Config.Job
+): Config.Workflow =
+  if (!w.jobs.containsKey(job))
+    throw("preset: job \"\(job)\" does not exist in workflow \"\(w.name)\". Jobs: \(w.jobs.keys.toList().sort().join(", "))")
+  else
+    (w) { jobs { [job] = change.apply(w.jobs[job]) } }

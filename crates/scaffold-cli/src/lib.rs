@@ -1799,6 +1799,7 @@ mod tests {
             package_uri: uri.map(str::to_owned),
             requires: None,
             security_builtins: None,
+            presets: None,
         }
     }
 

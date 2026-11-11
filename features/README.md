@@ -13,6 +13,10 @@ SCAFFOLD_BIN=dist/pantheon-scaffold-darwin-arm64 cargo test -p scaffold-features
 
 Use the target that matches your machine: `linux-x64`, `linux-arm64` or `darwin-arm64`. CI runs the features on all three after the build job.
 
+### Both builds against every Builtin
+
+`bun runner/scripts/builtin-differential.ts <Rust binary>` renders each `runner/test/fixtures/*/pantheon.pkl` (34 configurations, all built on the Builtins) with both builds into fresh directories and compares the exit code, stdout, stderr, the `contract` output, every file written (path, mode, bytes), the manifest (parsed, keys sorted: only its field order may differ) and a `check` straight after. Last run: 34 fixtures, 262 files per build, 0 differences. CI runs it in the `Features (Rust)` job. It goes when the TypeScript runner is removed (plan task 3.4).
+
 ### Against the Rust build
 
 ```bash

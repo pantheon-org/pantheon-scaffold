@@ -190,8 +190,7 @@ pub fn count_package_imports(root: &Path, config: &str) -> Result<usize, PinErro
         .count())
 }
 
-/// Rewrites both files in memory first, and writes either only when both rewrites worked.
-pub fn write_pins(root: &Path, config: &str, next: &NewPins) -> Result<(), PinError> {
+fn check_next(next: &NewPins) -> Result<(), PinError> {
     if crate::semver::parse_semver(next.version).is_none() {
         return Err(PinError(format!(
             "{} is not a version",
@@ -206,23 +205,46 @@ pub fn write_pins(root: &Path, config: &str, next: &NewPins) -> Result<(), PinEr
     {
         return Err(PinError("the checksum is not 64 hex characters".to_owned()));
     }
-    let pkl = read_text(root, config)?;
-    let mise = read_text(root, "mise.toml")?;
-    only_amends(&pkl, config)?;
-    let tool = tool_match(&mise)?;
+    Ok(())
+}
+
+/// The config text with the amends line and every import of the package moved to the new version and checksum.
+fn moved_config(pkl: &str, next: &NewPins) -> String {
     let (version, checksum) = (next.version, next.checksum);
-    let new_pkl = amends_pattern().replace_all(&pkl, |c: &regex::Captures| {
+    let new_pkl = amends_pattern().replace_all(pkl, |c: &regex::Captures| {
         format!(
             "{}{version}{}{version}::sha256:{checksum}{}",
             &c[1], &c[3], &c[6]
         )
     });
-    let new_pkl = import_pattern().replace_all(&new_pkl, |c: &regex::Captures| {
-        format!(
-            "{}{version}{}{version}::sha256:{checksum}{}",
-            &c[1], &c[3], &c[5]
-        )
-    });
+    import_pattern()
+        .replace_all(&new_pkl, |c: &regex::Captures| {
+            format!(
+                "{}{version}{}{version}::sha256:{checksum}{}",
+                &c[1], &c[3], &c[5]
+            )
+        })
+        .into_owned()
+}
+
+/// What the config would read after `write_pins`, without writing anything. `upgrade` evaluates it first, so a config that the
+/// new package cannot evaluate (a Preset that no longer fits) is found before any file is touched.
+pub fn config_after(root: &Path, config: &str, next: &NewPins) -> Result<String, PinError> {
+    check_next(next)?;
+    let pkl = read_text(root, config)?;
+    only_amends(&pkl, config)?;
+    Ok(moved_config(&pkl, next))
+}
+
+/// Rewrites both files in memory first, and writes either only when both rewrites worked.
+pub fn write_pins(root: &Path, config: &str, next: &NewPins) -> Result<(), PinError> {
+    check_next(next)?;
+    let pkl = read_text(root, config)?;
+    let mise = read_text(root, "mise.toml")?;
+    only_amends(&pkl, config)?;
+    let tool = tool_match(&mise)?;
+    let version = next.version;
+    let new_pkl = moved_config(&pkl, next);
     let new_mise = format!(
         "{}{version}{}",
         &mise[..tool.version.start],
@@ -715,6 +737,75 @@ mod tests {
         );
         assert!(
             count_package_imports(tempfile::tempdir().unwrap().path(), "pantheon.pkl").is_err()
+        );
+    }
+    #[test]
+    fn config_after_is_what_write_pins_would_write_and_writes_nothing() {
+        let dir = tempfile::tempdir().unwrap();
+        let text = format!(
+            "{}\nimport \"package://github.com/pantheon-org/pantheon-scaffold/releases/download/v0.1.0/pantheon-scaffold@0.1.0#/Builtins.pkl\"\n",
+            pkl("0.1.0", None)
+        );
+        put(dir.path(), "pantheon.pkl", &text);
+        put(dir.path(), "mise.toml", &mise("0.1.0"));
+        let next = NewPins {
+            version: "0.2.0",
+            checksum: &h('c'),
+        };
+        let after = config_after(dir.path(), "pantheon.pkl", &next).unwrap();
+        assert_eq!(get(dir.path(), "pantheon.pkl"), text, "nothing was written");
+        write_pins(dir.path(), "pantheon.pkl", &next).unwrap();
+        assert_eq!(after, get(dir.path(), "pantheon.pkl"));
+        assert!(after.contains(&format!(
+            "pantheon-scaffold@0.2.0::sha256:{}#/Config.pkl",
+            h('c')
+        )));
+        assert!(after.contains(&format!(
+            "pantheon-scaffold@0.2.0::sha256:{}#/Builtins.pkl",
+            h('c')
+        )));
+    }
+
+    #[test]
+    fn config_after_refuses_what_write_pins_refuses() {
+        let dir = tempfile::tempdir().unwrap();
+        put(dir.path(), "pantheon.pkl", &pkl("0.1.0", None));
+        let bad_version = NewPins {
+            version: "banana",
+            checksum: &h('c'),
+        };
+        assert_eq!(
+            config_after(dir.path(), "pantheon.pkl", &bad_version)
+                .unwrap_err()
+                .0,
+            "\"banana\" is not a version"
+        );
+        let bad_sum = NewPins {
+            version: "0.2.0",
+            checksum: "abc",
+        };
+        assert_eq!(
+            config_after(dir.path(), "pantheon.pkl", &bad_sum)
+                .unwrap_err()
+                .0,
+            "the checksum is not 64 hex characters"
+        );
+        put(dir.path(), "none.pkl", "options { }\n");
+        let ok = NewPins {
+            version: "0.2.0",
+            checksum: &h('c'),
+        };
+        assert!(
+            config_after(dir.path(), "none.pkl", &ok)
+                .unwrap_err()
+                .0
+                .contains("no amends line")
+        );
+        assert!(
+            config_after(dir.path(), "missing.pkl", &ok)
+                .unwrap_err()
+                .0
+                .contains("not found")
         );
     }
 }

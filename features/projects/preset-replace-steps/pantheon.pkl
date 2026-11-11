@@ -4,4 +4,6 @@ import "presets/ci.pkl" as ci
 
 options { toolchain = "1.96.1" }
 
+presets { "presets/ci.pkl" }
+
 workflows { ["rust-ci"] = ci.rustCi(Builtins.rustCi(options)) }

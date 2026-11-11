@@ -118,7 +118,7 @@ Feature: Presets
     And the error contains 'preset: step "Tset" does not exist in job "Build, test, lint". Steps: '
     And the error contains "Test"
 
-  @pending-presets-runner
+  @rust-only
   Scenario: the manifest records every Preset as an input
     Given a new empty repository
     And the project "preset-override"
@@ -127,7 +127,7 @@ Feature: Presets
     And the file ".pkl-gen/manifest.json" contains '"presets"'
     And the file ".pkl-gen/manifest.json" contains "presets/ci.pkl"
 
-  @pending-presets-runner
+  @rust-only
   Scenario: check lists the Presets in use and warns about one that nothing applies
     Given a new empty repository
     And the project "preset-unused"
@@ -136,3 +136,22 @@ Feature: Presets
     Then the exit code is 0
     And the output contains "preset presets/ci.pkl"
     And the error contains "presets/forgotten.pkl is not applied by pantheon.pkl"
+
+  @rust-only
+  Scenario: a Preset that the config lists but that is not there stops the render before anything is written
+    Given a new empty repository
+    And the project "preset-listed-missing"
+    When I run "render <repo>/pantheon.pkl --root <repo> --allow-local-package <package>"
+    Then the exit code is 1
+    And the error contains "preset presets/ghost.pkl is listed by pantheon.pkl but the file does not exist"
+    And the file ".pkl-gen/manifest.json" does not exist
+
+  @rust-only
+  Scenario: check warns about a Preset that changed since the last render, even when the files it renders are the same
+    Given a new empty repository
+    And the project "preset-unused"
+    And I run "render <repo>/pantheon.pkl --root <repo> --allow-local-package <package>"
+    And I write "// edited\nfunction rustCi(base) = base\n" to the file "presets/ci.pkl"
+    When I run "check <repo>/pantheon.pkl --root <repo> --allow-local-package <package>"
+    Then the exit code is 0
+    And the error contains "presets/ci.pkl changed since the last render"

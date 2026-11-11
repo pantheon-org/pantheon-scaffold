@@ -145,5 +145,11 @@
       "class": "owned",
       "hash": "4d0674575b116a100c7d0ad754308dc6dea178b4808c760afc43136db967c7a6"
     }
+  },
+  "presets": {
+    "presets/gitignore.pkl": "4f2a97df4e3ef1747a0e426d18e137494582c73df36e6a88104c5e48cb891751",
+    "presets/own-deny.pkl": "97a203bf01d15bb4d0829dd257781909796cc34faa4a8afa8ee59e949543751c",
+    "presets/rust-ci.pkl": "8aba8052614e85d391ffe30d578fc5a3d15377c09a8c8ff5611a9b791976a845",
+    "presets/scaffold-check.pkl": "7e661bc4af5b070e49494b4ea11bc224c835dc04dbb609c14a2685ffe54a4534"
   }
 }

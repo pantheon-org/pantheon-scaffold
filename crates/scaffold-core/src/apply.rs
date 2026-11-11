@@ -20,6 +20,9 @@ pub struct Options {
     pub repair: bool,
     pub lock: LockOptions,
     pub package_version: Option<String>,
+    /// The Preset files this render applies, by path, with their hashes (see `presets`). Recorded in the manifest, which keeps
+    /// only the last render's: a render that applies none clears them.
+    pub presets: std::collections::BTreeMap<String, String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -194,6 +197,7 @@ pub fn plan(
         .package_version
         .clone()
         .or_else(|| manifest.package_version.clone());
+    next.presets = opts.presets.clone();
     let mut plan = Plan {
         actions: Vec::new(),
         refusals: Vec::new(),
@@ -473,6 +477,7 @@ fn run(contract: &Contract, root: &Path, opts: &Options) -> Result<Report, Apply
 fn repair(contract: &Contract, root: &Path, opts: &Options) -> Result<Report, ApplyError> {
     let mut next = Manifest::empty();
     next.package_version = opts.package_version.clone();
+    next.presets = opts.presets.clone();
     let mut refusals = Vec::new();
     for f in &contract.files {
         let current = read(&resolve_inside(root, &f.path)?)?;
@@ -1345,6 +1350,73 @@ mod tests {
                 .package_version
                 .as_deref(),
             Some("0.3.0")
+        );
+    }
+
+    fn presets_of(pairs: &[(&str, &str)]) -> std::collections::BTreeMap<String, String> {
+        pairs
+            .iter()
+            .map(|(k, v)| ((*k).to_owned(), (*v).to_owned()))
+            .collect()
+    }
+
+    #[test]
+    fn the_presets_of_a_render_are_recorded_and_a_render_with_none_clears_them() {
+        let dir = tmp();
+        let c = one("a.txt", "one\n");
+        let with = |p: &[(&str, &str)]| Options {
+            presets: presets_of(p),
+            ..Options::default()
+        };
+        run_with(
+            &c,
+            dir.path(),
+            with(&[("presets/a.pkl", "h1"), ("presets/b.pkl", "h2")]),
+        );
+        assert_eq!(
+            read_manifest(dir.path()).unwrap().presets,
+            presets_of(&[("presets/a.pkl", "h1"), ("presets/b.pkl", "h2")])
+        );
+        run_with(&c, dir.path(), with(&[("presets/a.pkl", "h3")]));
+        assert_eq!(
+            read_manifest(dir.path()).unwrap().presets,
+            presets_of(&[("presets/a.pkl", "h3")])
+        );
+        run(&c, dir.path());
+        assert!(read_manifest(dir.path()).unwrap().presets.is_empty());
+    }
+
+    #[test]
+    fn a_dry_run_and_a_refused_render_do_not_record_presets() {
+        let dir = tmp();
+        let c = one("a.txt", "one\n");
+        let opts = |dry_run: bool| Options {
+            dry_run,
+            presets: presets_of(&[("presets/a.pkl", "h1")]),
+            ..Options::default()
+        };
+        run_with(&c, dir.path(), opts(true));
+        assert!(!dir.path().join(".pkl-gen/manifest.json").exists());
+        put(dir.path(), "a.txt", "mine\n");
+        let r = run_with(&c, dir.path(), opts(false));
+        assert!(!refusals(&r).is_empty());
+        assert!(!dir.path().join(".pkl-gen/manifest.json").exists());
+    }
+
+    #[test]
+    fn repair_records_the_presets_too() {
+        let dir = tmp();
+        let c = one("a.txt", "one\n");
+        let opts = |repair: bool| Options {
+            repair,
+            presets: presets_of(&[("presets/a.pkl", "h1")]),
+            ..Options::default()
+        };
+        run_with(&c, dir.path(), opts(false));
+        run_with(&c, dir.path(), opts(true));
+        assert_eq!(
+            read_manifest(dir.path()).unwrap().presets,
+            presets_of(&[("presets/a.pkl", "h1")])
         );
     }
 

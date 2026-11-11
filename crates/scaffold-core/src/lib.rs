@@ -23,6 +23,7 @@ pub mod latest;
 pub mod lockcheck;
 pub mod pins;
 pub mod preflight;
+pub mod presets;
 pub mod render;
 pub mod semver;
 #[cfg(test)]

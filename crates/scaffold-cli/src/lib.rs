@@ -1056,23 +1056,24 @@ mod tests {
     /// A project that applies one Preset (listed, not imported: the runner cares only that it is listed) and has one other file
     /// under presets/ that nothing applies when `with_unused` is set.
     fn preset_project(with_unused: bool) -> tempfile::TempDir {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("the test setup works");
         let package = package();
-        std::fs::create_dir_all(dir.path().join("presets")).unwrap();
+        std::fs::create_dir_all(dir.path().join("presets")).expect("the test setup works");
         std::fs::write(
             dir.path().join("pantheon.pkl"),
             format!(
                 "amends \"{package}/Config.pkl\"\noptions {{ toolchain = \"1.96.1\" }}\npresets {{ \"presets/ci.pkl\" }}\nfiles {{ [\"a.txt\"] = new GenFile {{ content = \"one\\n\" }} }}\n"
             ),
         )
-        .unwrap();
-        std::fs::write(dir.path().join("presets/ci.pkl"), "// a preset\n").unwrap();
+        .expect("the test setup works");
+        std::fs::write(dir.path().join("presets/ci.pkl"), "// a preset\n")
+            .expect("the test setup works");
         if with_unused {
             std::fs::write(
                 dir.path().join("presets/forgotten.pkl"),
                 "// nothing applies me\n",
             )
-            .unwrap();
+            .expect("the test setup works");
         }
         dir
     }
@@ -1100,7 +1101,8 @@ mod tests {
         let project = preset_project(false);
         let (code, _, err) = in_project("render", &[], project.path());
         assert_eq!((code, err.as_str()), (EXIT_OK, ""));
-        let manifest = scaffold_core::manifest::read_manifest(project.path()).unwrap();
+        let manifest =
+            scaffold_core::manifest::read_manifest(project.path()).expect("the test setup works");
         assert_eq!(
             manifest.presets.into_iter().collect::<Vec<_>>(),
             [(
@@ -1113,7 +1115,7 @@ mod tests {
     #[test]
     fn a_listed_preset_that_is_missing_stops_render_and_check_before_anything_is_written() {
         let project = preset_project(false);
-        std::fs::remove_file(project.path().join("presets/ci.pkl")).unwrap();
+        std::fs::remove_file(project.path().join("presets/ci.pkl")).expect("the test setup works");
         for command in ["render", "check"] {
             let (code, out, err) = in_project(command, &[], project.path());
             assert_eq!(
@@ -1161,7 +1163,8 @@ mod tests {
     fn check_warns_about_a_preset_that_changed_since_the_last_render_and_still_passes() {
         let project = preset_project(false);
         in_project("render", &[], project.path());
-        std::fs::write(project.path().join("presets/ci.pkl"), "// edited\n").unwrap();
+        std::fs::write(project.path().join("presets/ci.pkl"), "// edited\n")
+            .expect("the test setup works");
         let (code, _, err) = in_project("check", &[], project.path());
         assert_eq!(code, EXIT_OK);
         assert_eq!(
@@ -1175,13 +1178,15 @@ mod tests {
         let project = preset_project(false);
         let manifest = project.path().join(".pkl-gen/manifest.json");
         in_project("render", &[], project.path());
-        let text = std::fs::read_to_string(&manifest).unwrap();
+        let text = std::fs::read_to_string(&manifest).expect("the test setup works");
         let without = scaffold_core::manifest::parse_manifest(&text).map(|mut m| {
             m.presets.clear();
             scaffold_core::manifest::serialise_manifest(&m)
         });
-        std::fs::write(&manifest, without.unwrap()).unwrap();
-        std::fs::write(project.path().join("presets/ci.pkl"), "// edited\n").unwrap();
+        std::fs::write(&manifest, without.expect("the test setup works"))
+            .expect("the test setup works");
+        std::fs::write(project.path().join("presets/ci.pkl"), "// edited\n")
+            .expect("the test setup works");
         let (code, _, err) = in_project("check", &[], project.path());
         assert_eq!((code, err.as_str()), (EXIT_OK, ""));
     }
@@ -1190,7 +1195,7 @@ mod tests {
     fn check_lists_the_presets_and_still_reports_drift() {
         let project = preset_project(false);
         in_project("render", &[], project.path());
-        std::fs::write(project.path().join("a.txt"), "edited\n").unwrap();
+        std::fs::write(project.path().join("a.txt"), "edited\n").expect("the test setup works");
         let (code, out, err) = in_project("check", &[], project.path());
         assert_eq!(code, EXIT_DRIFT);
         assert_eq!(out, "preset presets/ci.pkl\n");

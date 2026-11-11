@@ -15,7 +15,7 @@ use crate::manifest::{
     sha256,
 };
 use crate::pins::{
-    NewPins, PinError, RUNNER_TOOL, config_after, count_package_imports, read_pins, write_pins,
+    NewPins, PinError, RUNNER_TOOL, count_package_imports, moved_imports, read_pins, write_pins,
 };
 use crate::semver::{compare_semver, parse_semver};
 
@@ -117,68 +117,45 @@ impl Deps for SystemDeps {
     }
 }
 
-/// A file made for the check before the pins move, removed on every way out, so the repository is as it was. It is made with
-/// `create_new`, so a file of the same name that was already there is never overwritten or deleted.
-struct CheckFile(PathBuf);
-
-impl CheckFile {
-    fn create(path: PathBuf, text: &str) -> Result<Self, UpgradeError> {
-        use std::io::Write;
-        let name = path
-            .file_name()
-            .map(|n| n.to_string_lossy().into_owned())
-            .unwrap_or_default();
-        let failed = |e: std::io::Error| UpgradeError(format!("{name} could not be written: {e}"));
-        let mut file = std::fs::OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(&path)
-            .map_err(failed)?;
-        let made = Self(path);
-        file.write_all(text.as_bytes()).map_err(failed)?;
-        Ok(made)
-    }
+/// A Preset whose imports of the package move with the config: where it is, what it will say, and how many imports move.
+struct PresetMove {
+    path: PathBuf,
+    /// The path as the report shows it, relative to the repository.
+    shown: String,
+    text: String,
+    imports: usize,
 }
 
-impl Drop for CheckFile {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_file(&self.0);
-    }
-}
-
-/// Evaluates the config as it will read after the upgrade, from a copy next to the original so its relative imports (the Presets)
-/// resolve, before anything in the repository is written. A Preset that the new package no longer fits fails here, with the
-/// message of its helper, and the repository is untouched.
-fn check_config_evaluates(
+/// The Presets, every `.pkl` file under `presets/` next to the config, that import the package at another version or checksum than
+/// the new one. A Preset left at the old version would make pkl stop with `Module version conflict`.
+fn preset_moves(
     root: &Path,
     config: &str,
-    to: &str,
+    version: &str,
     checksum: &str,
-    deps: &dyn Deps,
-) -> Result<(), UpgradeError> {
-    let text = config_after(
-        root,
-        config,
-        &NewPins {
-            version: to,
-            checksum,
-        },
-    )?;
-    let original = root.join(config);
-    let stem = original
-        .file_stem()
-        .map(|s| s.to_string_lossy().into_owned())
-        .unwrap_or_default();
-    let copy = CheckFile::create(
-        original.with_file_name(format!("{stem}.upgrade-check.pkl")),
-        &text,
-    )?;
-    deps.evaluate(&copy.0).map_err(|message| {
-        UpgradeError(format!(
-            "{config} does not evaluate with {to}, so nothing was changed:\n{}",
-            message.trim_end()
-        ))
-    })
+) -> Result<Vec<PresetMove>, UpgradeError> {
+    let folder = root.join(config);
+    let folder = folder.parent().unwrap_or(root);
+    let mut moves = Vec::new();
+    for relative in crate::presets::files(folder) {
+        let path = folder.join(&relative);
+        let shown = path
+            .strip_prefix(root)
+            .unwrap_or(&path)
+            .display()
+            .to_string();
+        let text = std::fs::read_to_string(&path)
+            .map_err(|e| UpgradeError(format!("{shown} could not be read: {e}")))?;
+        if let Some((text, imports)) = moved_imports(&text, &NewPins { version, checksum })? {
+            moves.push(PresetMove {
+                path,
+                shown,
+                text,
+                imports,
+            });
+        }
+    }
+    Ok(moves)
 }
 
 #[derive(Default)]
@@ -347,14 +324,21 @@ pub fn upgrade(
         1 => ", 1 import of the package".to_owned(),
         n => format!(", {n} imports of the package"),
     };
-    let changes = vec![
+    let moves = preset_moves(root, config, to, &checksum)?;
+    let mut changes = vec![
         format!(
             "{config}: {from} -> {to}, checksum {}...{imports_note}",
             &checksum[..12]
         ),
         format!("mise.toml: {RUNNER_TOOL} {} -> {to}", pins.runner_version),
     ];
-    check_config_evaluates(root, config, to, &checksum, deps)?;
+    for m in &moves {
+        let imports = match m.imports {
+            1 => "1 import".to_owned(),
+            n => format!("{n} imports"),
+        };
+        changes.push(format!("{}: {imports} of the package", m.shown));
+    }
     let report = |render_exit: Option<i32>, dry_run: bool| UpgradeReport {
         from: from.clone(),
         to: to.to_owned(),
@@ -367,13 +351,14 @@ pub fn upgrade(
     }
 
     let lock = acquire_lock(root, &opts.lock)?;
-    let saved = [
+    let mut saved = vec![
         backup(root.join(config)),
         backup(root.join("mise.toml")),
         backup(root.join("mise.lock")),
         backup(root.join(MANIFEST_PATH)),
     ];
-    let outcome = move_pins_and_refresh_mise(root, config, to, &checksum, deps);
+    saved.extend(moves.iter().map(|m| backup(m.path.clone())));
+    let outcome = move_pins_and_refresh_mise(root, config, to, &checksum, &moves, deps);
     if let Err(mut error) = outcome {
         // Whatever went wrong, the files are put back, and a file that cannot be put back is named.
         for failure in restore(&saved) {
@@ -412,11 +397,23 @@ fn move_pins_and_refresh_mise(
     config: &str,
     version: &str,
     checksum: &str,
+    presets: &[PresetMove],
     deps: &dyn Deps,
 ) -> Result<(), UpgradeError> {
     // The package owns mise.toml when it renders it, so the pin edit below must not look like a hand edit to the render that follows.
     let seal = sealed_mise(root)?;
     write_pins(root, config, &NewPins { version, checksum })?;
+    for m in presets {
+        std::fs::write(&m.path, &m.text).map_err(|e| UpgradeError(format!("{}: {e}", m.shown)))?;
+    }
+    // The config and its Presets are evaluated as they now read, before mise does anything. A Preset that the new package no longer
+    // fits (a workflow or job it names is gone) fails here with the message of its helper, and the caller puts every file back.
+    deps.evaluate(&root.join(config)).map_err(|message| {
+        UpgradeError(format!(
+            "{config} does not evaluate with {version}, so nothing was changed:\n{}",
+            message.trim_end()
+        ))
+    })?;
     for step in ["install", "lock"] {
         match deps.exec(&["mise", step], root) {
             Ok(0) => {}
@@ -506,6 +503,9 @@ mod tests {
         evaluate_error: Option<String>,
         /// The file each evaluation was asked about, with its text at that moment.
         evaluated: RefCell<Vec<(std::path::PathBuf, String)>>,
+        /// What a test wants to see of the repository at the moment of each evaluation.
+        look: Option<Box<dyn Fn() -> String>>,
+        looked: RefCell<Vec<String>>,
     }
 
     impl Deps for Fake {
@@ -555,6 +555,9 @@ mod tests {
             self.evaluated
                 .borrow_mut()
                 .push((config.to_owned(), std::fs::read_to_string(config).unwrap()));
+            if let Some(look) = &self.look {
+                self.looked.borrow_mut().push(look());
+            }
             self.evaluate_error.clone().map_or(Ok(()), Err)
         }
     }
@@ -640,7 +643,7 @@ mod tests {
             [
                 format!("fetch {BASE}/v0.2.0/checksums.txt"),
                 "verify pantheon-org/pantheon-scaffold".to_owned(),
-                "evaluate pantheon.upgrade-check.pkl".to_owned(),
+                "evaluate pantheon.pkl".to_owned(),
                 "exec mise install".to_owned(),
                 "exec mise lock".to_owned(),
                 format!("exec {}", render_line(dir.path(), "pantheon.pkl")),
@@ -652,28 +655,67 @@ mod tests {
         );
     }
 
-    // The config is evaluated as it will read after the upgrade, before anything is written, so a Preset that no longer fits is
-    // found while the repository is still untouched.
+    fn preset_text(v: &str, sum: &str) -> String {
+        format!(
+            "import \"package://github.com/pantheon-org/pantheon-scaffold/releases/download/v{v}/pantheon-scaffold@{v}::sha256:{sum}#/Config.pkl\"\n\nfunction apply(w) = w\n"
+        )
+    }
+
+    /// A repository whose Presets import the package at the old version.
+    fn repo_with_presets(v: &str) -> tempfile::TempDir {
+        let dir = repo(v);
+        put(dir.path(), "presets/ci.pkl", &preset_text(v, &h('a')));
+        put(
+            dir.path(),
+            "presets/deep/more.pkl",
+            &preset_text(v, &h('a')),
+        );
+        dir
+    }
+
+    // The config and its Presets are evaluated as they read after the pins move, before mise runs, so a Preset that no longer fits is
+    // found while every file can still be put back.
     #[test]
-    fn the_config_is_evaluated_with_the_new_package_next_to_the_original_and_the_check_file_is_removed()
-     {
+    fn the_config_is_evaluated_as_it_now_reads_after_the_pins_are_written() {
         let dir = repo("0.1.0");
         let f = fake();
         run(dir.path(), &f, "0.2.0").unwrap();
         let evaluated = f.evaluated.borrow();
         assert_eq!(evaluated.len(), 1);
-        assert_eq!(
-            evaluated[0].0,
-            dir.path().join("pantheon.upgrade-check.pkl")
-        );
+        assert_eq!(evaluated[0].0, dir.path().join("pantheon.pkl"));
         assert_eq!(evaluated[0].1, amends("0.2.0", &h('c')));
         assert!(!has(dir.path(), "pantheon.upgrade-check.pkl"));
     }
 
     #[test]
-    fn a_config_that_does_not_evaluate_stops_the_upgrade_before_any_file_is_touched() {
-        let dir = repo("0.1.0");
-        let before = snapshot(dir.path());
+    fn the_imports_of_the_package_in_the_presets_have_moved_by_the_time_the_config_is_evaluated() {
+        let dir = repo_with_presets("0.1.0");
+        let root = dir.path().to_owned();
+        let f = Fake {
+            look: Some(Box::new(move || {
+                format!(
+                    "{}|{}",
+                    get(&root, "presets/ci.pkl"),
+                    get(&root, "presets/deep/more.pkl")
+                )
+            })),
+            ..fake()
+        };
+        run(dir.path(), &f, "0.2.0").unwrap();
+        let moved = preset_text("0.2.0", &h('c'));
+        assert_eq!(*f.looked.borrow(), [format!("{moved}|{moved}")]);
+        assert_eq!(get(dir.path(), "presets/ci.pkl"), moved);
+        assert_eq!(get(dir.path(), "presets/deep/more.pkl"), moved);
+    }
+
+    #[test]
+    fn a_config_that_does_not_evaluate_puts_the_config_and_every_preset_back_before_mise_runs() {
+        let dir = repo_with_presets("0.1.0");
+        let before = (
+            snapshot(dir.path()),
+            get(dir.path(), "presets/ci.pkl"),
+            get(dir.path(), "presets/deep/more.pkl"),
+        );
         let f = Fake {
             evaluate_error: Some(
                 "preset: job \"build\" does not exist in workflow \"Rust CI\". Jobs: build-test"
@@ -686,38 +728,101 @@ mod tests {
             error,
             "pantheon.pkl does not evaluate with 0.2.0, so nothing was changed:\npreset: job \"build\" does not exist in workflow \"Rust CI\". Jobs: build-test"
         );
-        assert_eq!(snapshot(dir.path()), before);
+        assert_eq!(
+            (
+                snapshot(dir.path()),
+                get(dir.path(), "presets/ci.pkl"),
+                get(dir.path(), "presets/deep/more.pkl")
+            ),
+            before
+        );
         assert!(
             !calls(&f).iter().any(|c| c.starts_with("exec ")),
             "{:?}",
             calls(&f)
         );
-        assert!(!has(dir.path(), "pantheon.upgrade-check.pkl"));
         assert!(!has(dir.path(), ".pkl-gen/lock"));
     }
 
     #[test]
-    fn a_dry_run_evaluates_the_config_too_and_still_changes_nothing() {
+    fn a_failure_of_mise_puts_the_presets_back_too() {
+        let dir = repo_with_presets("0.1.0");
+        let before = get(dir.path(), "presets/ci.pkl");
+        assert!(run(dir.path(), &failing("mise install"), "0.2.0").is_err());
+        assert_eq!(get(dir.path(), "presets/ci.pkl"), before);
+        assert_eq!(get(dir.path(), "presets/deep/more.pkl"), before);
+    }
+
+    #[test]
+    fn a_preset_that_imports_nothing_from_the_package_or_is_already_there_is_left_alone_and_not_reported()
+     {
         let dir = repo("0.1.0");
-        let before = snapshot(dir.path());
+        put(dir.path(), "presets/plain.pkl", "function apply(w) = w\n");
+        put(
+            dir.path(),
+            "presets/current.pkl",
+            &preset_text("0.2.0", &h('c')),
+        );
+        put(dir.path(), "presets/notes.md", "# notes\n");
+        let r = run(dir.path(), &fake(), "0.2.0").unwrap();
+        assert_eq!(r.changes.len(), 2, "{:?}", r.changes);
+        assert_eq!(
+            get(dir.path(), "presets/plain.pkl"),
+            "function apply(w) = w\n"
+        );
+        assert_eq!(
+            get(dir.path(), "presets/current.pkl"),
+            preset_text("0.2.0", &h('c'))
+        );
+    }
+
+    #[test]
+    fn the_report_lists_each_preset_that_moves_with_its_number_of_imports_after_the_config_and_mise()
+     {
+        let dir = repo("0.1.0");
+        put(
+            dir.path(),
+            "presets/b.pkl",
+            &format!(
+                "{}{}",
+                preset_text("0.1.0", &h('a')),
+                preset_text("0.1.0", &h('a'))
+            ),
+        );
+        put(dir.path(), "presets/a.pkl", &preset_text("0.1.0", &h('a')));
+        let r = run(dir.path(), &fake(), "0.2.0").unwrap();
+        assert_eq!(
+            r.changes[2..],
+            [
+                "presets/a.pkl: 1 import of the package",
+                "presets/b.pkl: 2 imports of the package"
+            ]
+        );
+    }
+
+    #[test]
+    fn a_dry_run_lists_the_presets_it_would_move_and_writes_nothing_and_evaluates_nothing() {
+        let dir = repo_with_presets("0.1.0");
+        let before = (snapshot(dir.path()), get(dir.path(), "presets/ci.pkl"));
         let f = fake();
         let dry = UpgradeOptions {
             dry_run: true,
             ..opts()
         };
-        run_with(dir.path(), &f, "0.2.0", dry).unwrap();
-        assert_eq!(f.evaluated.borrow().len(), 1);
-        assert_eq!(snapshot(dir.path()), before);
-        assert!(!has(dir.path(), "pantheon.upgrade-check.pkl"));
-        let broken = Fake {
-            evaluate_error: Some("boom".to_owned()),
-            ..fake()
-        };
-        let dry = UpgradeOptions {
-            dry_run: true,
-            ..opts()
-        };
-        assert!(run_with(dir.path(), &broken, "0.2.0", dry).is_err());
+        let r = run_with(dir.path(), &f, "0.2.0", dry).unwrap();
+        assert!(
+            r.changes
+                .contains(&"presets/ci.pkl: 1 import of the package".to_owned())
+        );
+        assert!(
+            r.changes
+                .contains(&"presets/deep/more.pkl: 1 import of the package".to_owned())
+        );
+        assert!(f.evaluated.borrow().is_empty());
+        assert_eq!(
+            (snapshot(dir.path()), get(dir.path(), "presets/ci.pkl")),
+            before
+        );
     }
 
     #[test]
@@ -732,9 +837,19 @@ mod tests {
     }
 
     #[test]
-    fn a_config_in_a_folder_is_evaluated_in_that_folder_so_its_relative_imports_resolve() {
+    fn a_config_in_a_folder_moves_the_presets_next_to_it_and_is_evaluated_where_it_is() {
         let dir = tempfile::tempdir().unwrap();
         put(dir.path(), "conf/pantheon.pkl", &amends("0.1.0", &h('a')));
+        put(
+            dir.path(),
+            "conf/presets/ci.pkl",
+            &preset_text("0.1.0", &h('a')),
+        );
+        put(
+            dir.path(),
+            "presets/elsewhere.pkl",
+            &preset_text("0.1.0", &h('a')),
+        );
         put(dir.path(), "mise.toml", &mise("0.1.0"));
         put(dir.path(), "mise.lock", "# lock\n");
         let f = fake();
@@ -742,36 +857,40 @@ mod tests {
             config: Some("conf/pantheon.pkl".to_owned()),
             ..opts()
         };
-        run_with(dir.path(), &f, "0.2.0", o).unwrap();
+        let r = run_with(dir.path(), &f, "0.2.0", o).unwrap();
         assert_eq!(
             f.evaluated.borrow()[0].0,
-            dir.path().join("conf/pantheon.upgrade-check.pkl")
+            dir.path().join("conf/pantheon.pkl")
         );
-        assert!(!has(dir.path(), "conf/pantheon.upgrade-check.pkl"));
+        assert_eq!(
+            get(dir.path(), "conf/presets/ci.pkl"),
+            preset_text("0.2.0", &h('c'))
+        );
+        assert_eq!(
+            get(dir.path(), "presets/elsewhere.pkl"),
+            preset_text("0.1.0", &h('a')),
+            "a folder of another config is not this config's"
+        );
+        assert!(
+            r.changes
+                .contains(&"conf/presets/ci.pkl: 1 import of the package".to_owned())
+        );
     }
 
     #[test]
-    fn the_check_file_is_removed_even_when_the_evaluation_fails() {
-        let dir = repo("0.1.0");
-        let f = Fake {
-            evaluate_error: Some("boom".to_owned()),
-            ..fake()
-        };
-        assert!(run(dir.path(), &f, "0.2.0").is_err());
-        assert!(!has(dir.path(), "pantheon.upgrade-check.pkl"));
-    }
-
-    #[test]
-    fn a_check_file_that_cannot_be_written_is_an_error_and_nothing_is_changed() {
+    fn a_preset_that_cannot_be_read_stops_the_upgrade_before_anything_is_written() {
         let dir = repo("0.1.0");
         let before = snapshot(dir.path());
-        std::fs::create_dir(dir.path().join("pantheon.upgrade-check.pkl")).unwrap();
-        let error = run(dir.path(), &fake(), "0.2.0").unwrap_err().0;
+        std::fs::create_dir_all(dir.path().join("presets")).unwrap();
+        std::fs::write(dir.path().join("presets/bad.pkl"), [0xff, 0xfe, 0x00]).unwrap();
+        let f = fake();
+        let error = run(dir.path(), &f, "0.2.0").unwrap_err().0;
         assert!(
-            error.starts_with("pantheon.upgrade-check.pkl could not be written: "),
+            error.starts_with("presets/bad.pkl could not be read: "),
             "{error}"
         );
         assert_eq!(snapshot(dir.path()), before);
+        assert!(f.evaluated.borrow().is_empty());
     }
 
     #[test]
@@ -1089,8 +1208,7 @@ mod tests {
     }
 
     #[test]
-    fn dry_run_downloads_verifies_and_evaluates_lists_what_would_change_and_writes_and_runs_nothing()
-     {
+    fn dry_run_downloads_and_verifies_lists_what_would_change_and_writes_and_runs_nothing() {
         let dir = repo("0.1.0");
         let before = snapshot(dir.path());
         let f = fake();
@@ -1109,7 +1227,7 @@ mod tests {
             .iter()
             .map(|c| c.split(' ').next().unwrap().to_owned())
             .collect();
-        assert_eq!(kinds, ["fetch", "verify", "evaluate"]);
+        assert_eq!(kinds, ["fetch", "verify"]);
         assert!(r.dry_run);
         assert!(r.changes.join("\n").contains("0.1.0 -> 0.2.0"));
         assert_eq!(r.render_exit, None);

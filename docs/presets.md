@@ -122,7 +122,7 @@ files.toMap().filter((path, _) -> path != "deny.toml").toMapping()
 |---|---|
 | `render` | Records `presets` in `.pkl-gen/manifest.json` (path and hash of each listed Preset). Never writes or deletes a Preset. A listed file that is missing is an error, before anything is written. |
 | `check` | Prints `preset <path>` for each Preset in order. Warns, without changing the exit code, about a file under `presets/` that your config does not list (`presets/x.pkl is not applied by pantheon.pkl`) and about a Preset that changed since the last render (`presets/x.pkl changed since the last render`). Drift in a rendered file is still exit 4. |
-| `upgrade` | Before it writes anything, evaluates your config as it would read after the upgrade. If a Preset no longer fits (a workflow or job it names was renamed or removed), it stops with exit 1 and your files are untouched. See the limitation below. |
+| `upgrade` | Moves the package imports in `presets/` with the config, then evaluates the config as it now reads, before `mise` runs. If a Preset no longer fits (a workflow or job it names was renamed or removed), it stops with exit 1 and puts every file back. `--dry-run` lists the Presets it would move and does not evaluate. |
 | `detach` | Leaves `presets/` alone, like any file that is yours. |
 
 Editing a Preset is how you change what is rendered: edit it and run `render`. If you edit a Preset and do not render, `check` reports the changed hash, or drift in the files whose content would change.
@@ -143,11 +143,11 @@ Editing a Preset is how you change what is rendered: edit it and run `render`. I
 - **Presets are inputs, not outputs.** They are yours. Only owned files that the runner writes are protected from hand edits.
 - **The escape hatch still counts.** A Preset that uses `raw` counts in the quality gate like any other use.
 - **The TypeScript runner does not know Presets.** It is removed in task 3.4 of the plan.
-- **Known limitation (task 4.5 of the plan, not built).** `upgrade` moves the package version in `pantheon.pkl` and in every import of the package there, but not in the files under `presets/`. A Preset that imports the package at an older version than your config makes pkl stop with `Module version conflict: Expected value of type Config#Workflow defined in module ...`. The upgrade then refuses with nothing changed, so it is safe, but after each upgrade you must change the version and checksum in the package imports of every Preset by hand, and run `upgrade` again. A Preset that imports nothing from the package cannot conflict, but then it has no types and no helpers. Task 4.5 makes `upgrade` move those imports itself.
+- **`upgrade` moves the package imports in your Presets.** Every `.pkl` file under `presets/` next to your config that imports the package gets the new version and checksum, as `pantheon.pkl` does, because a Preset left at the old version makes pkl stop with `Module version conflict`. Files outside `presets/` are not moved, so a helper module that imports the package from elsewhere must be updated by hand.
 
 ## This repository's own Presets
 
-`pantheon-scaffold` is rendered by its own scaffold: `pantheon.pkl` at the root, with four Presets in `presets/`. They import the package in this checkout by a relative path, so they do not show the limitation above.
+`pantheon-scaffold` is rendered by its own scaffold: `pantheon.pkl` at the root, with four Presets in `presets/`. They import the package in this checkout by a relative path, so `upgrade` has nothing to move in them.
 
 | Preset | What it does |
 |---|---|

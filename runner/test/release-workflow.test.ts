@@ -68,7 +68,70 @@ test("the attestation is made only on a real release, and covers the assets", ()
 
 test("the tag is checked against PklProject before anything is built", () => {
   expect(wf.jobs.prepare.steps.some((s) => s.run?.includes("release-assets.ts check-tag"))).toBe(true);
-  for (const name of ["build", "smoke", "release"]) expect([wf.jobs[name].needs].flat()).toContain(name === "build" ? "prepare" : name === "smoke" ? "build" : "smoke");
+  const after: Record<string, string> = { package: "prepare", build: "prepare", smoke: "build", release: "smoke" };
+  for (const [name, needs] of Object.entries(after)) expect([wf.jobs[name].needs].flat(), name).toContain(needs);
+  expect([wf.jobs.release.needs].flat()).toContain("package");
+});
+
+// Task 2.5: the runner is the Rust one, built natively on each target by the same script ci.yml runs.
+const targets = [
+  { os: "ubuntu-latest", target: "linux-x64" },
+  { os: "ubuntu-24.04-arm", target: "linux-arm64" },
+  { os: "macos-latest", target: "darwin-arm64" },
+];
+
+test("the runner is built on a machine of each target, in a matrix, and a failure on one does not hide the others", () => {
+  const b = wf.jobs.build as Job & { strategy: { matrix: { include: unknown[] }; "fail-fast"?: boolean } };
+  expect(b.strategy.matrix.include).toEqual(targets);
+  expect(b.strategy["fail-fast"]).toBe(false);
+  expect((wf.jobs.smoke as Job & { strategy: { matrix: { include: unknown[] } } }).strategy.matrix.include).toEqual(targets);
+});
+
+test("each build installs the pinned Rust toolchain, builds with the shared script, and uploads its own binary", () => {
+  const steps = wf.jobs.build.steps;
+  const toolchain = steps.find((s) => s.run?.includes("rustup toolchain install"));
+  // Every version in the step, the one installed and the one made the default, is the one rust-toolchain.toml pins.
+  const channel = /channel\s*=\s*"([^"]+)"/.exec(readFileSync(join(import.meta.dir, "../../rust-toolchain.toml"), "utf8"))?.[1];
+  expect(channel).toMatch(/^\d+\.\d+\.\d+$/);
+  expect(toolchain?.run?.match(/\d+\.\d+\.\d+/g)).toEqual([channel, channel]);
+  const build = steps.find((s) => s.run?.includes("build-rust.ts"));
+  expect(build?.run).toContain('--target "${{ matrix.target }}"');
+  expect(build?.run).toContain('--version "$VERSION"');
+  const upload = steps.find((s) => s.uses?.startsWith("actions/upload-artifact@"));
+  expect(upload?.with?.name).toBe("binary-${{ matrix.target }}");
+  expect(upload?.with?.path).toBe("dist/pantheon-scaffold-${{ matrix.target }}");
+  expect(upload?.with?.["if-no-files-found"]).toBe("error");
+});
+
+test("the static Linux builds get their C compiler on Linux only, and nothing cross-compiles", () => {
+  const musl = wf.jobs.build.steps.find((s) => s.run?.includes("musl-tools"));
+  expect(musl?.if).toBe("runner.os == 'Linux'");
+  expect(text).not.toContain("bun build --compile");
+  expect(text).not.toContain("runner/scripts/build.ts");
+});
+
+test("the package is built on its own and uploaded as package-files", () => {
+  const steps = wf.jobs.package.steps;
+  expect(steps.some((s) => s.run?.includes("pkl project package"))).toBe(true);
+  expect(steps.find((s) => s.uses?.startsWith("actions/upload-artifact@"))?.with?.name).toBe("package-files");
+});
+
+test("smoke tests the binary built for its own target, and the release gets the package and all three binaries into one folder", () => {
+  const smoke = wf.jobs.smoke.steps.find((s) => s.uses?.startsWith("actions/download-artifact@"));
+  expect(smoke?.with?.name).toBe("binary-${{ matrix.target }}");
+  const downloads = wf.jobs.release.steps.filter((s) => s.uses?.startsWith("actions/download-artifact@"));
+  expect(downloads.map((s) => s.with)).toEqual([
+    { name: "package-files", path: "dist/" },
+    { pattern: "binary-*", "merge-multiple": true, path: "dist/" },
+  ]);
+  const checksums = wf.jobs.release.steps.findIndex((s) => s.run?.includes("release-assets.ts checksums"));
+  expect(checksums).toBeGreaterThan(wf.jobs.release.steps.indexOf(downloads[1]));
+});
+
+test("the release workflow and the pull request checks build the binary with the same script", () => {
+  const ci = readFileSync(join(import.meta.dir, "../../.github/workflows/ci.yml"), "utf8");
+  expect(ci).toContain("runner/scripts/build-rust.ts");
+  expect(ci).toContain("runner/scripts/smoke.ts");
 });
 
 test("the release is verified from the outside after it is published, on all three platforms", () => {

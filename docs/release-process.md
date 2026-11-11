@@ -5,7 +5,7 @@ Added in phase 2b, wave D. A release publishes the pkl package and the runner bi
 ## Cutting a release
 
 1. In a normal pull request, set `version` in `pkl/PklProject` to the version (it already holds the next unreleased version, see the rule below), and raise `requiresRunner` in `pkl/Config.pkl` only if the package needs a newer runner than the last release. A pre-release ranks below its release, so never require a runner version a pre-release of the same version cannot meet.
-2. Merge it, then run the release workflow by hand once (Actions, release, Run workflow, `dry_run` left on). It tests, builds, smoke tests on three platforms and assembles `checksums.txt`, and attests and publishes nothing. The assembled files are kept for 7 days as the `release-assets` artifact.
+2. Merge it, then run the release workflow by hand once (Actions, release, Run workflow, `dry_run` left on). It tests the package, builds the runner on each of the three platforms, smoke tests each binary on its own platform and assembles `checksums.txt`, and attests and publishes nothing. The assembled files are kept for 7 days as the `release-assets` artifact.
 3. Push the tag: `git tag v<version> && git push origin v<version>` from the merged commit. Tags `v[0-9]*` start the real release. The tag ruleset forbids moving or deleting a pushed tag.
 
 **After a release, the first pull request that changes anything under `pkl/` must bump `version` in `pkl/PklProject`.** `pkl project package` fetches the published package with the same version and refuses to build when the contents differ ("was already published with different contents ... bump the packages version"). The package build in CI and several runner tests fail until it is bumped. The version in `PklProject` is therefore always the next unreleased one, and the next tag is that version.
@@ -19,9 +19,10 @@ A version is never re-published. If a release is bad, cut the next patch version
 | Job | What it does | Permissions |
 |---|---|---|
 | prepare | The tag must be `v<version>` and match `pkl/PklProject`. A release for that tag must not exist yet. | read |
-| build | Runner tests, the package build, the three binaries. | read |
-| smoke | The 16 check smoke suite on linux-x64, linux-arm64 and darwin-arm64. | read |
-| release | Cross-checks the package files, writes `checksums.txt`, attests every asset, creates the pre-release. Attestation and publication run on a tag push only. | contents, id-token and attestations: write |
+| package | The runner tests (`bun test`) and the package build (`pkl project package`). Uploads `package-files`. | read |
+| build | One job per target, on a machine of that target (`ubuntu-latest`, `ubuntu-24.04-arm`, `macos-latest`): installs the pinned Rust toolchain and, on Linux, `musl-tools`, builds the Rust runner with `runner/scripts/build-rust.ts` (static musl on Linux) and uploads it as `binary-<target>`. | read |
+| smoke | The 16 check smoke suite on linux-x64, linux-arm64 and darwin-arm64, each on the binary built for that target. | read |
+| release | Downloads `package-files` and the three binaries into one folder, cross-checks the package files, writes `checksums.txt`, attests every asset, creates the pre-release. Attestation and publication run on a tag push only. | contents, id-token and attestations: write |
 | verify-release | From the outside, on all three platforms: installs the runner through mise with `mise lock` and `mise install --locked` (checksums and provenance enforced), runs `gh attestation verify` on the downloaded `checksums.txt`, limits the lock to the supported platforms (`lockfile_platforms`) and checks that it names only the three runner binaries, renders and checks through the real package URI with the published checksum, and runs `upgrade --dry-run` against the real release. Phase 5: it also renders the whole standard set (`Builtins.standardWorkflows` and `standardFiles`, imported from the same package URI) into an empty folder, runs `check`, and renders again expecting "written 0 file(s)" | read |
 
 `checksums.txt` lists the three binaries, the package metadata file (its checksum is the one pkl checks with `::sha256`) and the zip. The attestation covers the binaries, the package files and `checksums.txt`.
@@ -88,7 +89,7 @@ Also settle, in the same change, the other places where the maintainer is the on
 ## Accepted risks and open items
 
 - **No Security review.** The owner recorded P.3 as an accepted risk on 07-11-2026 (decision 78). Security has not reviewed this pipeline or the pkl flags, and no Security reviewer is named. This is a recorded risk, not an approval.
-- **Cross-compiling downloads the bun runtime** for each target at build time, and the pipeline downloads tools through mise. Both are supply-chain inputs for any later Security review.
+- **The Rust build downloads crates and a C compiler.** `cargo build --locked` takes the versions in `Cargo.lock`, which `cargo-deny` checks for advisories, licences and sources in CI. The Linux runners install `musl-tools` from the Ubuntu archive (for the C code of `ring`), and the pipeline downloads tools through mise. All of these are supply-chain inputs for any later Security review.
 - **No second reviewer, and no approval step.** The repository has one contributor. The owner recorded on 09-11-2026 that no second person approves the promotion (decision 90) and that the environment `promote` has no protection rules (decision 91). The steps to add them are under "Before onboarding a contributor" and are due before a second contributor can dispatch a workflow.
 - **The tag ruleset has no creation rule**, so anyone with write access can push a `v*` tag. Today that is the maintainer only.
 

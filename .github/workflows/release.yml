@@ -273,6 +273,7 @@ jobs:
           cache: false
       - name: Install the runner as a consumer would, with checksums and provenance enforced
         run: |
+          # inline-ok: the rehearsal of a consumer's install, run as one shell session in one directory and kept next to the checks it makes
           mkdir -p "$RUNNER_TEMP/consumer" && cd "$RUNNER_TEMP/consumer"
           cat > mise.toml <<TOML
           [settings]

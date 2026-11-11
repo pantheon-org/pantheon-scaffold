@@ -16,6 +16,7 @@ jobs:
     timeout-minutes: 10
     env:
       GITHUB_TOKEN: ${{ github.token }}
+      MISE_DISABLE_TOOLS: rust
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
@@ -33,5 +34,9 @@ jobs:
         path: .pkl-gen/cache
         key: pantheon-scaffold-${{ hashFiles('pantheon.pkl') }}
         restore-keys: pantheon-scaffold-
+    - name: Install the Rust toolchain
+      run: |-
+        rustup toolchain install 1.96.1 --profile minimal
+        rustup default 1.96.1
     - name: Check that the scaffold files match the render
-      run: mise x -- pantheon-scaffold check pantheon.pkl --attempts 3
+      run: mise x -- cargo run -q -p scaffold-cli --locked -- check pantheon.pkl --allow-local-package pkl

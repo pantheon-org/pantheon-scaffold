@@ -38,3 +38,33 @@ function amendFile(
     throw("preset: file \"\(path)\" is not rendered by the builtins of this package version. Files: \(base.keys.toList().sort().join(", "))")
   else
     (base) { [path] = change.apply(base[path]) }
+
+local function stepNames(j: Config.Job): List<String> = j.steps.toList().map((s) -> s.name).filterNonNull()
+
+local function noSuchStep(j: Config.Job, name: String): nothing =
+  throw("preset: step \"\(name)\" does not exist in job \"\(j.name ?? "")\". Steps: \(stepNames(j).sort().join(", "))")
+
+/// Applies `change` to the step called `name` in the job `j` and returns the job. A step is found by its `name`; a step without one cannot
+/// be changed. Fails, naming the steps there are, when the job has no step of that name.
+function amendStep(
+  j: Config.Job,
+  name: String,
+  change: (Config.Step) -> Config.Step
+): Config.Job =
+  if (!stepNames(j).contains(name))
+    noSuchStep(j, name)
+  else
+    (j) { steps = j.steps.toList().map((s) -> if (s.name == name) change.apply(s) else s).toListing() }
+
+/// Puts `added` in the job `j` just before the step called `name`. Fails, naming the steps there are, when the job has no step of that name.
+function insertStepsBefore(
+  j: Config.Job,
+  name: String,
+  added: List<Config.Step>
+): Config.Job =
+  if (!stepNames(j).contains(name))
+    noSuchStep(j, name)
+  else
+    let (all = j.steps.toList())
+    let (index = all.findIndex((s) -> s.name == name))
+      (j) { steps = (all.take(index) + added + all.drop(index)).toListing() }

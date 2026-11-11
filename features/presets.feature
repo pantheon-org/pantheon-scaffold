@@ -100,6 +100,24 @@ Feature: Presets
     And the error contains 'preset: file ".gitignorr" is not rendered by the builtins of this package version. Files: '
     And the error contains ".gitignore"
 
+  Scenario: the step helpers add a step before a named step and change a named step
+    Given a new empty repository
+    And the project "preset-steps"
+    When I run "render <repo>/pantheon.pkl --root <repo> --allow-local-package <package>"
+    Then the exit code is 0
+    And the file ".github/workflows/rust-ci.yml" contains "name: Set up pkl"
+    And the file ".github/workflows/rust-ci.yml" contains "run: echo replaced"
+    And the file ".github/workflows/rust-ci.yml" does not contain "cargo test --workspace"
+    And the file ".github/workflows/rust-ci.yml" contains "cargo clippy"
+
+  Scenario: a Preset that names a step the job does not have fails and says which steps exist
+    Given a new empty repository
+    And the project "preset-missing-step"
+    When I run "render <repo>/pantheon.pkl --root <repo> --allow-local-package <package>"
+    Then the exit code is 1
+    And the error contains 'preset: step "Tset" does not exist in job "Build, test, lint". Steps: '
+    And the error contains "Test"
+
   @pending-presets-runner
   Scenario: the manifest records every Preset as an input
     Given a new empty repository

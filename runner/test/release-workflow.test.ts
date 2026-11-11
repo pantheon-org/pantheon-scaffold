@@ -103,11 +103,42 @@ test("each build installs the pinned Rust toolchain, builds with the shared scri
   expect(upload?.with?.["if-no-files-found"]).toBe("error");
 });
 
-test("the static Linux builds get their C compiler on Linux only, and nothing cross-compiles", () => {
-  const musl = wf.jobs.build.steps.find((s) => s.run?.includes("musl-tools"));
-  expect(musl?.if).toBe("runner.os == 'Linux'");
+test("nothing cross-compiles, and the TypeScript build script is gone from the release", () => {
   expect(text).not.toContain("bun build --compile");
   expect(text).not.toContain("runner/scripts/build.ts");
+});
+
+// The static Linux builds compile ring's C code with zig cc. zig comes from mise, pinned and checksummed, in its own environment so that
+// only the jobs that build a release binary download it. Nothing reads the Ubuntu archive: when its DNS failed on the runners, every
+// release build failed with it.
+const ci = Bun.YAML.parse(readFileSync(join(import.meta.dir, "../../.github/workflows/ci.yml"), "utf8")) as { jobs: Record<string, Job & { env?: Record<string, string> }> };
+const buildJobs: [string, Job & { env?: Record<string, string> }][] = [["release.yml build", wf.jobs.build as never], ["ci.yml rust-binary", ci.jobs["rust-binary"]!]];
+
+for (const [label, job] of buildJobs) {
+  test(`${label} installs zig through mise's rust-build environment and reads no package archive`, () => {
+    expect(job.env?.MISE_ENV).toBe("rust-build");
+    expect(job.steps.find((s) => s.run === "mise install --locked")).toBeDefined();
+    const joined = job.steps.map((s) => s.run ?? "").join("\n");
+    expect(joined).not.toMatch(/apt-get|musl-tools|musl-gcc/);
+  });
+}
+
+test("no other job gets zig, so no other job depends on its download host", () => {
+  for (const [name, job] of [...Object.entries(wf.jobs), ...Object.entries(ci.jobs)]) {
+    if (name === "build" || name === "rust-binary") continue;
+    expect((job as { env?: Record<string, string> }).env?.MISE_ENV, name).toBeUndefined();
+  }
+});
+
+test("the rust-build environment pins zig to one exact version and locks it for the three platforms with a checksum each", () => {
+  const root = join(import.meta.dir, "../..");
+  const toml = Bun.TOML.parse(readFileSync(join(root, "mise.rust-build.toml"), "utf8")) as { tools: Record<string, string> };
+  expect(Object.keys(toml.tools)).toEqual(["zig"]);
+  expect(toml.tools.zig).toMatch(/^\d+\.\d+\.\d+$/);
+  const lock = Bun.TOML.parse(readFileSync(join(root, "mise.rust-build.lock"), "utf8")) as { tools: { zig: { version: string; platforms?: unknown }[] } & Record<string, any> };
+  const zig = (lock.tools.zig as unknown as { version: string; [k: string]: any }[])[0]!;
+  expect(zig.version).toBe(toml.tools.zig);
+  for (const platform of ["linux-x64", "linux-arm64", "macos-arm64"]) expect(zig[`platforms.${platform}`]?.checksum, platform).toMatch(/^sha256:[0-9a-f]{64}$/);
 });
 
 test("the package is built on its own and uploaded as package-files", () => {

@@ -258,7 +258,7 @@ jobs:
       - name: Compare what the Rust and TypeScript runners write for every Builtin
         run: mise x -- bun runner/scripts/builtin-differential.ts target/debug/pantheon-scaffold
 
-  # The release binary, built the way a release builds it (runner/scripts/build-rust.ts: static musl on Linux, native on macOS),
+  # The release binary, built the way a release builds it (runner/scripts/build-rust.ts: static musl on Linux with zig cc, native on macOS),
   # with the smoke suite run against it, on every pull request. The release workflow runs the same two scripts on a tag.
   rust-binary:
     name: Rust binary ${{ matrix.target }}
@@ -276,6 +276,8 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ github.token }}
       BUILD_VERSION: 0.0.1-ci.${{ github.run_number }}
+      # Adds zig (mise.rust-build.toml), which compiles the C code of ring for the static Linux builds.
+      MISE_ENV: rust-build
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -292,12 +294,6 @@ jobs:
         run: |
           rustup toolchain install 1.96.1 --profile minimal
           rustup default 1.96.1
-      # musl-gcc compiles the C code of ring against musl. It comes from the Ubuntu archive.
-      - name: Install the musl C compiler
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq musl-tools
       - name: Build the release binary
         run: mise x -- bun runner/scripts/build-rust.ts --target "${{ matrix.target }}" --version "$BUILD_VERSION" --out dist
       - name: Run the smoke suite against it

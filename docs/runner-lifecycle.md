@@ -29,7 +29,7 @@ A JSON document of `{ "versions": [{ "version": "x.y.z", "reason": "..." }] }` k
 
 1. It fetches the list (5 second limit) and writes it to `.pkl-gen/cache/known-bad.json`.
 2. If the fetch fails or the text is not a valid list, it uses the cached copy and prints a note.
-3. With no cache it uses the snapshot bundled in the runner (`runner/src/known-bad.bundled.json`, a snapshot kept in step with `known-bad.json` by hand, so it can be behind the list on `main`) and prints a note.
+3. With no cache it uses the snapshot bundled in the runner (the repository's `known-bad.json`, compiled in when the binary is built, so it can be behind the list on `main`) and prints a note.
 
 A failed fetch never stops a run. The list can only produce a warning, or a refusal with `--strict`. `PANTHEON_SCAFFOLD_KNOWN_BAD_URL` overrides the address, for tests and mirrors. The package repository publishes `known-bad.json` on `main`. If the fetch fails the runner falls back with a note.
 

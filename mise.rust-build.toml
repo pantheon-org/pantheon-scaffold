@@ -1,0 +1,3 @@
+# Tools only the release-binary build needs. Selected with MISE_ENV=rust-build, so the other jobs never download them.
+[tools]
+zig = "0.16.0"

@@ -1,4 +1,7 @@
 import { expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { TARGETS, binaryName } from "../src/release";
 import { TRIPLES, hostTarget, isStatic, parseArgs, plan } from "../scripts/build-rust";
 
@@ -20,10 +23,35 @@ test("the asset names are the ones the release has always used, so mise picks th
   for (const t of TARGETS) expect(plan(t, "0.2.0", "/o", "/r").asset).toBe(`/o/pantheon-scaffold-${t}`);
 });
 
-test("a Linux build compiles its C code with musl-gcc, a macOS build is left alone", () => {
-  expect(plan("linux-x64", "0.2.0", "/o", "/r").env.CC_x86_64_unknown_linux_musl).toBe("musl-gcc");
-  expect(plan("linux-arm64", "0.2.0", "/o", "/r").env.CC_aarch64_unknown_linux_musl).toBe("musl-gcc");
-  expect(Object.keys(plan("darwin-arm64", "0.2.0", "/o", "/r").env)).toEqual(["SCAFFOLD_VERSION"]);
+test("a Linux build compiles its C code with a zig cc wrapper for its own target, a macOS build is left alone", () => {
+  const x64 = plan("linux-x64", "0.2.0", "/o", "/r");
+  expect(x64.env.CC_x86_64_unknown_linux_musl).toBe("/r/target/zig-cc/cc-x86_64-unknown-linux-musl");
+  expect(x64.wrapper?.path).toBe("/r/target/zig-cc/cc-x86_64-unknown-linux-musl");
+  expect(x64.wrapper?.content).toContain("exec zig cc -target x86_64-linux-musl ");
+  const arm = plan("linux-arm64", "0.2.0", "/o", "/r");
+  expect(arm.env.CC_aarch64_unknown_linux_musl).toBe("/r/target/zig-cc/cc-aarch64-unknown-linux-musl");
+  expect(arm.wrapper?.content).toContain("exec zig cc -target aarch64-linux-musl ");
+  const mac = plan("darwin-arm64", "0.2.0", "/o", "/r");
+  expect(Object.keys(mac.env)).toEqual(["SCAFFOLD_VERSION"]);
+  expect(mac.wrapper).toBeNull();
+});
+
+test("nothing in a plan needs musl-gcc or the Ubuntu archive", () => {
+  for (const t of TARGETS) expect(JSON.stringify(plan(t, "0.2.0", "/o", "/r"))).not.toContain("musl-gcc");
+});
+
+test("the wrapper hands zig the other arguments untouched, with spaces kept, and drops the --target the cc crate adds", () => {
+  const dir = mkdtempSync(join(tmpdir(), "zig-wrapper-"));
+  const p = plan("linux-x64", "0.2.0", "/o", dir);
+  mkdirSync(dirname(p.wrapper!.path), { recursive: true });
+  writeFileSync(p.wrapper!.path, p.wrapper!.content, { mode: 0o755 });
+  const bin = join(dir, "bin");
+  mkdirSync(bin);
+  // A stand-in for zig that prints each argument on its own line.
+  writeFileSync(join(bin, "zig"), '#!/bin/sh\nfor a in "$@"; do printf "%s\\n" "$a"; done\n', { mode: 0o755 });
+  const out = Bun.spawnSync([p.wrapper!.path, "-O3", "--target=x86_64-unknown-linux-musl", "-I", "a dir/with space", "-c", "x.c"], { env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } });
+  expect(out.stdout.toString().split("\n").filter(Boolean)).toEqual(["cc", "-target", "x86_64-linux-musl", "-O3", "-I", "a dir/with space", "-c", "x.c"]);
+  rmSync(dir, { recursive: true, force: true });
 });
 
 test("only the musl builds must be static", () => {

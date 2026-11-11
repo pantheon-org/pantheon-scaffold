@@ -26,7 +26,7 @@ Each workflow is compared with the pinned `pantheon-adr` copy under the P.1 rule
 
 ### Comments that a tool acts on
 
-P.1 ignores comments, so a render that dropped `# zizmor: ignore[...]` would pass P.1 and then fail zizmor in the real repository. `compareDirectives` in `runner/src/equality.ts` compares those comments as a second check next to P.1, and every wave A workflow passes both. A `zizmor` comment inside a `run:` script is part of the script and is covered by the byte comparison. Other comments (explanations, section labels) are lost in the render, which P.1 allows. The top comment block of each workflow is kept as the `header`.
+P.1 ignores comments, so a render that dropped `# zizmor: ignore[...]` would pass P.1 and then fail zizmor in the real repository. `compare_directives` in `crates/scaffold-core/src/equality.rs` compares those comments as a second check next to P.1, and every wave A workflow passes both. A `zizmor` comment inside a `run:` script is part of the script and is covered by the byte comparison. Other comments (explanations, section labels) are lost in the render, which P.1 allows. The top comment block of each workflow is kept as the `header`.
 
 ### Rendered text differs from the files in two harmless ways
 

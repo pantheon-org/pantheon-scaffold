@@ -6,11 +6,13 @@ use crate::contract::Contract;
 use crate::manifest::Manifest;
 use crate::semver::{compare_semver, parse_semver};
 
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct KnownBadVersion {
     pub version: String,
     pub reason: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct KnownBad {
     pub versions: Vec<KnownBadVersion>,
 }

@@ -1,7 +1,7 @@
 //! The pantheon-scaffold command line, ported from `runner/src/cli.ts`.
 //!
-//! This build handles `--version`, `contract`, `render`, `check`, `detach` and `freshness`. `latest` and `upgrade` parse
-//! their options like the TypeScript runner but stop with an error until they are ported.
+//! This build handles `--version`, `contract`, `render`, `check`, `detach`, `freshness` and `latest`. `upgrade` parses its
+//! options like the TypeScript runner but stops with an error until it is ported.
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -142,8 +142,47 @@ impl Io<'_> {
     }
 }
 
+/// What the command line reads from the environment, read once so a test can give its own.
+#[derive(Debug, Default, Clone)]
+pub struct Env {
+    /// `PANTHEON_SCAFFOLD_FRESHNESS_URL`: where the freshness record is fetched from.
+    pub freshness_url: Option<String>,
+    /// `PANTHEON_SCAFFOLD_KNOWN_BAD_URL`: where the known-bad list is fetched from.
+    pub known_bad_url: Option<String>,
+    /// `GITHUB_TOKEN`, or `GH_TOKEN` when that is not set: sent to the GitHub API by `latest`.
+    pub github_token: Option<String>,
+}
+
+impl Env {
+    pub fn from_process() -> Self {
+        let var = |name: &str| std::env::var(name).ok();
+        Self {
+            freshness_url: var("PANTHEON_SCAFFOLD_FRESHNESS_URL"),
+            known_bad_url: var("PANTHEON_SCAFFOLD_KNOWN_BAD_URL"),
+            github_token: github_token(var("GITHUB_TOKEN"), var("GH_TOKEN")),
+        }
+    }
+}
+
+/// `GITHUB_TOKEN`, or `GH_TOKEN` when the first is not set at all. A variable that is set to nothing still counts as set,
+/// as it does for the TypeScript runner's `??`.
+fn github_token(github: Option<String>, gh: Option<String>) -> Option<String> {
+    github.or(gh)
+}
+
 /// Runs the command line and returns the exit code. `cwd` is where relative paths start.
 pub fn run(argv: &[String], cwd: &Path, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
+    run_with_env(argv, cwd, &Env::from_process(), out, err)
+}
+
+/// Like `run`, with the environment given instead of read.
+pub fn run_with_env(
+    argv: &[String],
+    cwd: &Path,
+    env: &Env,
+    out: &mut dyn Write,
+    err: &mut dyn Write,
+) -> i32 {
     let mut io = Io { out, err };
     let Some((cmd, rest)) = argv.split_first() else {
         io.complain(USAGE);
@@ -171,15 +210,65 @@ pub fn run(argv: &[String], cwd: &Path, out: &mut dyn Write, err: &mut dyn Write
     match cmd.as_str() {
         "contract" | "render" | "check" => {
             let config = config.expect("checked above");
-            command(cmd, config, cwd, &flags, &mut io)
+            command(cmd, config, cwd, &flags, env, &mut io)
         }
         "detach" => finish(run_detach(&flags, &mut io), &mut io),
-        "freshness" => finish(run_freshness(&flags, &mut io), &mut io),
+        "freshness" => finish(run_freshness(&flags, env, &mut io), &mut io),
+        "latest" => finish(run_latest(&flags, env, &mut io), &mut io),
         _ => {
             io.complain(&format!(
                 "{cmd} is not available in the Rust runner yet, use the TypeScript runner"
             ));
             EXIT_ERROR
+        }
+    }
+}
+
+/// The known-bad list: fetched, or the cached copy, or the snapshot built into the runner.
+fn load_known_list(flags: &Flags, env: &Env) -> scaffold_core::knownbad::KnownBadResult {
+    use scaffold_core::knownbad::{
+        KNOWN_BAD_URL, KnownBadOptions, bundled_snapshot, load_known_bad,
+    };
+    let fetcher = |url: &str| scaffold_core::http::get_text(url, std::time::Duration::from_secs(5));
+    let bundled = bundled_snapshot();
+    let options = KnownBadOptions {
+        url: env.known_bad_url.as_deref().unwrap_or(KNOWN_BAD_URL),
+        fetcher: &fetcher,
+        bundled: &bundled,
+    };
+    load_known_bad(&flags.root, &options)
+}
+
+fn run_latest(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
+    use scaffold_core::latest::{FetchOptions, RELEASES_API, fetch_releases, latest_version};
+    use std::time::Duration;
+    let fetcher = |url: &str, headers: &[(&str, &str)]| {
+        scaffold_core::http::get_text_with(url, Duration::from_secs(15), headers)
+    };
+    let options = FetchOptions {
+        fetcher: &fetcher,
+        url: flags.url.as_deref().unwrap_or(RELEASES_API),
+        token: env.github_token.as_deref(),
+        attempts: flags.attempts,
+        delay: Duration::from_secs(2),
+    };
+    let releases = fetch_releases(&options).map_err(|e| e.to_string())?;
+    let known_bad = load_known_list(flags, env).list;
+    match latest_version(&releases, flags.include_prereleases, Some(&known_bad)) {
+        Some(version) => {
+            io.say(&version);
+            Ok(EXIT_OK)
+        }
+        None => {
+            let hint = if flags.include_prereleases {
+                ""
+            } else {
+                ". Use --include-prereleases to offer pre-releases"
+            };
+            io.complain(&format!(
+                "no release found that qualifies (stable, not a draft, not known bad){hint}"
+            ));
+            Ok(EXIT_ERROR)
         }
     }
 }
@@ -202,10 +291,10 @@ fn freshness_url(flags: &Flags, env_value: Option<String>) -> String {
         .unwrap_or_else(|| scaffold_core::freshness::FRESHNESS_URL.to_owned())
 }
 
-fn run_freshness(flags: &Flags, io: &mut Io) -> Result<i32, String> {
+fn run_freshness(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
     use scaffold_core::freshness::{CheckOptions, State, check_freshness};
     use std::time::Duration;
-    let url = freshness_url(flags, std::env::var("PANTHEON_SCAFFOLD_FRESHNESS_URL").ok());
+    let url = freshness_url(flags, env.freshness_url.clone());
     let fetcher = |url: &str| scaffold_core::http::get_text(url, Duration::from_secs(15));
     let options = CheckOptions {
         fetcher: &fetcher,
@@ -260,8 +349,8 @@ fn run_detach(flags: &Flags, io: &mut Io) -> Result<i32, String> {
     Ok(EXIT_OK)
 }
 
-fn command(cmd: &str, config: &str, cwd: &Path, flags: &Flags, io: &mut Io) -> i32 {
-    match command_inner(cmd, config, cwd, flags, io) {
+fn command(cmd: &str, config: &str, cwd: &Path, flags: &Flags, env: &Env, io: &mut Io) -> i32 {
+    match command_inner(cmd, config, cwd, flags, env, io) {
         Ok(code) => code,
         Err(message) => {
             io.complain(&message);
@@ -275,6 +364,7 @@ fn command_inner(
     config: &str,
     cwd: &Path,
     flags: &Flags,
+    env: &Env,
     io: &mut Io,
 ) -> Result<i32, String> {
     let contract = load_contract(config, cwd, flags)?;
@@ -290,7 +380,7 @@ fn command_inner(
         return Ok(EXIT_OK);
     }
     let mode = mode_for(cmd);
-    let package_version = match gate(&contract, flags, mode, io)? {
+    let package_version = match gate(&contract, flags, mode, env, io)? {
         Gate::Stop(code) => return Ok(code),
         Gate::Go(version) => version,
     };
@@ -354,19 +444,25 @@ fn gate(
     contract: &scaffold_core::contract::Contract,
     flags: &Flags,
     mode: scaffold_core::preflight::Mode,
+    env: &Env,
     io: &mut Io,
 ) -> Result<Gate, String> {
     use scaffold_core::preflight::{PreflightOptions, package_version_of, preflight};
-    match package_version_of(contract.package_uri.as_deref()) {
+    let known_bad = match package_version_of(contract.package_uri.as_deref()) {
         Err(message) => {
             io.complain(&message);
             return Ok(Gate::Stop(EXIT_ERROR));
         }
-        Ok(Some(_)) => io.complain(
-            "warning: this build does not check the known-bad list of package versions yet",
-        ),
-        Ok(None) => {}
-    }
+        // Only a package loaded by version can be on the list; a local package never is.
+        Ok(Some(_)) => {
+            let loaded = load_known_list(flags, env);
+            if let Some(note) = &loaded.note {
+                io.complain(&format!("warning: {note}"));
+            }
+            Some(loaded.list)
+        }
+        Ok(None) => None,
+    };
     // --repair exists to fix a manifest that cannot be read, so it must not read it here.
     let manifest = if flags.repair {
         scaffold_core::manifest::Manifest::empty()
@@ -378,7 +474,7 @@ fn gate(
         runner_version: VERSION,
         force: flags.force,
         strict: flags.strict,
-        known_bad: None,
+        known_bad: known_bad.as_ref(),
     };
     let pre = preflight(contract, &manifest, &options);
     for warning in &pre.warnings {
@@ -681,17 +777,12 @@ mod tests {
 
     #[test]
     fn commands_that_are_not_ported_stop_with_an_error() {
-        for items in [&["latest"][..], &["upgrade", "1.0.0"]] {
-            let (code, out, err) = go(items, &here());
-            assert_eq!((code, out.as_str()), (EXIT_ERROR, ""), "{items:?}");
-            assert_eq!(
-                err,
-                format!(
-                    "{} is not available in the Rust runner yet, use the TypeScript runner\n",
-                    items[0]
-                )
-            );
-        }
+        let (code, out, err) = go(&["upgrade", "1.0.0"], &here());
+        assert_eq!((code, out.as_str()), (EXIT_ERROR, ""));
+        assert_eq!(
+            err,
+            "upgrade is not available in the Rust runner yet, use the TypeScript runner\n"
+        );
     }
 
     #[test]
@@ -1142,6 +1233,21 @@ mod tests {
     }
 
     #[test]
+    fn freshness_reads_the_address_from_the_given_environment() {
+        let server = stub(vec![("/freshness.json", 200, record_from(2))]);
+        let env = Env {
+            freshness_url: Some(format!("{}/freshness.json", server.base)),
+            ..Env::default()
+        };
+        let (code, out, _) = go_env(&["freshness"], &env, &here());
+        assert_eq!(code, EXIT_OK);
+        assert!(
+            out.starts_with("fresh: the last successful pin check was 2 day(s) ago"),
+            "{out}"
+        );
+    }
+
+    #[test]
     fn the_url_comes_from_the_flag_then_the_environment_then_the_default() {
         use scaffold_core::freshness::FRESHNESS_URL;
         let with_flag = flags(&["--url", "http://flag"]);
@@ -1158,6 +1264,404 @@ mod tests {
             freshness_url(&flags(&[]), Some(String::new())),
             FRESHNESS_URL,
             "an empty variable is not an address"
+        );
+    }
+
+    /// Answers each path with its canned status and body, for as long as the test runs. The text of every request is
+    /// kept, lower-cased, so a test can look at the headers that were sent.
+    struct Stub {
+        base: String,
+        requests: std::sync::Arc<std::sync::Mutex<Vec<String>>>,
+    }
+
+    impl Stub {
+        /// The text of the requests that were made for `path`, in order.
+        fn requests_for(&self, path: &str) -> Vec<String> {
+            let prefix = format!("get {path} ");
+            self.requests
+                .lock()
+                .unwrap()
+                .iter()
+                .filter(|r| r.starts_with(&prefix))
+                .cloned()
+                .collect()
+        }
+    }
+
+    fn stub(routes: Vec<(&'static str, u16, String)>) -> Stub {
+        use std::io::{Read, Write};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
+        let requests = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let seen = requests.clone();
+        std::thread::spawn(move || {
+            while let Ok((mut stream, _)) = listener.accept() {
+                let mut request = Vec::new();
+                let mut buffer = [0u8; 1024];
+                while !request.windows(4).any(|w| w == b"\r\n\r\n") {
+                    match stream.read(&mut buffer) {
+                        Ok(0) | Err(_) => break,
+                        Ok(n) => request.extend_from_slice(&buffer[..n]),
+                    }
+                }
+                let text = String::from_utf8_lossy(&request).to_lowercase();
+                let path = text.split_whitespace().nth(1).unwrap_or("/").to_owned();
+                seen.lock().unwrap().push(text.clone());
+                let (status, body) = routes
+                    .iter()
+                    .find(|(route, _, _)| *route == path)
+                    .map_or((404, "no route".to_owned()), |(_, status, body)| {
+                        (*status, body.clone())
+                    });
+                let answer = format!(
+                    "HTTP/1.1 {status} X\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                    body.len()
+                );
+                let _ = stream.write_all(answer.as_bytes());
+            }
+        });
+        Stub { base, requests }
+    }
+
+    fn go_env(items: &[&str], env: &Env, cwd: &Path) -> (i32, String, String) {
+        let (mut out, mut err) = (Vec::new(), Vec::new());
+        let code = run_with_env(&args(items), cwd, env, &mut out, &mut err);
+        (
+            code,
+            String::from_utf8(out).unwrap(),
+            String::from_utf8(err).unwrap(),
+        )
+    }
+
+    const KNOWN_BAD_PATH: &str = "/known-bad.json";
+
+    /// `latest` against a stub that serves `releases` and, optionally, a known-bad list.
+    fn latest_against(
+        releases: &str,
+        known_bad: Option<&str>,
+        extra: &[&str],
+    ) -> (i32, String, String) {
+        let mut routes = vec![("/releases", 200, releases.to_owned())];
+        if let Some(list) = known_bad {
+            routes.push((KNOWN_BAD_PATH, 200, list.to_owned()));
+        }
+        let server = stub(routes);
+        let repo = tempfile::tempdir().unwrap();
+        let env = Env {
+            known_bad_url: Some(format!("{}{KNOWN_BAD_PATH}", server.base)),
+            ..Env::default()
+        };
+        let (url, root) = (
+            format!("{}/releases", server.base),
+            repo.path().display().to_string(),
+        );
+        let mut items = vec!["latest", "--url", url.as_str(), "--root", root.as_str()];
+        items.extend_from_slice(extra);
+        go_env(&items, &env, &here())
+    }
+
+    const RELEASES: &str = r#"[{"tag_name":"v0.1.4"},{"tag_name":"v0.1.5"},{"tag_name":"v0.2.0","prerelease":true},{"tag_name":"v0.3.0","draft":true}]"#;
+
+    #[test]
+    fn latest_names_the_newest_stable_release() {
+        assert_eq!(
+            latest_against(RELEASES, None, &[]),
+            (EXIT_OK, "0.1.5\n".to_owned(), String::new())
+        );
+    }
+
+    #[test]
+    fn latest_offers_a_pre_release_only_when_asked() {
+        let (code, out, _) = latest_against(RELEASES, None, &["--include-prereleases"]);
+        assert_eq!((code, out.as_str()), (EXIT_OK, "0.2.0\n"));
+    }
+
+    #[test]
+    fn latest_skips_a_version_on_the_known_bad_list() {
+        let list = r#"{"versions":[{"version":"0.1.5","reason":"broken"}]}"#;
+        let (code, out, err) = latest_against(RELEASES, Some(list), &[]);
+        assert_eq!((code, out.as_str(), err.as_str()), (EXIT_OK, "0.1.4\n", ""));
+    }
+
+    #[test]
+    fn latest_ignores_a_tag_that_is_not_a_version() {
+        let (code, out, _) = latest_against(
+            r#"[{"tag_name":"nightly"},{"tag_name":"v0.1.5"}]"#,
+            None,
+            &[],
+        );
+        assert_eq!((code, out.as_str()), (EXIT_OK, "0.1.5\n"));
+    }
+
+    #[test]
+    fn latest_with_nothing_that_qualifies_is_an_error_with_a_hint() {
+        let only_pre = r#"[{"tag_name":"v0.2.0","prerelease":true}]"#;
+        let (code, out, err) = latest_against(only_pre, None, &[]);
+        assert_eq!((code, out.as_str()), (EXIT_ERROR, ""));
+        assert_eq!(
+            err,
+            "no release found that qualifies (stable, not a draft, not known bad). Use --include-prereleases to offer pre-releases\n"
+        );
+        let (code, _, err) = latest_against("[]", None, &["--include-prereleases"]);
+        assert_eq!(code, EXIT_ERROR);
+        assert_eq!(
+            err,
+            "no release found that qualifies (stable, not a draft, not known bad)\n"
+        );
+    }
+
+    #[test]
+    fn latest_fails_closed_when_the_release_list_cannot_be_fetched() {
+        let server = stub(vec![("/releases", 500, "boom".to_owned())]);
+        let (url, repo) = (
+            format!("{}/releases", server.base),
+            tempfile::tempdir().unwrap(),
+        );
+        let root = repo.path().display().to_string();
+        let (code, out, err) = go_env(
+            &["latest", "--url", &url, "--root", &root, "--attempts", "1"],
+            &Env::default(),
+            &here(),
+        );
+        assert_eq!((code, out.as_str()), (EXIT_ERROR, ""));
+        assert!(
+            err.contains("after 1 attempts, failing closed: HTTP 500"),
+            "{err}"
+        );
+    }
+
+    #[test]
+    fn latest_fails_when_the_answer_is_not_a_list_of_releases() {
+        let (code, _, err) = latest_against(r#"{"message":"rate limited"}"#, None, &[]);
+        assert_eq!(code, EXIT_ERROR);
+        assert!(
+            err.ends_with("/releases did not return a list of releases\n"),
+            "{err}"
+        );
+    }
+
+    #[test]
+    fn latest_sends_the_github_token_and_the_accept_header_when_there_is_a_token() {
+        let server = stub(vec![("/releases", 200, "[]".to_owned())]);
+        let repo = tempfile::tempdir().unwrap();
+        let env = Env {
+            github_token: Some("t0ken".to_owned()),
+            known_bad_url: Some(format!("{}{KNOWN_BAD_PATH}", server.base)),
+            ..Env::default()
+        };
+        let (url, root) = (
+            format!("{}/releases", server.base),
+            repo.path().display().to_string(),
+        );
+        let items = [
+            "latest",
+            "--url",
+            url.as_str(),
+            "--root",
+            root.as_str(),
+            "--attempts",
+            "1",
+        ];
+        go_env(&items, &env, &here());
+        let sent = server.requests_for("/releases");
+        assert_eq!(sent.len(), 1, "{sent:?}");
+        assert!(
+            sent[0].contains("accept: application/vnd.github+json\r\n"),
+            "{}",
+            sent[0]
+        );
+        assert!(
+            sent[0].contains("authorization: bearer t0ken\r\n"),
+            "{}",
+            sent[0]
+        );
+        let known_bad = server.requests_for(KNOWN_BAD_PATH);
+        assert!(
+            !known_bad.is_empty() && known_bad.iter().all(|r| !r.contains("authorization")),
+            "the token goes to GitHub's API only"
+        );
+        let without = Env {
+            github_token: None,
+            ..env
+        };
+        go_env(&items, &without, &here());
+        let sent = server.requests_for("/releases");
+        assert_eq!(sent.len(), 2);
+        assert!(!sent[1].contains("authorization"), "{}", sent[1]);
+    }
+
+    #[test]
+    fn the_environment_is_read_from_the_process() {
+        // A child copy of this test binary gets the variables, so no other test sees them.
+        let run_child = |vars: &[(&str, &str)]| {
+            let mut command = std::process::Command::new(std::env::current_exe().unwrap());
+            command
+                .args([
+                    "tests::child_reads_the_environment",
+                    "--exact",
+                    "--include-ignored",
+                    "--nocapture",
+                ])
+                .env_remove("GITHUB_TOKEN")
+                .env_remove("GH_TOKEN")
+                .env_remove("PANTHEON_SCAFFOLD_FRESHNESS_URL")
+                .env_remove("PANTHEON_SCAFFOLD_KNOWN_BAD_URL");
+            for (name, value) in vars {
+                command.env(name, value);
+            }
+            let output = command.output().unwrap();
+            String::from_utf8_lossy(&output.stdout).into_owned()
+        };
+        let all = run_child(&[
+            ("PANTHEON_SCAFFOLD_FRESHNESS_URL", "http://fresh"),
+            ("PANTHEON_SCAFFOLD_KNOWN_BAD_URL", "http://bad"),
+            ("GITHUB_TOKEN", "from-github"),
+            ("GH_TOKEN", "from-gh"),
+        ]);
+        assert!(
+            all.contains("ENV freshness=Some(\"http://fresh\") known_bad=Some(\"http://bad\") token=Some(\"from-github\")"),
+            "{all}"
+        );
+        let gh_only = run_child(&[("GH_TOKEN", "from-gh")]);
+        assert!(
+            gh_only.contains("ENV freshness=None known_bad=None token=Some(\"from-gh\")"),
+            "{gh_only}"
+        );
+        assert!(run_child(&[]).contains("ENV freshness=None known_bad=None token=None"));
+    }
+
+    #[test]
+    #[ignore = "run only by the test above, in a child process"]
+    fn child_reads_the_environment() {
+        let env = Env::from_process();
+        println!(
+            "ENV freshness={:?} known_bad={:?} token={:?}",
+            env.freshness_url, env.known_bad_url, env.github_token
+        );
+    }
+
+    #[test]
+    fn the_token_comes_from_github_token_then_gh_token() {
+        let some = |v: &str| Some(v.to_owned());
+        assert_eq!(github_token(some("a"), some("b")).as_deref(), Some("a"));
+        assert_eq!(github_token(None, some("b")).as_deref(), Some("b"));
+        assert_eq!(github_token(some(""), some("b")).as_deref(), Some(""));
+        assert_eq!(github_token(None, None), None);
+    }
+
+    #[test]
+    fn an_empty_token_sends_no_authorization_header() {
+        let server = stub(vec![("/releases", 200, "[]".to_owned())]);
+        let repo = tempfile::tempdir().unwrap();
+        let env = Env {
+            github_token: Some(String::new()),
+            known_bad_url: Some(format!("{}{KNOWN_BAD_PATH}", server.base)),
+            ..Env::default()
+        };
+        let (url, root) = (
+            format!("{}/releases", server.base),
+            repo.path().display().to_string(),
+        );
+        go_env(
+            &["latest", "--url", &url, "--root", &root, "--attempts", "1"],
+            &env,
+            &here(),
+        );
+        assert!(!server.requests_for("/releases")[0].contains("authorization"));
+    }
+
+    fn known_bad_env(server: &Stub) -> Env {
+        Env {
+            known_bad_url: Some(format!("{}{KNOWN_BAD_PATH}", server.base)),
+            ..Env::default()
+        }
+    }
+
+    #[test]
+    fn a_known_bad_package_warns_and_strict_refuses_it() {
+        use scaffold_core::preflight::Mode;
+        let server = stub(vec![(
+            KNOWN_BAD_PATH,
+            200,
+            r#"{"versions":[{"version":"0.2.0","reason":"broken"}]}"#.to_owned(),
+        )]);
+        let repo = tempfile::tempdir().unwrap();
+        let f = Flags {
+            root: repo.path().to_owned(),
+            ..flags(&[])
+        };
+        let c = contract_with(Some(&uri("0.2.0")));
+        let (code, version, err) = gate_env(&c, &f, Mode::Render, &known_bad_env(&server));
+        assert_eq!((code, version.as_deref()), (EXIT_OK, Some("0.2.0")));
+        assert_eq!(
+            err,
+            "warning: package 0.2.0 is on the known-bad list: broken\n"
+        );
+        assert!(
+            repo.path().join(".pkl-gen/cache/known-bad.json").exists(),
+            "the fetched list is cached"
+        );
+        let strict = Flags { strict: true, ..f };
+        let (code, _, err) = gate_env(&c, &strict, Mode::Render, &known_bad_env(&server));
+        assert_eq!(code, EXIT_REFUSED);
+        assert_eq!(
+            err,
+            "refused, nothing was written:\n  package 0.2.0 is on the known-bad list: broken (--strict)\n"
+        );
+    }
+
+    #[test]
+    fn a_package_that_is_not_on_the_list_passes_with_no_warning() {
+        use scaffold_core::preflight::Mode;
+        let server = stub(vec![(
+            KNOWN_BAD_PATH,
+            200,
+            r#"{"versions":[{"version":"0.1.0","reason":"old"}]}"#.to_owned(),
+        )]);
+        let repo = tempfile::tempdir().unwrap();
+        let f = Flags {
+            root: repo.path().to_owned(),
+            strict: true,
+            ..flags(&[])
+        };
+        let (code, version, err) = gate_env(
+            &contract_with(Some(&uri("0.2.0"))),
+            &f,
+            Mode::Render,
+            &known_bad_env(&server),
+        );
+        assert_eq!(
+            (code, version.as_deref(), err.as_str()),
+            (EXIT_OK, Some("0.2.0"), "")
+        );
+    }
+
+    #[test]
+    fn when_the_list_cannot_be_fetched_the_cached_copy_is_used_and_the_run_goes_on() {
+        use scaffold_core::preflight::Mode;
+        let repo = tempfile::tempdir().unwrap();
+        let cache = repo.path().join(".pkl-gen/cache");
+        std::fs::create_dir_all(&cache).unwrap();
+        std::fs::write(
+            cache.join("known-bad.json"),
+            r#"{"versions":[{"version":"0.2.0","reason":"from the cache"}]}"#,
+        )
+        .unwrap();
+        let server = stub(vec![(KNOWN_BAD_PATH, 500, "boom".to_owned())]);
+        let f = Flags {
+            root: repo.path().to_owned(),
+            ..flags(&[])
+        };
+        let (code, _, err) = gate_env(
+            &contract_with(Some(&uri("0.2.0"))),
+            &f,
+            Mode::Render,
+            &known_bad_env(&server),
+        );
+        assert_eq!(code, EXIT_OK);
+        assert_eq!(
+            err,
+            "warning: known-bad list: the fetch failed (HTTP 500), using the cached list\nwarning: package 0.2.0 is on the known-bad list: from the cache\n"
         );
     }
 
@@ -1182,17 +1686,21 @@ mod tests {
         )
     }
 
-    fn gate_with(
+    /// An address nothing listens on, so a test that reaches for the known-bad list fails fast and offline.
+    const NOWHERE: &str = "http://127.0.0.1:1/known-bad.json";
+
+    fn gate_env(
         contract: &Contract,
         flags: &Flags,
         mode: scaffold_core::preflight::Mode,
+        env: &Env,
     ) -> (i32, Option<String>, String) {
         let (mut out, mut err) = (Vec::new(), Vec::new());
         let mut io = Io {
             out: &mut out,
             err: &mut err,
         };
-        let result = gate(contract, flags, mode, &mut io).unwrap();
+        let result = gate(contract, flags, mode, env, &mut io).unwrap();
         let text = String::from_utf8(err).unwrap();
         match result {
             Gate::Stop(code) => (code, None, text),
@@ -1200,8 +1708,21 @@ mod tests {
         }
     }
 
+    fn gate_with(
+        contract: &Contract,
+        flags: &Flags,
+        mode: scaffold_core::preflight::Mode,
+    ) -> (i32, Option<String>, String) {
+        let env = Env {
+            known_bad_url: Some(NOWHERE.to_owned()),
+            ..Env::default()
+        };
+        gate_env(contract, flags, mode, &env)
+    }
+
     #[test]
-    fn the_gate_passes_the_package_version_on_and_says_the_known_bad_list_is_not_checked() {
+    fn the_gate_passes_the_package_version_on_and_falls_back_when_the_known_bad_list_cannot_be_fetched()
+     {
         let repo = tempfile::tempdir().unwrap();
         let f = Flags {
             root: repo.path().to_owned(),
@@ -1213,16 +1734,25 @@ mod tests {
             scaffold_core::preflight::Mode::Render,
         );
         assert_eq!((code, version.as_deref()), (EXIT_OK, Some("0.2.0")));
-        assert_eq!(
-            err,
-            "warning: this build does not check the known-bad list of package versions yet\n"
+        assert!(
+            err.starts_with("warning: known-bad list: the fetch failed (")
+                && err.ends_with("), using the bundled snapshot\n"),
+            "{err}"
         );
         let (_, version, err) = gate_with(
             &contract_with(None),
             &f,
             scaffold_core::preflight::Mode::Render,
         );
-        assert_eq!((version, err.as_str()), (None, ""));
+        assert_eq!(
+            (version, err.as_str()),
+            (None, ""),
+            "a local package never looks the list up"
+        );
+        assert!(
+            !repo.path().join(".pkl-gen/cache").exists(),
+            "nothing was fetched, so nothing was cached"
+        );
     }
 
     #[test]

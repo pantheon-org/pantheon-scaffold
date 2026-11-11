@@ -7,13 +7,26 @@ use std::time::Duration;
 /// anything else that goes wrong is the error text of the connection. The whole request, body included, is stopped
 /// after `timeout`.
 pub fn get_text(url: &str, timeout: Duration) -> Result<String, String> {
+    get_text_with(url, timeout, &[])
+}
+
+/// Like `get_text`, with request headers.
+pub fn get_text_with(
+    url: &str,
+    timeout: Duration,
+    headers: &[(&str, &str)],
+) -> Result<String, String> {
     let agent: ureq::Agent = ureq::Agent::config_builder()
         .timeout_global(Some(timeout))
         // A status is reported as `HTTP <status>` below, the way the TypeScript runner reports it.
         .http_status_as_error(false)
         .build()
         .into();
-    let mut response = agent.get(url).call().map_err(|e| e.to_string())?;
+    let mut request = agent.get(url);
+    for (name, value) in headers {
+        request = request.header(*name, *value);
+    }
+    let mut response = request.call().map_err(|e| e.to_string())?;
     let status = response.status().as_u16();
     if !(200..300).contains(&status) {
         return Err(format!("HTTP {status}"));
@@ -88,6 +101,51 @@ mod tests {
                 assert_eq!(result, Err(format!("HTTP {status}")));
             }
         }
+    }
+
+    #[test]
+    fn the_headers_are_sent() {
+        use std::sync::mpsc;
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let (sent, seen) = mpsc::channel();
+        std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut request = Vec::new();
+            let mut buffer = [0u8; 1024];
+            while !request.windows(4).any(|w| w == b"\r\n\r\n") {
+                let n = stream.read(&mut buffer).unwrap();
+                if n == 0 {
+                    break;
+                }
+                request.extend_from_slice(&buffer[..n]);
+            }
+            sent.send(String::from_utf8_lossy(&request).to_lowercase())
+                .unwrap();
+            let _ = stream
+                .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok");
+        });
+        let headers = [
+            ("Accept", "application/vnd.github+json"),
+            ("Authorization", "Bearer t0ken"),
+        ];
+        assert_eq!(
+            get_text_with(
+                &format!("http://{address}/x"),
+                Duration::from_secs(5),
+                &headers
+            ),
+            Ok("ok".to_owned())
+        );
+        let request = seen.recv().unwrap();
+        assert!(
+            request.contains("accept: application/vnd.github+json\r\n"),
+            "{request}"
+        );
+        assert!(
+            request.contains("authorization: bearer t0ken\r\n"),
+            "{request}"
+        );
     }
 
     #[test]

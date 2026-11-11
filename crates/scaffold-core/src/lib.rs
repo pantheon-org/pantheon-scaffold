@@ -17,6 +17,8 @@ pub mod detach;
 pub mod equality;
 pub mod freshness;
 pub mod http;
+pub mod knownbad;
+pub mod latest;
 pub mod preflight;
 pub mod render;
 pub mod semver;

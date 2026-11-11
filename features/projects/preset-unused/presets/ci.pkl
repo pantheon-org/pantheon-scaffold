@@ -1,0 +1,3 @@
+import "@PACKAGE@/Config.pkl"
+
+function rustCi(base: Config.Workflow): Config.Workflow = base

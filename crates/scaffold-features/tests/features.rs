@@ -296,6 +296,55 @@ fn file_content_differs(world: &mut ScaffoldWorld, path: String, content: String
     );
 }
 
+#[then(expr = "the file {string} contains {string}")]
+fn file_contains(world: &mut ScaffoldWorld, path: String, part: String) {
+    let actual =
+        fs::read_to_string(world.repo().join(&path)).unwrap_or_else(|e| panic!("{path}: {e}"));
+    assert!(
+        actual.contains(&unescape(&part)),
+        "{path} does not contain {part:?}:\n{actual}"
+    );
+}
+
+#[then(expr = "the file {string} does not contain {string}")]
+fn file_does_not_contain(world: &mut ScaffoldWorld, path: String, part: String) {
+    let actual =
+        fs::read_to_string(world.repo().join(&path)).unwrap_or_else(|e| panic!("{path}: {e}"));
+    assert!(
+        !actual.contains(&unescape(&part)),
+        "{path} contains {part:?}, which it must not:\n{actual}"
+    );
+}
+
+/// Copies a directory tree, replacing `@PACKAGE@` in every `.pkl` file with the path of the package under test.
+fn copy_project(from: &Path, to: &Path, package: &str) {
+    fs::create_dir_all(to).expect("the project directory");
+    for entry in fs::read_dir(from).unwrap_or_else(|e| panic!("{}: {e}", from.display())) {
+        let entry = entry.expect("a directory entry");
+        let target = to.join(entry.file_name());
+        if entry.path().is_dir() {
+            copy_project(&entry.path(), &target, package);
+        } else if entry.path().extension().is_some_and(|e| e == "pkl") {
+            let text = fs::read_to_string(entry.path()).expect("a readable pkl file");
+            fs::write(&target, text.replace("@PACKAGE@", package))
+                .expect("the pkl file is written");
+        } else {
+            fs::copy(entry.path(), &target).expect("the file is copied");
+        }
+    }
+}
+
+/// A small repository from `features/projects/NAME`: a `pantheon.pkl` and the `presets/` it uses.
+#[given(expr = "the project {string}")]
+fn the_project(world: &mut ScaffoldWorld, name: String) {
+    let package = world.checkout.join("pkl").display().to_string();
+    copy_project(
+        &world.checkout.join("features/projects").join(&name),
+        &world.repo(),
+        &package,
+    );
+}
+
 /// The version the binary under test was built for: `SCAFFOLD_VERSION`, or 0.0.0 as the build script defaults to.
 #[then("the output is the expected version")]
 fn output_is_expected_version(world: &mut ScaffoldWorld) {

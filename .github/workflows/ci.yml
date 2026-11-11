@@ -189,6 +189,8 @@ jobs:
       GITHUB_TOKEN: ${{ github.token }}
       SCAFFOLD_BIN: ${{ github.workspace }}/dist/pantheon-scaffold-${{ matrix.target }}
       SCAFFOLD_VERSION: 0.0.1-ci.${{ github.run_number }}
+      # Scenarios written ahead of the code (Presets, tasks 4.2 and 4.3). The tags leave this list in the pull request that makes them pass.
+      SCAFFOLD_SKIP_TAGS: pending-presets-api,pending-presets-runner
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -214,8 +216,8 @@ jobs:
       - name: Run the features against the built binary
         run: mise x -- cargo test -p scaffold-features --locked
 
-  # The same features, run against the Rust build: every scenario, nothing skipped. SCAFFOLD_SKIP_TAGS (see features/README.md)
-  # exists for a command that is not ported yet; none is left.
+  # The same features, run against the Rust build. SCAFFOLD_SKIP_TAGS (see features/README.md) skips only the Preset scenarios that
+  # are written ahead of the code (tasks 4.2 and 4.3); every other scenario runs.
   features-rust:
     name: Features (Rust) ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
@@ -233,6 +235,7 @@ jobs:
       GITHUB_TOKEN: ${{ github.token }}
       SCAFFOLD_VERSION: 0.0.1-ci.${{ github.run_number }}
       SCAFFOLD_BIN: ${{ github.workspace }}/target/debug/pantheon-scaffold
+      SCAFFOLD_SKIP_TAGS: pending-presets-api,pending-presets-runner
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

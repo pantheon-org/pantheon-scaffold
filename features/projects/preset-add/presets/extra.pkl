@@ -1,0 +1,8 @@
+// A workflow that is not a Builtin.
+import "@PACKAGE@/Config.pkl"
+
+function nightly(): Config.Workflow = new {
+  name = "Nightly"
+  on = new Mapping { ["schedule"] = new Listing { new Mapping { ["cron"] = "0 3 * * *" } } }
+  jobs { ["check"] { steps { new Config.Step { name = "Say hello"; run = "echo hello" } } } }
+}

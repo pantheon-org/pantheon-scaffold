@@ -1,0 +1,8 @@
+amends "@PACKAGE@/Config.pkl"
+import "@PACKAGE@/Builtins.pkl"
+import "@PACKAGE@/Presets.pkl"
+
+options { toolchain = "1.96.1"; skills = false; binary = false }
+
+// "rust-cii" is a typo: the Builtins have no such workflow, and the render must say so instead of inventing an empty one.
+workflows = Presets.amendWorkflow(Builtins.standardWorkflows(options), "rust-cii", (w) -> w)

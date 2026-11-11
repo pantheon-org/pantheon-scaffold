@@ -1,0 +1,32 @@
+// This repository, rendered by its own scaffold. It amends the package in this checkout, not a published release, so a change to a Builtin
+// is seen here in the same pull request. CI runs `check` on it. Run it with:
+//   cargo run -p scaffold-cli -- render pantheon.pkl --allow-local-package pkl
+amends "pkl/Config.pkl"
+
+import "pkl/Builtins.pkl"
+import "presets/gitignore.pkl" as gitignore
+import "presets/own-deny.pkl" as ownDeny
+import "presets/rust-ci.pkl" as rustCi
+import "presets/scaffold-check.pkl" as scaffoldCheck
+
+options {
+  toolchain = "1.96.1"
+  skills = false
+  binary = false
+  crateName = "pantheon-scaffold"
+}
+
+presets {
+  "presets/gitignore.pkl"
+  "presets/own-deny.pkl"
+  "presets/rust-ci.pkl"
+  "presets/scaffold-check.pkl"
+}
+
+workflows = scaffoldCheck.apply(rustCi.apply(Builtins.standardWorkflows(options)))
+
+// standardFiles does not render the scripts that the workflows run: baseFiles has those of rust-ci, cargo-deny and inline-scripts (and
+// deny.toml and rust-toolchain.toml), toolingFiles the others (and .rumdl.toml and the Claude Code settings).
+local allFiles = (Builtins.standardFiles(options)) { ...Builtins.baseFiles(options); ...Builtins.toolingFiles() }
+
+files = ownDeny.apply(gitignore.apply(allFiles))

@@ -1,0 +1,35 @@
+# Code-quality gate (aislop): catches dead imports, duplicate logic, unsafe casts,
+# narrative comments, swallowed errors, oversized functions and similar, scored
+# out of 100. Enforced in CI because local hooks are bypassable (--no-verify,
+# web-UI merges, API commits). Ported from pantheon-org/tekhne.
+name: aislop
+'on':
+  pull_request:
+    types:
+    - opened
+    - synchronize
+    - reopened
+    branches:
+    - main
+  push:
+    branches:
+    - main
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  quality-gate:
+    name: aislop quality gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version: 22
+    - name: aislop ci
+      run: npx --yes aislop@0.17.0 ci .

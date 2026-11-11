@@ -1,0 +1,149 @@
+{
+  "manifestVersion": 1,
+  "files": {
+    ".agnix.toml": {
+      "class": "owned",
+      "hash": "13b326e825933e49cef5736af6351738aa28a08621b1b79722a2297c4dcdf580"
+    },
+    ".claude/settings.json": {
+      "class": "owned",
+      "hash": "90d8f96f0c1a1a3bbf0142b85b941c1e5a022e490f608033fe57c40575f992ad"
+    },
+    ".coderabbit.yaml": {
+      "class": "owned",
+      "hash": "5f04a5a80971d60df0a5c149b1a365dd027941e0c96f92bf41b57b163a03d15b"
+    },
+    ".github/commit-types.txt": {
+      "class": "owned",
+      "hash": "bc9e90682efbc9550906b64f751057852d7be1f5e2263f646f7b17b4a23aec11"
+    },
+    ".github/dependabot.yml": {
+      "class": "owned",
+      "hash": "7a5dcd9f83a549b1f0a6b854249e81c3d15ce8fe13daef1c46726caae91a96e4"
+    },
+    ".github/labels.txt": {
+      "class": "owned",
+      "hash": "c12cf6a69d8093bc4a6bcecd7fa62b7e0a7297db3cf4010f1377180dc87d8ca2"
+    },
+    ".github/pull_request_template.md": {
+      "class": "owned",
+      "hash": "40b8b7e522dd84b62e96013d3a384e3920c11f15cdc80855c396332d30c0440b"
+    },
+    ".github/scripts/agnix-assemble-comment.sh": {
+      "class": "owned",
+      "hash": "5647822da19bbb4bd89008e91e5467964c4a4b4ced985f0ee67d7aa446b5be9f"
+    },
+    ".github/scripts/agnix-file-issues.sh": {
+      "class": "owned",
+      "hash": "00b086909f7d1520688851aebbeb77fa42f776681c7c6b21b5bf3efded0f1ed1"
+    },
+    ".github/scripts/agnix-introduced-errors.sh": {
+      "class": "owned",
+      "hash": "0bf5a51f2d11760ac0d0edeb96ce53c0a37595294b9b908125ea37fc4b0d3f0c"
+    },
+    ".github/scripts/auto-rebase.sh": {
+      "class": "owned",
+      "hash": "74250ab76f9978e4474a7aa2a937f1a9054be60d72324d9bb8b13e89292d6992"
+    },
+    ".github/scripts/cargo-deny.sh": {
+      "class": "owned",
+      "hash": "fa054284bfebf7f47fc7912466c5049232f261500077b4b0b80d5e7e9fd3b480"
+    },
+    ".github/scripts/check-commit-types.sh": {
+      "class": "owned",
+      "hash": "8171624c888fb01c3316f6423fa23dfda530d4703d9ca7a9ee485081aab0e207"
+    },
+    ".github/scripts/check-inline-scripts.sh": {
+      "class": "owned",
+      "hash": "5ba496d995929538be926ee53a7b62705d3f3e92dab7f62a81916e68f3e81491"
+    },
+    ".github/scripts/check-toolchain-version.sh": {
+      "class": "owned",
+      "hash": "7eefdca1e9a032710087ab3e50c5195c45d0144cea7768d185164dafa5996feb"
+    },
+    ".github/scripts/release-automerge.sh": {
+      "class": "owned",
+      "hash": "52ae1d1cce62ec2c2e2bd6ae72a6cc39995f7ca0df0d6135c3407cc012477709"
+    },
+    ".github/scripts/sync-labels.sh": {
+      "class": "owned",
+      "hash": "1c0e401120d79ce1d65de0c98f0306905cd343e391e93f2bbe054b50ef4143ad"
+    },
+    ".github/workflows/agnix.yml": {
+      "class": "owned",
+      "hash": "a18bf06b9154eeb37789bf8f413dbf8b2936636d4d61bf1faeb065f57b35c275"
+    },
+    ".github/workflows/aislop.yml": {
+      "class": "owned",
+      "hash": "447164b34bf4d553959180afd38fe978538141ee0da72d174f0f47967a17fbed"
+    },
+    ".github/workflows/cargo-deny.yml": {
+      "class": "owned",
+      "hash": "1685b2436834409428d4dca2ccfe90daf3e9d8e7b253bd44837beb5d9f261e30"
+    },
+    ".github/workflows/commit-types.yml": {
+      "class": "owned",
+      "hash": "bf414792b9e4e9363981e920d8fdaea946b3e3b55bba59554e9d3c876d0f1322"
+    },
+    ".github/workflows/conventional-commits.yml": {
+      "class": "owned",
+      "hash": "bdece7e27f2ffb0088f6ff4b3ef9d5ae80b252e945d03d3f96ed81f60614b641"
+    },
+    ".github/workflows/inline-scripts.yml": {
+      "class": "owned",
+      "hash": "0d83b92d7e271e287ab3ca091589225544b03caac4834c5c1d0589eb7bbe93f9"
+    },
+    ".github/workflows/plumber.yml": {
+      "class": "owned",
+      "hash": "f92da6649cc7907d8f33863fd777e1bdaa487decd4d3f34045879f552bc4e378"
+    },
+    ".github/workflows/pr-auto-rebase.yml": {
+      "class": "owned",
+      "hash": "80eb78ca8c515218160e347eac91c3e82299a40c98c018a3f3f8a8483c9e3282"
+    },
+    ".github/workflows/release-automerge.yml": {
+      "class": "owned",
+      "hash": "ba335d7da9381e46bc28b45c5a917331288f49060bb135dc5fffc8f4d200a472"
+    },
+    ".github/workflows/release-please.yml": {
+      "class": "owned",
+      "hash": "3ed3604ecee96fa09d57f306991c76a73064ac9e91c8f2a0d6b3f940e69d96ed"
+    },
+    ".github/workflows/rust-ci.yml": {
+      "class": "owned",
+      "hash": "5e5bfe90cc10bf99390c161672426a61a7b62f730ac6146f0d42490e6813e434"
+    },
+    ".github/workflows/scaffold-check.yml": {
+      "class": "owned",
+      "hash": "8bf20a91b5e1a184e9e6b24295d7d8e54966bdadefa2a80d175b93455e4a3620"
+    },
+    ".github/workflows/sync-labels.yml": {
+      "class": "owned",
+      "hash": "646694213615c3e61d5af1b254d34339fa26246c1f7d7608ea0178f7658fc76c"
+    },
+    ".github/workflows/zizmor.yml": {
+      "class": "owned",
+      "hash": "d8dd9a2ed59f79088903dea9455395aa4ca9af2fa5759d5da0a1fbc3be21ebd3"
+    },
+    ".gitignore": {
+      "class": "owned",
+      "hash": "0e07c03c6c26a4e6d65aff434913b78e9b97d1989ed1fe471bcd1370939c0256"
+    },
+    ".plumber.yaml": {
+      "class": "owned",
+      "hash": "151bde3704f31000d8c13fcb16f05345a63c84bc85e69d6e0ebcaed585d027a9"
+    },
+    ".rumdl.toml": {
+      "class": "owned",
+      "hash": "19e11a95f86f1889b43d4f677dcfcf041aaf49d55399b5c05ca788b24f70ab71"
+    },
+    "SECURITY.md": {
+      "class": "seed",
+      "hash": "3cb548c5f656fd6024014b61efab8d18b5cc9265d2d4d01cadf1ccb9fa710352"
+    },
+    "rust-toolchain.toml": {
+      "class": "owned",
+      "hash": "4d0674575b116a100c7d0ad754308dc6dea178b4808c760afc43136db967c7a6"
+    }
+  }
+}

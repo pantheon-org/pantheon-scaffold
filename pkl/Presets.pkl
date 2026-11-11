@@ -1,0 +1,70 @@
+/// Helpers for a Preset: a pkl file under presets/ that takes a Builtin and returns a changed one (docs/presets-design.md).
+/// Both helpers fail when what they are asked to change does not exist. Plain pkl does not: amending a workflow or a job that a
+/// newer package no longer has silently creates an empty one, so a Preset would stop working without anyone being told.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.Presets
+
+import "Config.pkl"
+
+/// Applies `change` to the workflow `key` of `base` and returns the whole mapping. Fails, naming the builtins there are, when `base` has no such workflow.
+function amendWorkflow(
+  base: Mapping<String, Config.Workflow>,
+  key: String,
+  change: (Config.Workflow) -> Config.Workflow
+): Mapping<String, Config.Workflow> =
+  if (!base.containsKey(key))
+    throw("preset: workflow \"\(key)\" is not a builtin of this package version. Builtins: \(base.keys.toList().sort().join(", "))")
+  else
+    (base) { [key] = change.apply(base[key]) }
+
+/// Applies `change` to the job `job` of the workflow `w` and returns the workflow. Fails, naming the jobs there are, when it has no such job.
+function amendJob(
+  w: Config.Workflow,
+  job: String,
+  change: (Config.Job) -> Config.Job
+): Config.Workflow =
+  if (!w.jobs.containsKey(job))
+    throw("preset: job \"\(job)\" does not exist in workflow \"\(w.name)\". Jobs: \(w.jobs.keys.toList().sort().join(", "))")
+  else
+    (w) { jobs { [job] = change.apply(w.jobs[job]) } }
+
+/// Applies `change` to the file at `path` in `base` and returns the whole mapping. Fails, naming the files there are, when `base` has no such file.
+function amendFile(
+  base: Mapping<String, Config.GenFile>,
+  path: String,
+  change: (Config.GenFile) -> Config.GenFile
+): Mapping<String, Config.GenFile> =
+  if (!base.containsKey(path))
+    throw("preset: file \"\(path)\" is not rendered by the builtins of this package version. Files: \(base.keys.toList().sort().join(", "))")
+  else
+    (base) { [path] = change.apply(base[path]) }
+
+local function stepNames(j: Config.Job): List<String> = j.steps.toList().map((s) -> s.name).filterNonNull()
+
+local function noSuchStep(j: Config.Job, name: String): nothing =
+  throw("preset: step \"\(name)\" does not exist in job \"\(j.name ?? "")\". Steps: \(stepNames(j).sort().join(", "))")
+
+/// Applies `change` to the step called `name` in the job `j` and returns the job. A step is found by its `name`; a step without one cannot
+/// be changed. Fails, naming the steps there are, when the job has no step of that name.
+function amendStep(
+  j: Config.Job,
+  name: String,
+  change: (Config.Step) -> Config.Step
+): Config.Job =
+  if (!stepNames(j).contains(name))
+    noSuchStep(j, name)
+  else
+    (j) { steps = j.steps.toList().map((s) -> if (s.name == name) change.apply(s) else s).toListing() }
+
+/// Puts `added` in the job `j` just before the step called `name`. Fails, naming the steps there are, when the job has no step of that name.
+function insertStepsBefore(
+  j: Config.Job,
+  name: String,
+  added: List<Config.Step>
+): Config.Job =
+  if (!stepNames(j).contains(name))
+    noSuchStep(j, name)
+  else
+    let (all = j.steps.toList())
+    let (index = all.findIndex((s) -> s.name == name))
+      (j) { steps = (all.take(index) + added + all.drop(index)).toListing() }

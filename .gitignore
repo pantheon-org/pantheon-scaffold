@@ -1,7 +1,11 @@
+target/
+.context/
+.pkl-gen/cache/
+
+# This repository
 node_modules/
 dist/
-target/
 .stage/
-.aislop/
+.aislop/session.jsonl
 archive/spikes/pkl-s1-spike/out/
 mutants.out*/

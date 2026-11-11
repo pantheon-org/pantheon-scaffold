@@ -1,0 +1,6 @@
+// Gives the Rust CI job more time, through the helpers that fail when the target does not exist.
+import "@PACKAGE@/Config.pkl"
+import "@PACKAGE@/Presets.pkl"
+
+function apply(workflows: Mapping<String, Config.Workflow>): Mapping<String, Config.Workflow> =
+  Presets.amendWorkflow(workflows, "rust-ci", (w) -> Presets.amendJob(w, "build-test", (j) -> (j) { `timeout-minutes` = 30 }))

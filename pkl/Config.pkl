@@ -100,6 +100,10 @@ class GenFile {
 
 options: Options
 
+/// The Preset files this configuration applies, by path under presets/. They are recorded in the contract so the runner can list them,
+/// and hash them as inputs. A file in presets/ that no configuration lists is reported as unused.
+presets: Listing<String> = new {}
+
 /// Workflows by file name without extension. Builtins and custom workflows go here.
 workflows: Mapping<String, Workflow> = new {}
 
@@ -208,6 +212,7 @@ contract: Dynamic = new Dynamic {
     constructs = constructCount
   }
   when (definingUri.startsWith("package://")) { packageUri = definingUri }
+  when (module.presets.length > 0) { presets = module.presets }
   requires = new Dynamic { runner = requiresRunner }
 }
 

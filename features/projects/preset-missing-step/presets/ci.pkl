@@ -1,0 +1,6 @@
+// "Tset" is a typo: the job has no step of that name.
+import "@PACKAGE@/Config.pkl"
+import "@PACKAGE@/Presets.pkl"
+
+function apply(workflows: Mapping<String, Config.Workflow>): Mapping<String, Config.Workflow> =
+  Presets.amendWorkflow(workflows, "rust-ci", (w) -> Presets.amendJob(w, "build-test", (j) -> Presets.amendStep(j, "Tset", (s) -> s)))

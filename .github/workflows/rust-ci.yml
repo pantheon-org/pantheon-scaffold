@@ -1,0 +1,50 @@
+name: Rust CI
+'on':
+  pull_request:
+    types:
+    - opened
+    - synchronize
+    - reopened
+    branches:
+    - main
+  push:
+    branches:
+    - main
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build-test:
+    name: Build, test, lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      MISE_DISABLE_TOOLS: rust
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+    - name: Check toolchain versions
+      run: bash .github/scripts/check-toolchain-version.sh
+    - name: Install Rust toolchain
+      run: |
+        rustup toolchain install 1.96.1 --profile minimal --component rustfmt,clippy
+        rustup default 1.96.1
+    - name: Format check
+      run: cargo fmt --all --check
+    - name: Clippy
+      run: cargo clippy --workspace --all-targets --locked -- -D warnings
+    - name: Build
+      run: cargo build --workspace --locked
+    - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+      with:
+        version: 2026.10.25
+        install: false
+        cache: false
+    - name: Install the pinned tools from the lock file
+      run: mise install --locked
+    - name: Test
+      run: mise x -- cargo test --workspace --exclude scaffold-features --locked

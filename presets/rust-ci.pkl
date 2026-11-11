@@ -1,0 +1,22 @@
+// The tests of this repository run pkl, so the Rust CI job installs the pinned tools through mise, and they leave out the features crate,
+// which drives a built binary and has its own jobs in ci.yml.
+import "../pkl/Config.pkl"
+import "../pkl/Pins.pkl"
+import "../pkl/Presets.pkl"
+
+function apply(workflows: Mapping<String, Config.Workflow>): Mapping<String, Config.Workflow> =
+  Presets.amendWorkflow(workflows, "rust-ci", (w) -> Presets.amendJob(w, "build-test", (j) ->
+    Presets.amendStep(
+      Presets.insertStepsBefore(
+        (j) { env { ["GITHUB_TOKEN"] = "${{ github.token }}"; ["MISE_DISABLE_TOOLS"] = "rust" } },
+        "Test",
+        List(
+          new Config.Step {
+            uses = Pins.miseAction
+            `with` = new Mapping { ["version"] = "2026.10.25"; ["install"] = false; ["cache"] = false }
+          },
+          new Config.Step { name = "Install the pinned tools from the lock file"; run = "mise install --locked" }
+        )
+      ),
+      "Test",
+      (s) -> (s) { run = "mise x -- cargo test --workspace --exclude scaffold-features --locked" })))

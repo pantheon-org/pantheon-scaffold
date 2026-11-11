@@ -114,6 +114,12 @@ fn once(config: &Path, cwd: &Path, opts: &EvalOptions) -> Result<Run, ContractEr
     use std::io::Read;
     use std::process::{Command, Stdio};
 
+    if !cwd.is_dir() {
+        return Err(ContractError(format!(
+            "{}: not a directory, so pkl cannot run there",
+            cwd.display()
+        )));
+    }
     let mut command = Command::new(&opts.binary);
     command.args(["eval", "-f", "json"]);
     if let Some(cache) = &opts.cache_dir {
@@ -293,6 +299,20 @@ mod tests {
         .unwrap();
         let json = eval_contract_json(&config, &folder, &EvalOptions::default()).unwrap();
         assert_eq!(json["a"], 1);
+    }
+
+    #[test]
+    fn a_working_folder_that_does_not_exist_is_named_not_blamed_on_pkl() {
+        let opts = fast();
+        let message = err(eval_contract_json(
+            Path::new("x.pkl"),
+            Path::new("/no/such/folder"),
+            &opts,
+        ));
+        assert_eq!(
+            message,
+            "/no/such/folder: not a directory, so pkl cannot run there"
+        );
     }
 
     #[test]

@@ -60,7 +60,7 @@ jobs:
       - name: Lint the Rust code
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - name: Run the Rust unit tests
-        run: mise x -- cargo test -p scaffold-core --locked
+        run: mise x -- cargo test --workspace --exclude scaffold-features --locked
       - name: Check the Rust dependencies (licences, advisories, sources)
         run: mise x -- cargo-deny check
 
@@ -92,7 +92,7 @@ jobs:
       - name: Install cargo-mutants
         run: cargo install cargo-mutants --version 27.1.0 --locked
       - name: Mutation-test the Rust core
-        run: mise x -- cargo mutants --package scaffold-core --jobs 2
+        run: mise x -- cargo mutants --package scaffold-core --package scaffold-cli --jobs 2
 
   build:
     name: Build the binaries
@@ -201,4 +201,45 @@ jobs:
       - name: Make the binary executable
         run: chmod +x "$SCAFFOLD_BIN"
       - name: Run the features against the built binary
+        run: mise x -- cargo test -p scaffold-features --locked
+
+  # The same features, run against the Rust build. Scenarios for commands the Rust build has not ported yet are skipped by
+  # tag, and the skipped tags are printed in the log. Remove a tag from SCAFFOLD_SKIP_TAGS when its command is ported.
+  features-rust:
+    name: Features (Rust) ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, target: linux-x64 }
+          - { os: ubuntu-24.04-arm, target: linux-arm64 }
+          - { os: macos-latest, target: darwin-arm64 }
+    permissions:
+      contents: read
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      SCAFFOLD_VERSION: 0.0.1-ci.${{ github.run_number }}
+      SCAFFOLD_BIN: ${{ github.workspace }}/target/debug/pantheon-scaffold
+      SCAFFOLD_SKIP_TAGS: detach,latest,freshness,upgrade
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5.2.0
+        with:
+          version: 2026.10.25
+          install: false
+          cache: false
+      - name: Install the pinned tools from the lock file
+        run: mise install --locked
+      # rustup is preinstalled on GitHub-hosted runners. The version must match rust-toolchain.toml.
+      - name: Install the Rust toolchain
+        run: |
+          rustup toolchain install 1.96.1 --profile minimal
+          rustup default 1.96.1
+      - name: Build the Rust runner
+        run: cargo build -p scaffold-cli --locked
+      - name: Run the features against the Rust build
         run: mise x -- cargo test -p scaffold-features --locked

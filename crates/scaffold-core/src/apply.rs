@@ -42,22 +42,28 @@ pub struct Action {
     pub path: String,
 }
 
+impl Kind {
+    /// The name the TypeScript runner prints for the action.
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Create => "create",
+            Self::Update => "update",
+            Self::Unchanged => "unchanged",
+            Self::Adopt => "adopt",
+            Self::Seed => "seed",
+            Self::SeedKept => "seed-kept",
+            Self::External => "external",
+            Self::Chmod => "chmod",
+            Self::Delete => "delete",
+            Self::Forget => "forget",
+        }
+    }
+}
+
 impl std::fmt::Display for Action {
     /// `kind:path`, with the kind spelled as the TypeScript runner spells it.
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let kind = match self.kind {
-            Kind::Create => "create",
-            Kind::Update => "update",
-            Kind::Unchanged => "unchanged",
-            Kind::Adopt => "adopt",
-            Kind::Seed => "seed",
-            Kind::SeedKept => "seed-kept",
-            Kind::External => "external",
-            Kind::Chmod => "chmod",
-            Kind::Delete => "delete",
-            Kind::Forget => "forget",
-        };
-        write!(f, "{kind}:{}", self.path)
+        write!(f, "{}:{}", self.kind.name(), self.path)
     }
 }
 

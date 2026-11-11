@@ -1,6 +1,6 @@
 # Features
 
-The behaviour of the runner, written as cucumber features. They are black-box: each scenario runs a binary and looks at its exit code, its output and the files it leaves, so the same files run against any build of the runner. Today that is the TypeScript build. The Rust build, when it exists, has to pass the same files (Phase 1 and 2 of the refocus plan).
+The behaviour of the runner, written as cucumber features. They are black-box: each scenario runs a binary and looks at its exit code, its output and the files it leaves, so the same files run against any build of the runner. There are two builds: the TypeScript build, which passes every scenario, and the Rust build (`crates/scaffold-cli`), which has to pass the same files (Phase 2 of the refocus plan). The Rust build does not have `detach`, `latest`, `freshness` or `upgrade` yet, so CI skips the scenarios tagged for them (see below).
 
 ## Run them
 
@@ -12,6 +12,15 @@ SCAFFOLD_BIN=dist/pantheon-scaffold-darwin-arm64 cargo test -p scaffold-features
 ```
 
 Use the target that matches your machine: `linux-x64`, `linux-arm64` or `darwin-arm64`. CI runs the features on all three after the build job.
+
+### Against the Rust build
+
+```bash
+cargo build -p scaffold-cli
+SCAFFOLD_SKIP_TAGS=detach,latest,freshness,upgrade SCAFFOLD_BIN=target/debug/pantheon-scaffold cargo test -p scaffold-features
+```
+
+`SCAFFOLD_SKIP_TAGS` is a comma-separated list of tags, without the `@`. Scenarios carrying any of them are not run, and the harness prints the list at the start. The scenarios for a command the Rust build has not ported carry its tag (`@detach`, `@latest`, `@freshness`, `@upgrade`). When a command is ported, remove its tag from the list in the `features-rust` job of `.github/workflows/ci.yml` and the scenarios start to count. Without the variable every scenario runs, which is how the TypeScript build is tested.
 
 ## Write a scenario
 

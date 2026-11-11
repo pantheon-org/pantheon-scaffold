@@ -1,0 +1,26 @@
+[package]
+name = "scaffold-cli"
+version = "0.0.0"
+description = "The pantheon-scaffold command line: reads a pantheon.pkl, then renders or checks the repository through scaffold-core."
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lib]
+name = "scaffold_cli"
+path = "src/lib.rs"
+
+[[bin]]
+name = "pantheon-scaffold"
+path = "src/main.rs"
+
+[dependencies]
+scaffold-core = { path = "../scaffold-core" }
+serde_json = { version = "1", features = ["preserve_order"] }
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true

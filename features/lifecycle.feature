@@ -81,6 +81,7 @@ Feature: files over time
     And the error contains "rust-toolchain.toml: differs from the render, left out of the repaired manifest"
     And the file "rust-toolchain.toml" has the content "# mine\n"
 
+  @detach
   Scenario: detach deletes the files marked for it and keeps the others
     Given a new git repository
     And I run "render <fixture:smoke-detach> --root <repo> --allow-local-package <package>"
@@ -92,6 +93,7 @@ Feature: files over time
     And the file "keep.txt" has the content "keep\n"
     And the file ".pkl-gen/manifest.json" does not exist
 
+  @detach
   Scenario: a dry run of detach changes nothing
     Given a new git repository
     And I run "render <fixture:smoke-detach> --root <repo> --allow-local-package <package>"
@@ -102,6 +104,7 @@ Feature: files over time
     And the file "tool.txt" exists
     And the file ".pkl-gen/manifest.json" exists
 
+  @detach
   Scenario: detach refuses a marked file that was edited by hand
     Given a new git repository
     And I run "render <fixture:smoke-detach> --root <repo> --allow-local-package <package>"
@@ -113,6 +116,7 @@ Feature: files over time
     And the file "tool.txt" has the content "mine\n"
     And the file ".pkl-gen/manifest.json" exists
 
+  @detach
   Scenario: detach --force deletes a marked file that was edited by hand
     Given a new git repository
     And I run "render <fixture:smoke-detach> --root <repo> --allow-local-package <package>"
@@ -122,6 +126,7 @@ Feature: files over time
     Then the exit code is 0
     And the file "tool.txt" does not exist
 
+  @detach
   Scenario: detach without a manifest has nothing to do
     Given a new empty repository
     When I run "detach --root <repo>"

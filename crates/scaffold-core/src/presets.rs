@@ -40,12 +40,18 @@ pub fn read_listed(
     Ok(hashes)
 }
 
-/// The `.pkl` files under `presets/` that are not in `listed`, sorted, as paths relative to the config directory.
-pub fn unused(config_dir: &Path, listed: &[String]) -> Vec<String> {
+/// Every `.pkl` file under `presets/`, sorted, as paths relative to the config directory.
+pub fn files(config_dir: &Path) -> Vec<String> {
     let mut found = Vec::new();
     collect(config_dir, "presets", &mut found);
-    found.retain(|path| !listed.contains(path));
     found.sort();
+    found
+}
+
+/// The `.pkl` files under `presets/` that are not in `listed`, sorted, as paths relative to the config directory.
+pub fn unused(config_dir: &Path, listed: &[String]) -> Vec<String> {
+    let mut found = files(config_dir);
+    found.retain(|path| !listed.contains(path));
     found
 }
 
@@ -175,6 +181,19 @@ mod tests {
             unused(d.path(), &listed(&["presets/used.pkl"])),
             ["presets/deep/er/apple.pkl", "presets/zebra.pkl"]
         );
+    }
+
+    #[test]
+    fn files_lists_every_pkl_under_presets_sorted_whether_or_not_it_is_listed() {
+        let d = dir();
+        put(d.path(), "presets/zebra.pkl", "x");
+        put(d.path(), "presets/deep/apple.pkl", "x");
+        put(d.path(), "presets/notes.md", "x");
+        assert_eq!(
+            files(d.path()),
+            ["presets/deep/apple.pkl", "presets/zebra.pkl"]
+        );
+        assert!(files(dir().path()).is_empty());
     }
 
     #[test]

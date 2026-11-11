@@ -208,6 +208,19 @@ fn check_next(next: &NewPins) -> Result<(), PinError> {
     Ok(())
 }
 
+/// The text with every import of the package moved to the new version and checksum.
+fn moved_imports_text(text: &str, next: &NewPins) -> String {
+    let (version, checksum) = (next.version, next.checksum);
+    import_pattern()
+        .replace_all(text, |c: &regex::Captures| {
+            format!(
+                "{}{version}{}{version}::sha256:{checksum}{}",
+                &c[1], &c[3], &c[5]
+            )
+        })
+        .into_owned()
+}
+
 /// The config text with the amends line and every import of the package moved to the new version and checksum.
 fn moved_config(pkl: &str, next: &NewPins) -> String {
     let (version, checksum) = (next.version, next.checksum);
@@ -217,23 +230,17 @@ fn moved_config(pkl: &str, next: &NewPins) -> String {
             &c[1], &c[3], &c[6]
         )
     });
-    import_pattern()
-        .replace_all(&new_pkl, |c: &regex::Captures| {
-            format!(
-                "{}{version}{}{version}::sha256:{checksum}{}",
-                &c[1], &c[3], &c[5]
-            )
-        })
-        .into_owned()
+    moved_imports_text(&new_pkl, next)
 }
 
-/// What the config would read after `write_pins`, without writing anything. `upgrade` evaluates it first, so a config that the
-/// new package cannot evaluate (a Preset that no longer fits) is found before any file is touched.
-pub fn config_after(root: &Path, config: &str, next: &NewPins) -> Result<String, PinError> {
+/// A Preset's text with every import of the package moved to the new version and checksum, and how many imports there are, or
+/// `None` when there is nothing to change: no import of the package, or all of them already there. A Preset that imports the package
+/// at another version than the config makes pkl stop with `Module version conflict`, so `upgrade` moves them together.
+pub fn moved_imports(text: &str, next: &NewPins) -> Result<Option<(String, usize)>, PinError> {
     check_next(next)?;
-    let pkl = read_text(root, config)?;
-    only_amends(&pkl, config)?;
-    Ok(moved_config(&pkl, next))
+    let count = import_pattern().find_iter(text).count();
+    let moved = moved_imports_text(text, next);
+    Ok((moved != text).then_some((moved, count)))
 }
 
 /// Rewrites both files in memory first, and writes either only when both rewrites worked.
@@ -739,73 +746,85 @@ mod tests {
             count_package_imports(tempfile::tempdir().unwrap().path(), "pantheon.pkl").is_err()
         );
     }
+    fn import(v: &str, module: &str, sum: Option<&str>) -> String {
+        let checksum = sum.map(|s| format!("::sha256:{s}")).unwrap_or_default();
+        format!(
+            "import \"package://github.com/pantheon-org/pantheon-scaffold/releases/download/v{v}/pantheon-scaffold@{v}{checksum}#/{module}\"\n"
+        )
+    }
+
+    fn next(version: &'static str, sum: &str) -> NewPins<'static> {
+        NewPins {
+            version,
+            checksum: Box::leak(sum.to_owned().into_boxed_str()),
+        }
+    }
+
     #[test]
-    fn config_after_is_what_write_pins_would_write_and_writes_nothing() {
-        let dir = tempfile::tempdir().unwrap();
+    fn the_imports_of_the_package_in_a_preset_move_to_the_new_version_and_checksum() {
         let text = format!(
-            "{}\nimport \"package://github.com/pantheon-org/pantheon-scaffold/releases/download/v0.1.0/pantheon-scaffold@0.1.0#/Builtins.pkl\"\n",
-            pkl("0.1.0", None)
+            "{}{}function f() = 1\n",
+            import("0.1.0", "Config.pkl", Some(&h('a'))),
+            import("0.1.0", "Presets.pkl", None)
         );
-        put(dir.path(), "pantheon.pkl", &text);
-        put(dir.path(), "mise.toml", &mise("0.1.0"));
-        let next = NewPins {
-            version: "0.2.0",
-            checksum: &h('c'),
-        };
-        let after = config_after(dir.path(), "pantheon.pkl", &next).unwrap();
-        assert_eq!(get(dir.path(), "pantheon.pkl"), text, "nothing was written");
-        write_pins(dir.path(), "pantheon.pkl", &next).unwrap();
-        assert_eq!(after, get(dir.path(), "pantheon.pkl"));
-        assert!(after.contains(&format!(
-            "pantheon-scaffold@0.2.0::sha256:{}#/Config.pkl",
-            h('c')
-        )));
-        assert!(after.contains(&format!(
-            "pantheon-scaffold@0.2.0::sha256:{}#/Builtins.pkl",
+        let (moved, count) = moved_imports(&text, &next("0.2.0", &h('c')))
+            .unwrap()
+            .unwrap();
+        assert_eq!(count, 2);
+        assert_eq!(
+            moved,
+            format!(
+                "{}{}function f() = 1\n",
+                import("0.2.0", "Config.pkl", Some(&h('c'))),
+                import("0.2.0", "Presets.pkl", Some(&h('c')))
+            )
+        );
+    }
+
+    #[test]
+    fn a_star_import_of_the_package_moves_too() {
+        let text = "import* \"package://github.com/pantheon-org/pantheon-scaffold/releases/download/v0.1.0/pantheon-scaffold@0.1.0#/*.pkl\"\n";
+        let (moved, count) = moved_imports(text, &next("0.2.0", &h('c')))
+            .unwrap()
+            .unwrap();
+        assert_eq!(count, 1);
+        assert!(moved.contains(&format!(
+            "v0.2.0/pantheon-scaffold@0.2.0::sha256:{}#/*.pkl",
             h('c')
         )));
     }
 
     #[test]
-    fn config_after_refuses_what_write_pins_refuses() {
-        let dir = tempfile::tempdir().unwrap();
-        put(dir.path(), "pantheon.pkl", &pkl("0.1.0", None));
-        let bad_version = NewPins {
-            version: "banana",
-            checksum: &h('c'),
-        };
+    fn a_preset_with_no_import_of_the_package_or_already_at_the_version_is_left_alone() {
+        let n = next("0.2.0", &h('c'));
         assert_eq!(
-            config_after(dir.path(), "pantheon.pkl", &bad_version)
+            moved_imports("import \"pkl:json\"\nimport \"other.pkl\"\n", &n).unwrap(),
+            None
+        );
+        assert_eq!(moved_imports("", &n).unwrap(), None);
+        let already = import("0.2.0", "Config.pkl", Some(&h('c')));
+        assert_eq!(moved_imports(&already, &n).unwrap(), None);
+    }
+
+    #[test]
+    fn an_import_of_another_package_or_a_local_file_is_not_moved() {
+        let text =
+            "import \"package://example.com/other@1.0.0#/X.pkl\"\nimport \"../pkl/Config.pkl\"\n";
+        assert_eq!(moved_imports(text, &next("0.2.0", &h('c'))).unwrap(), None);
+    }
+
+    #[test]
+    fn moving_imports_refuses_what_write_pins_refuses() {
+        let text = import("0.1.0", "Config.pkl", None);
+        assert_eq!(
+            moved_imports(&text, &next("banana", &h('c')))
                 .unwrap_err()
                 .0,
             "\"banana\" is not a version"
         );
-        let bad_sum = NewPins {
-            version: "0.2.0",
-            checksum: "abc",
-        };
         assert_eq!(
-            config_after(dir.path(), "pantheon.pkl", &bad_sum)
-                .unwrap_err()
-                .0,
+            moved_imports(&text, &next("0.2.0", "abc")).unwrap_err().0,
             "the checksum is not 64 hex characters"
-        );
-        put(dir.path(), "none.pkl", "options { }\n");
-        let ok = NewPins {
-            version: "0.2.0",
-            checksum: &h('c'),
-        };
-        assert!(
-            config_after(dir.path(), "none.pkl", &ok)
-                .unwrap_err()
-                .0
-                .contains("no amends line")
-        );
-        assert!(
-            config_after(dir.path(), "missing.pkl", &ok)
-                .unwrap_err()
-                .0
-                .contains("not found")
         );
     }
 }

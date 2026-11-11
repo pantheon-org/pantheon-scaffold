@@ -136,6 +136,12 @@ impl Setup {
     }
 }
 
+fn preset_text(v: &str, sum: &str) -> String {
+    format!(
+        "import \"package://github.com/pantheon-org/pantheon-scaffold/releases/download/v{v}/pantheon-scaffold@{v}::sha256:{sum}#/Config.pkl\"\n\nfunction apply(w) = w\n"
+    )
+}
+
 fn default_checksums() -> Option<String> {
     Some(format!("{}  pantheon-scaffold@0.2.0\n", h('c')))
 }
@@ -156,9 +162,9 @@ fn upgrade_verifies_the_release_rewrites_the_pins_refreshes_mise_and_re_renders(
         "{}",
         calls[0]
     );
-    // The new config is evaluated, from a copy next to the original, before the first thing mise does.
+    // The moved config is evaluated before the first thing mise does.
     assert!(
-        calls[1].starts_with("pkl ") && calls[1].ends_with("pantheon.upgrade-check.pkl"),
+        calls[1].starts_with("pkl ") && calls[1].ends_with("/pantheon.pkl"),
         "{}",
         calls[1]
     );
@@ -174,7 +180,6 @@ fn upgrade_verifies_the_release_rewrites_the_pins_refreshes_mise_and_re_renders(
         ]
     );
     assert_eq!(s.pkl_saw(), amends("0.2.0", &h('c')));
-    assert!(!s.repo.path().join("pantheon.upgrade-check.pkl").exists());
 }
 
 #[test]
@@ -202,7 +207,6 @@ fn a_config_that_the_new_package_cannot_evaluate_stops_the_upgrade_before_anythi
         "mise must not run: {:?}",
         s.calls()
     );
-    assert!(!s.repo.path().join("pantheon.upgrade-check.pkl").exists());
     assert!(!s.repo.path().join(".pkl-gen/lock").exists());
 }
 
@@ -218,7 +222,7 @@ fn the_evaluation_gets_the_cache_folder_and_the_local_package_folders_of_the_com
             "0.2.0",
             "--root",
             &s.root(),
-            "--dry-run",
+            "--no-render",
             "--cache-dir",
             &cache,
             "--allow-local-package",
@@ -240,16 +244,70 @@ fn the_evaluation_gets_the_cache_folder_and_the_local_package_folders_of_the_com
 }
 
 #[test]
-fn a_dry_run_evaluates_the_config_too() {
+fn a_dry_run_does_not_run_pkl_and_lists_the_presets_it_would_move() {
     let s = setup(default_checksums());
-    let message = "preset: workflow \"rust-cii\" is not a builtin of this package version";
+    let preset = preset_text("0.1.0", &h('a'));
+    std::fs::create_dir_all(s.repo.path().join("presets")).unwrap();
+    std::fs::write(s.repo.path().join("presets/ci.pkl"), &preset).unwrap();
+    let r = s.run(&["upgrade", "0.2.0", "--root", &s.root(), "--dry-run"], &[]);
+    assert_eq!(r.code, 0, "{}", r.err);
+    assert!(
+        r.out
+            .contains("would change  presets/ci.pkl: 1 import of the package"),
+        "{}",
+        r.out
+    );
+    assert!(
+        s.calls().iter().all(|c| !c.starts_with("pkl")),
+        "{:?}",
+        s.calls()
+    );
+    assert_eq!(s.get("presets/ci.pkl"), preset);
+}
+
+#[test]
+fn the_imports_of_the_package_in_a_preset_move_with_the_config_and_are_evaluated_before_mise() {
+    let s = setup(default_checksums());
+    std::fs::create_dir_all(s.repo.path().join("presets")).unwrap();
+    std::fs::write(
+        s.repo.path().join("presets/ci.pkl"),
+        preset_text("0.1.0", &h('a')),
+    )
+    .unwrap();
+    let r = s.run(&["upgrade", "0.2.0", "--root", &s.root()], &[]);
+    assert_eq!(r.code, 0, "{}", r.err);
+    assert!(
+        r.out
+            .contains("changed  presets/ci.pkl: 1 import of the package"),
+        "{}",
+        r.out
+    );
+    assert_eq!(s.get("presets/ci.pkl"), preset_text("0.2.0", &h('c')));
+}
+
+#[test]
+fn a_preset_that_no_longer_fits_is_put_back_with_the_config_and_nothing_is_changed() {
+    let s = setup(default_checksums());
+    std::fs::create_dir_all(s.repo.path().join("presets")).unwrap();
+    let preset = preset_text("0.1.0", &h('a'));
+    std::fs::write(s.repo.path().join("presets/ci.pkl"), &preset).unwrap();
+    let message = "preset: job \"build\" does not exist in workflow \"Rust CI\". Jobs: build-test";
     let r = s.run(
-        &["upgrade", "0.2.0", "--root", &s.root(), "--dry-run"],
+        &["upgrade", "0.2.0", "--root", &s.root()],
         &[("PKL_FAIL", message)],
     );
     assert_eq!(r.code, 1);
     assert!(r.err.contains(message), "{}", r.err);
+    assert_eq!(s.get("presets/ci.pkl"), preset);
     assert_eq!(s.get("pantheon.pkl"), amends("0.1.0", &h('a')));
+    assert_eq!(s.get("mise.toml"), mise_toml("0.1.0"));
+    assert!(
+        s.calls()
+            .iter()
+            .all(|c| c.starts_with("gh") || c.starts_with("pkl")),
+        "{:?}",
+        s.calls()
+    );
 }
 
 #[test]
@@ -300,12 +358,7 @@ fn dry_run_verifies_and_lists_the_change_and_writes_and_runs_nothing_else() {
         r.out
     );
     assert_eq!(s.get("mise.toml"), mise_toml("0.1.0"));
-    assert!(
-        s.calls()
-            .iter()
-            .all(|c| c.starts_with("gh") || c.starts_with("pkl"))
-    );
-    assert_eq!(s.calls().iter().filter(|c| c.starts_with("pkl")).count(), 1);
+    assert!(s.calls().iter().all(|c| c.starts_with("gh")));
 }
 
 #[test]

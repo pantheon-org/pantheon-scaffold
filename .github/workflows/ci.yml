@@ -64,7 +64,10 @@ jobs:
       - name: Check the Rust dependencies (licences, advisories, sources)
         run: mise x -- cargo-deny check
 
-  # Mutation testing takes about ten minutes, so it runs beside the other checks and not inside them.
+  # Mutation testing takes about ten minutes in full, so it runs beside the other checks and not inside them. A pull request
+  # mutates only the code its diff touches; every push to main runs the full set, so a survivor elsewhere cannot hide.
+  # cargo-mutants fails on any surviving mutant (stricter than the 90 percent of the plan); a justified survivor is excluded
+  # by name in .cargo/mutants.toml, with the reason beside it.
   mutation:
     name: Mutation tests
     runs-on: ubuntu-latest
@@ -73,10 +76,12 @@ jobs:
       contents: read
     env:
       GITHUB_TOKEN: ${{ github.token }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5.2.0
         with:
           version: 2026.10.25
@@ -91,7 +96,13 @@ jobs:
       # mise has no macOS arm64 build of cargo-mutants, so it is built from source at a pinned version.
       - name: Install cargo-mutants
         run: cargo install cargo-mutants --version 27.1.0 --locked
-      - name: Mutation-test the Rust core
+      - name: Mutation-test the code this pull request changes
+        if: github.event_name == 'pull_request'
+        run: |
+          git diff "$BASE_SHA"...HEAD > "$RUNNER_TEMP/pr.diff"
+          mise x -- cargo mutants --package scaffold-core --package scaffold-cli --jobs 2 --in-diff "$RUNNER_TEMP/pr.diff"
+      - name: Mutation-test the whole Rust core
+        if: github.event_name != 'pull_request'
         run: mise x -- cargo mutants --package scaffold-core --package scaffold-cli --jobs 2
 
   build:

@@ -1,6 +1,6 @@
 //! The pantheon-scaffold command line, ported from `runner/src/cli.ts`.
 //!
-//! This build handles `--version`, `contract`, `render` and `check`. `detach`, `latest`, `freshness` and `upgrade` parse
+//! This build handles `--version`, `contract`, `render`, `check` and `detach`. `latest`, `freshness` and `upgrade` parse
 //! their options like the TypeScript runner but stop with an error until they are ported.
 
 use std::io::Write;
@@ -173,6 +173,13 @@ pub fn run(argv: &[String], cwd: &Path, out: &mut dyn Write, err: &mut dyn Write
             let config = config.expect("checked above");
             command(cmd, config, cwd, &flags, &mut io)
         }
+        "detach" => match run_detach(&flags, &mut io) {
+            Ok(code) => code,
+            Err(message) => {
+                io.complain(&message);
+                EXIT_ERROR
+            }
+        },
         _ => {
             io.complain(&format!(
                 "{cmd} is not available in the Rust runner yet, use the TypeScript runner"
@@ -180,6 +187,38 @@ pub fn run(argv: &[String], cwd: &Path, out: &mut dyn Write, err: &mut dyn Write
             EXIT_ERROR
         }
     }
+}
+
+fn run_detach(flags: &Flags, io: &mut Io) -> Result<i32, String> {
+    use scaffold_core::detach::{DetachKind, DetachOptions, detach};
+    let options = DetachOptions {
+        dry_run: flags.dry_run,
+        force: flags.force,
+        ..DetachOptions::default()
+    };
+    let report = detach(&flags.root, &options).map_err(|e| e.to_string())?;
+    for action in &report.actions {
+        io.say(&format!("{:<9} {}", action.kind_name(), action.path));
+    }
+    if !report.refusals.is_empty() {
+        let lines: Vec<String> = report.refusals.iter().map(|r| format!("  {r}")).collect();
+        io.complain(&format!(
+            "refused, nothing was changed:\n{}",
+            lines.join("\n")
+        ));
+        return Ok(EXIT_REFUSED);
+    }
+    let deleted = report
+        .actions
+        .iter()
+        .filter(|a| a.kind == DetachKind::Delete)
+        .count();
+    io.say(&if report.dry_run {
+        format!("dry run: would delete {deleted} file(s) and remove the manifest")
+    } else {
+        format!("detached: deleted {deleted} file(s) and removed the manifest, every other file is a plain file now")
+    });
+    Ok(EXIT_OK)
 }
 
 fn command(cmd: &str, config: &str, cwd: &Path, flags: &Flags, io: &mut Io) -> i32 {
@@ -603,12 +642,7 @@ mod tests {
 
     #[test]
     fn commands_that_are_not_ported_stop_with_an_error() {
-        for items in [
-            &["detach"][..],
-            &["latest"],
-            &["freshness"],
-            &["upgrade", "1.0.0"],
-        ] {
+        for items in [&["latest"][..], &["freshness"], &["upgrade", "1.0.0"]] {
             let (code, out, err) = go(items, &here());
             assert_eq!((code, out.as_str()), (EXIT_ERROR, ""), "{items:?}");
             assert_eq!(
@@ -823,6 +857,139 @@ mod tests {
         let (code, _, err) = with_repo("render", &[], repo.path());
         assert_eq!(code, EXIT_ERROR);
         assert!(err.contains("--repair"), "{err}");
+    }
+
+    fn git(root: &Path, items: &[&str]) {
+        let mut command = std::process::Command::new("git");
+        command
+            .arg("-C")
+            .arg(root)
+            .args(["-c", "user.name=t", "-c", "user.email=t@e.invalid"])
+            .args(items);
+        for (key, _) in std::env::vars_os() {
+            if key.to_string_lossy().starts_with("GIT_") {
+                command.env_remove(key);
+            }
+        }
+        assert!(command.output().unwrap().status.success(), "git {items:?}");
+    }
+
+    /// A git repository holding the render of the `smoke-detach` fixture, committed.
+    fn detachable() -> tempfile::TempDir {
+        let repo = tempfile::tempdir().unwrap();
+        git(repo.path(), &["init", "-q", "-b", "main"]);
+        std::fs::write(
+            repo.path().join(".gitignore"),
+            ".pkl-gen/lock\n.pkl-gen/stage/\n.pkl-gen/cache/\n",
+        )
+        .unwrap();
+        let config = checkout()
+            .join("runner/test/fixtures/smoke-detach/pantheon.pkl")
+            .display()
+            .to_string();
+        let (root, package) = (repo.path().display().to_string(), package());
+        let (code, _, err) = go(
+            &[
+                "render",
+                &config,
+                "--root",
+                &root,
+                "--allow-local-package",
+                &package,
+            ],
+            &here(),
+        );
+        assert_eq!((code, err.as_str()), (EXIT_OK, ""));
+        git(repo.path(), &["add", "-A"]);
+        git(repo.path(), &["commit", "-qm", "render"]);
+        repo
+    }
+
+    fn detach_in(repo: &Path, extra: &[&str]) -> (i32, String, String) {
+        let root = repo.display().to_string();
+        let mut items = vec!["detach", "--root", root.as_str()];
+        items.extend_from_slice(extra);
+        go(&items, &here())
+    }
+
+    #[test]
+    fn detach_without_a_manifest_has_nothing_to_do() {
+        let repo = tempfile::tempdir().unwrap();
+        let (code, out, err) = detach_in(repo.path(), &[]);
+        assert_eq!((code, out.as_str()), (EXIT_ERROR, ""));
+        assert_eq!(
+            err,
+            ".pkl-gen/manifest.json not found, there is nothing to detach\n"
+        );
+    }
+
+    #[test]
+    fn a_dry_run_of_detach_lists_the_plan_and_changes_nothing() {
+        let repo = detachable();
+        let (code, out, err) = detach_in(repo.path(), &["--dry-run"]);
+        assert_eq!((code, err.as_str()), (EXIT_OK, ""));
+        assert!(out.starts_with("delete    "), "{out}");
+        assert!(out.contains("manifest  .pkl-gen/manifest.json\n"), "{out}");
+        assert!(
+            out.ends_with("dry run: would delete 1 file(s) and remove the manifest\n"),
+            "{out}"
+        );
+        assert!(repo.path().join(".pkl-gen/manifest.json").exists());
+    }
+
+    #[test]
+    fn detach_deletes_the_marked_files_and_removes_the_manifest() {
+        let repo = detachable();
+        let (code, out, err) = detach_in(repo.path(), &[]);
+        assert_eq!((code, err.as_str()), (EXIT_OK, ""));
+        assert!(out.ends_with("detached: deleted 1 file(s) and removed the manifest, every other file is a plain file now\n"), "{out}");
+        assert!(!repo.path().join(".pkl-gen").exists());
+    }
+
+    #[test]
+    fn detach_counts_only_the_files_it_deletes() {
+        let repo = detachable();
+        std::fs::remove_file(repo.path().join("tool.txt")).unwrap();
+        git(repo.path(), &["commit", "-qam", "removed by hand"]);
+        let (code, out, _) = detach_in(repo.path(), &["--dry-run"]);
+        assert_eq!(code, EXIT_OK);
+        assert_eq!(
+            out,
+            "forget    tool.txt\nmanifest  .pkl-gen/manifest.json\ndry run: would delete 0 file(s) and remove the manifest\n"
+        );
+        let (_, out, _) = detach_in(repo.path(), &[]);
+        assert!(out.ends_with("detached: deleted 0 file(s) and removed the manifest, every other file is a plain file now\n"), "{out}");
+    }
+
+    #[test]
+    fn detach_refuses_a_marked_file_that_was_edited_by_hand() {
+        let repo = detachable();
+        let marked = detach_in(repo.path(), &["--dry-run"])
+            .1
+            .lines()
+            .next()
+            .unwrap()
+            .split_whitespace()
+            .nth(1)
+            .unwrap()
+            .to_owned();
+        std::fs::write(repo.path().join(&marked), "edited\n").unwrap();
+        git(repo.path(), &["commit", "-qam", "edit"]);
+        let (code, out, err) = detach_in(repo.path(), &[]);
+        assert_eq!(code, EXIT_REFUSED);
+        // A refused file is not an action, so only the manifest line is listed.
+        assert_eq!(out, "manifest  .pkl-gen/manifest.json\n");
+        assert!(
+            err.starts_with("refused, nothing was changed:\n  "),
+            "{err}"
+        );
+        assert!(
+            err.contains(
+                "edited by hand since the last render, so detach will not delete it (use --force)"
+            ),
+            "{err}"
+        );
+        assert_eq!(detach_in(repo.path(), &["--force"]).0, EXIT_OK);
     }
 
     fn contract_with(uri: Option<&str>) -> Contract {

@@ -26,6 +26,8 @@ A **Builtin** is a function in `Builtins.pkl` that returns a `Workflow` or a `Ge
 - Amending a `Listing` appends. A Preset cannot replace one step in place with plain amending, so `amendStep` finds it by name (built in task 4.2, with a scenario for the missing-step error). A step without a `name` cannot be targeted.
 - The `raw` escape hatch is counted as "uses" by the quality gate. A Preset that uses it counts too; this is unchanged.
 
+- **A Preset that imports the package by address breaks at the next `upgrade`** (found while writing [presets.md](presets.md), 11-11-2026). `upgrade` moves the package imports in `pantheon.pkl` but not in `presets/`, so pkl stops with `Module version conflict` (tested with two copies of the package, config on one and a Preset on the other). The task 4.3 pre-check catches it and nothing is changed, but the owner must edit the imports by hand. This repository's own Presets import its checkout by a relative path and do not show it. Task 4.5 fixes it: `upgrade` moves the package imports in the files under `presets/` too, and evaluates the moved files in place (with the existing rollback) instead of from a copy.
+
 ## Rejected
 
 - **Presets anywhere the config imports.** Rejected by the owner on 11-11-2026 (open question 4): the runner would have to follow imports to list them.

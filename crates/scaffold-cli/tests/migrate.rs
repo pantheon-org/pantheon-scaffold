@@ -46,14 +46,25 @@ fn contract_json(files: &[(&str, &str, &str)]) -> String {
 
 /// A server that knows release 0.2.0 (its checksums and an empty known-bad list), and fake `gh` and `pkl`.
 fn setup(files: &[(&str, &str, &str)]) -> Setup {
+    setup_with_presets(files, files)
+}
+
+/// The fake pkl prints `files` for a config that applies no Presets, and `with_presets` for one that lists some, as the real
+/// package would once the Presets keep the files that drifted.
+fn setup_with_presets(files: &[(&str, &str, &str)], with_presets: &[(&str, &str, &str)]) -> Setup {
     let bin = tempfile::tempdir().unwrap();
     script(&bin.path().join("gh"), "#!/bin/sh\nexit 0\n");
     std::fs::write(bin.path().join("contract.json"), contract_json(files)).unwrap();
+    std::fs::write(
+        bin.path().join("contract-presets.json"),
+        contract_json(with_presets),
+    )
+    .unwrap();
     script(
         &bin.path().join("pkl"),
         &format!(
-            "#!/bin/sh\nfor last; do :; done\nuri=$(grep -o 'package://[^\"#]*' \"$last\" | head -1)\nsed \"s|@URI@|$uri|\" \"{}\"\n",
-            bin.path().join("contract.json").display()
+            "#!/bin/sh\nfor last; do :; done\nuri=$(grep -o 'package://[^\"#]*' \"$last\" | head -1)\ncontract=\"{dir}/contract.json\"\nif grep -q '^presets {{' \"$last\"; then contract=\"{dir}/contract-presets.json\"; fi\nsed \"s|@URI@|$uri|\" \"$contract\"\n",
+            dir = bin.path().display()
         ),
     );
     let routes: HashMap<String, String> = HashMap::from([
@@ -190,7 +201,7 @@ fn a_dry_run_with_a_drifted_file_shows_the_difference_and_says_write_is_refused(
     assert!(r.out.contains("line 1 on disk:  x = 2"), "{}", r.out);
     assert!(
         r.out.contains(
-            "migrate: 1 identical, 1 drifted, 1 new, 1 per-repo. Nothing was written. --write is refused while a file has drifted."
+            "migrate: 1 identical, 1 drifted, 1 new, 1 per-repo. Nothing was written. --write is refused while a file has drifted; --as-presets keeps each one as a Preset."
         ),
         "{}",
         r.out
@@ -311,4 +322,141 @@ fn a_seed_that_exists_and_an_external_file_are_named_and_not_counted() {
         "{}",
         r.out
     );
+}
+
+/// A repository with one drifted file `a.toml`, and a contract that, once the Preset keeps the file, renders the file as it is.
+fn drifted() -> Setup {
+    let s = setup_with_presets(
+        &[
+            ("a.toml", "owned", "x = 1\n"),
+            ("new.toml", "owned", "n = 1\n"),
+        ],
+        &[
+            ("a.toml", "owned", "x = 2\n"),
+            ("new.toml", "owned", "n = 1\n"),
+        ],
+    );
+    s.put("a.toml", "x = 2\n");
+    s.put("README.md", "# mine\n");
+    s
+}
+
+#[test]
+fn as_presets_in_a_dry_run_lists_the_preset_and_writes_nothing() {
+    let s = drifted();
+    let r = s.run(&["--toolchain", "1.96.1", "--as-presets"]);
+    assert_eq!(r.code, 0, "{} {}", r.out, r.err);
+    assert!(
+        r.out.contains("preset     presets/a.pkl  keeps a.toml"),
+        "{}",
+        r.out
+    );
+    assert!(
+        r.out.contains("migrate: 0 identical, 1 drifted, 1 new, 1 per-repo. Nothing was written. Run again with --write to write pantheon.pkl, 1 Preset(s) and the new files."),
+        "{}",
+        r.out
+    );
+    assert!(!s.exists("presets/a.pkl") && !s.exists("pantheon.pkl") && !s.exists("new.toml"));
+}
+
+#[test]
+fn as_presets_with_write_keeps_the_file_in_a_preset_and_records_it() {
+    let s = drifted();
+    let r = s.run(&["--toolchain", "1.96.1", "--write", "--as-presets"]);
+    assert_eq!(r.code, 0, "{} {}", r.out, r.err);
+    assert!(
+        r.out.contains(
+            "Wrote pantheon.pkl, 1 Preset(s) and 1 file(s). Next: run mise lock, then commit."
+        ),
+        "{}",
+        r.out
+    );
+    assert_eq!(s.get("a.toml"), "x = 2\n");
+    assert_eq!(s.get("new.toml"), "n = 1\n");
+    let preset = s.get("presets/a.pkl");
+    assert!(
+        preset.contains("content = #\"\"\"\nx = 2\n\n\"\"\"#"),
+        "{preset}"
+    );
+    let config = s.get("pantheon.pkl");
+    assert!(
+        config.contains("presets {\n  \"presets/a.pkl\"\n}"),
+        "{config}"
+    );
+    assert!(
+        config.contains("files = preset0.apply(standard)"),
+        "{config}"
+    );
+    let manifest = s.get(".pkl-gen/manifest.json");
+    assert!(
+        manifest.contains("\"presets\": {\n    \"presets/a.pkl\": \""),
+        "{manifest}"
+    );
+    assert!(
+        manifest.contains("\"packageVersion\": \"0.2.0\""),
+        "{manifest}"
+    );
+}
+
+#[test]
+fn when_the_presets_do_not_reproduce_a_file_nothing_is_written() {
+    // The contract with Presets still renders `x = 3`, so the Preset has not kept the file.
+    let s = setup_with_presets(
+        &[("a.toml", "owned", "x = 1\n")],
+        &[("a.toml", "owned", "x = 3\n")],
+    );
+    s.put("a.toml", "x = 2\n");
+    let r = s.run(&["--toolchain", "1.96.1", "--write", "--as-presets"]);
+    assert_eq!(r.code, 1, "{} {}", r.out, r.err);
+    assert!(
+        r.err
+            .contains("the Presets do not reproduce 1 file(s), so nothing was written:\n  a.toml"),
+        "{}",
+        r.err
+    );
+    assert!(!s.exists("presets/a.pkl") && !s.exists("pantheon.pkl"));
+    assert_eq!(s.get("a.toml"), "x = 2\n");
+}
+
+#[test]
+fn a_drifted_file_that_is_not_text_stops_the_run_and_writes_nothing() {
+    let s = setup(&[("a.bin", "owned", "x\n")]);
+    std::fs::write(s.repo.path().join("a.bin"), [0xff, 0xfe]).unwrap();
+    let r = s.run(&["--toolchain", "1.96.1", "--write", "--as-presets"]);
+    assert_eq!(r.code, 1, "{} {}", r.out, r.err);
+    assert!(
+        r.err.contains("a.bin cannot be kept as a Preset"),
+        "{}",
+        r.err
+    );
+    assert!(!s.exists("pantheon.pkl") && !s.exists("presets"));
+}
+
+#[test]
+fn a_preset_does_not_take_the_name_of_a_file_already_under_presets() {
+    let s = drifted();
+    s.put("presets/a.pkl", "mine\n");
+    let r = s.run(&["--toolchain", "1.96.1", "--write", "--as-presets"]);
+    assert_eq!(r.code, 0, "{} {}", r.out, r.err);
+    assert_eq!(s.get("presets/a.pkl"), "mine\n");
+    assert!(s.exists("presets/a-2.pkl"));
+    assert!(s.get("pantheon.pkl").contains("\"presets/a-2.pkl\""));
+}
+
+#[test]
+fn a_refusal_found_by_the_plan_stops_the_run_before_any_preset_is_written() {
+    // The manifest records another hash for new.toml than the file has: the render refuses a file edited by hand since then.
+    let s = drifted();
+    s.put("new.toml", "n = 1\n");
+    s.put(
+        ".pkl-gen/manifest.json",
+        &format!(
+            "{{\n  \"manifestVersion\": 1,\n  \"files\": {{\n    \"new.toml\": {{\n      \"class\": \"owned\",\n      \"hash\": \"{}\"\n    }}\n  }}\n}}\n",
+            "0".repeat(64)
+        ),
+    );
+    let r = s.run(&["--toolchain", "1.96.1", "--write", "--as-presets"]);
+    assert_eq!(r.code, 3, "{} {}", r.out, r.err);
+    assert!(r.err.contains("new.toml: was edited by hand"), "{}", r.err);
+    assert!(!s.exists("presets/a.pkl") && !s.exists("pantheon.pkl"));
 }

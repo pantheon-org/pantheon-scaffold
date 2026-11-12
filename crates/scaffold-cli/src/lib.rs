@@ -30,7 +30,7 @@ pub const USAGE: &str = "usage (exit codes: 0 ok, 1 error, 2 usage, 3 refused, 4
   pantheon-scaffold freshness [--url <url>] [--max-age-days <n>] [--attempts <n>]
   pantheon-scaffold upgrade <version> [--root <dir>] [--config <file>] [--dry-run] [--force] [--no-render]
   pantheon-scaffold init --toolchain <x.y.z> [--package-version <x.y.z>] [--binary --crate-name <name>] [--skills --skill-name <name>] [--write] [--root <dir>] [--cache-dir <dir>] [--allow-local-package <dir>] [--attempts <n>]
-  pantheon-scaffold migrate --toolchain <x.y.z> [--package-version <x.y.z>] [--binary --crate-name <name>] [--skills --skill-name <name>] [--write] [--root <dir>] [--cache-dir <dir>] [--allow-local-package <dir>] [--attempts <n>]";
+  pantheon-scaffold migrate --toolchain <x.y.z> [--package-version <x.y.z>] [--binary --crate-name <name>] [--skills --skill-name <name>] [--write] [--as-presets] [--root <dir>] [--cache-dir <dir>] [--allow-local-package <dir>] [--attempts <n>]";
 
 /// The default age limit of `freshness`, in days.
 pub const MAX_AGE_DAYS: u64 = 30;
@@ -55,6 +55,7 @@ pub struct Flags {
     pub crate_name: Option<String>,
     pub skill_name: Option<String>,
     pub write: bool,
+    pub as_presets: bool,
     pub binary: bool,
     pub skills: bool,
 }
@@ -103,6 +104,7 @@ pub fn parse_flags(args: &[String], cwd: &Path) -> Result<Flags, String> {
         crate_name: None,
         skill_name: None,
         write: false,
+        as_presets: false,
         binary: false,
         skills: false,
     };
@@ -116,6 +118,7 @@ pub fn parse_flags(args: &[String], cwd: &Path) -> Result<Flags, String> {
             "--no-render" => f.no_render = true,
             "--include-prereleases" => f.include_prereleases = true,
             "--write" => f.write = true,
+            "--as-presets" => f.as_presets = true,
             "--binary" => f.binary = true,
             "--skills" => f.skills = true,
             "--max-age-days" | "--attempts" => {
@@ -387,6 +390,37 @@ struct Prepared {
     text: String,
     contract: scaffold_core::contract::Contract,
     package_version: Option<String>,
+    request: scaffold_core::init::InitOptions,
+    package: scaffold_core::init::Package,
+}
+
+/// Evaluates a `pantheon.pkl` text in a scratch folder, with `files` (path and text) beside it, so that a repository with no
+/// `pantheon.pkl` yet, and Presets not written yet, can be rendered from it.
+fn evaluate_text(
+    text: &str,
+    files: &[(String, String)],
+    flags: &Flags,
+) -> Result<scaffold_core::contract::Contract, String> {
+    let scratch = Scratch::new()?;
+    let write = |rel: &str, body: &str| -> Result<(), String> {
+        let path = scratch.0.join(rel);
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)
+                .map_err(|e| format!("could not make {}: {e}", parent.display()))?;
+        }
+        std::fs::write(&path, body).map_err(|e| format!("could not write {}: {e}", path.display()))
+    };
+    write("pantheon.pkl", text)?;
+    for (rel, body) in files {
+        write(rel, body)?;
+    }
+    let json = scaffold_core::pkl::eval_contract_json(
+        &scratch.0.join("pantheon.pkl"),
+        &flags.root,
+        &eval_options(flags),
+    )
+    .map_err(|e| e.to_string())?;
+    scaffold_core::contract::parse_contract(&json).map_err(|e| e.to_string())
 }
 
 fn prepare(
@@ -413,6 +447,10 @@ fn prepare(
         ));
         return Ok(Err(EXIT_USAGE));
     }
+    if command == "init" && flags.as_presets {
+        io.complain(&format!("--as-presets belongs to migrate\n{USAGE}"));
+        return Ok(Err(EXIT_USAGE));
+    }
     if flags.root.join("pantheon.pkl").exists() {
         io.complain(&format!(
             "pantheon.pkl already exists in {}: {command} writes it once. Use upgrade to move it to another release.",
@@ -420,15 +458,9 @@ fn prepare(
         ));
         return Ok(Err(EXIT_REFUSED));
     }
-    let text = config_text(&request, &init_package(flags, env)?).map_err(|e| e.to_string())?;
-    let scratch = Scratch::new()?;
-    let candidate = scratch.0.join("pantheon.pkl");
-    std::fs::write(&candidate, &text)
-        .map_err(|e| format!("could not write {}: {e}", candidate.display()))?;
-    let json =
-        scaffold_core::pkl::eval_contract_json(&candidate, &flags.root, &eval_options(flags))
-            .map_err(|e| e.to_string())?;
-    let contract = scaffold_core::contract::parse_contract(&json).map_err(|e| e.to_string())?;
+    let package = init_package(flags, env)?;
+    let text = config_text(&request, &package).map_err(|e| e.to_string())?;
+    let contract = evaluate_text(&text, &[], flags)?;
     let strict = Flags {
         strict: true,
         ..flags.clone()
@@ -445,6 +477,8 @@ fn prepare(
             text,
             contract,
             package_version,
+            request,
+            package,
         })),
     }
 }
@@ -455,6 +489,7 @@ fn run_init(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
         text,
         contract,
         package_version,
+        ..
     } = match prepare("init", flags, env, io)? {
         Ok(prepared) => prepared,
         Err(code) => return Ok(code),
@@ -518,20 +553,25 @@ fn run_init(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
 
 /// `migrate`: brings an existing repository under the scaffold. It renders the Builtins for the options in memory and lists, for
 /// each file, whether it is identical to the Builtin, drifted from it, or new, and which files are the repository's own. Nothing is
-/// written without `--write`. `--write` is refused while any file has drifted, so no difference is lost; otherwise it writes
-/// `pantheon.pkl` and the new files, and overwrites only the YAML files that are equal to the render and differ in their text.
+/// written without `--write`. `--write` is refused while any file has drifted, unless `--as-presets` keeps each drifted file as a
+/// Preset: then the config with the Presets is evaluated first, and every file must come out identical or nothing is written.
+/// Otherwise it writes `pantheon.pkl` and the new files, and overwrites only the YAML files that are equal to the render and
+/// differ in their text.
 fn run_migrate(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
     use scaffold_core::apply::{Options, apply};
-    use scaffold_core::migrate::{Class, classify};
+    use scaffold_core::init::{config_text_with, module_address};
+    use scaffold_core::migrate::{Class, classify, verbatim_presets};
     let Prepared {
         text,
         contract,
         package_version,
+        request,
+        package,
     } = match prepare("migrate", flags, env, io)? {
         Ok(prepared) => prepared,
         Err(code) => return Ok(code),
     };
-    let report = classify(&contract, &flags.root).map_err(|e| e.to_string())?;
+    let mut report = classify(&contract, &flags.root).map_err(|e| e.to_string())?;
     for entry in &report.entries {
         io.say(&format!("{:<10} {}", entry.class.label(), entry.path));
         for difference in &entry.differences {
@@ -548,29 +588,72 @@ fn run_migrate(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
         report.count(Class::New),
         report.count(Class::PerRepo)
     );
-    let drifted = report.drifted();
-    if !drifted.is_empty() {
-        if !flags.write {
+    let (mut text, mut contract) = (text, contract);
+    let mut presets = Vec::new();
+    let drifted = report.drifted().len();
+    if drifted > 0 {
+        if !flags.as_presets {
+            if flags.write {
+                let lines: Vec<String> = report
+                    .drifted()
+                    .iter()
+                    .map(|e| format!("  {}", e.path))
+                    .collect();
+                io.complain(&format!(
+                    "refused: {drifted} file(s) drifted from the Builtins and would be lost, nothing was written:\n{}\nRun with --as-presets to keep each one as a Preset.",
+                    lines.join("\n")
+                ));
+                return Ok(EXIT_REFUSED);
+            }
             io.say(&format!(
-                "migrate: {counts}. Nothing was written. --write is refused while a file has drifted."
+                "migrate: {counts}. Nothing was written. --write is refused while a file has drifted; --as-presets keeps each one as a Preset."
             ));
             return Ok(EXIT_OK);
         }
-        let lines: Vec<String> = drifted.iter().map(|e| format!("  {}", e.path)).collect();
-        io.complain(&format!(
-            "refused: {} file(s) drifted from the Builtins and would be lost, nothing was written:\n{}",
-            drifted.len(),
-            lines.join("\n")
-        ));
-        return Ok(EXIT_REFUSED);
+        let config_import = module_address(&package, "Config.pkl").map_err(|e| e.to_string())?;
+        presets =
+            verbatim_presets(&report, &flags.root, &config_import).map_err(|e| e.to_string())?;
+        let paths: Vec<String> = presets.iter().map(|p| p.path.clone()).collect();
+        text = config_text_with(&request, &package, &paths).map_err(|e| e.to_string())?;
+        let beside: Vec<(String, String)> = presets
+            .iter()
+            .map(|p| (p.path.clone(), p.text.clone()))
+            .collect();
+        contract = evaluate_text(&text, &beside, flags)?;
+        // The proof that a Preset keeps its file: with the Presets applied, nothing may be left that differs.
+        report = classify(&contract, &flags.root).map_err(|e| e.to_string())?;
+        if !report.drifted().is_empty() {
+            let lines: Vec<String> = report
+                .drifted()
+                .iter()
+                .map(|e| format!("  {}", e.path))
+                .collect();
+            return Err(format!(
+                "the Presets do not reproduce {} file(s), so nothing was written:\n{}",
+                lines.len(),
+                lines.join("\n")
+            ));
+        }
+        for preset in &presets {
+            io.say(&format!(
+                "preset     {}  keeps {}",
+                preset.path, preset.target
+            ));
+        }
     }
-    let render = |dry_run| Options {
+    let render = |dry_run, presets: std::collections::BTreeMap<String, String>| Options {
         dry_run,
         package_version: package_version.clone(),
         adopt: report.adopt(),
+        presets,
         ..Options::default()
     };
-    let plan = apply(&contract, &flags.root, &render(true)).map_err(|e| e.to_string())?;
+    let hashes = presets
+        .iter()
+        .map(|p| (p.path.clone(), scaffold_core::manifest::sha256(&p.text)))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    let plan =
+        apply(&contract, &flags.root, &render(true, hashes.clone())).map_err(|e| e.to_string())?;
     if !plan.refusals.is_empty() {
         io.complain(&format!(
             "refused {} file(s), nothing was written:\n  {}",
@@ -580,17 +663,40 @@ fn run_migrate(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
         return Ok(EXIT_REFUSED);
     }
     if !flags.write {
+        let kept = if presets.is_empty() {
+            String::new()
+        } else {
+            format!(", {} Preset(s)", presets.len())
+        };
         io.say(&format!(
-            "migrate: {counts}. Nothing was written. Run again with --write to write pantheon.pkl and the new files."
+            "migrate: {counts}. Nothing was written. Run again with --write to write pantheon.pkl{kept} and the new files."
         ));
         return Ok(EXIT_OK);
     }
+    let mut written_files: Vec<PathBuf> = Vec::new();
+    let undo = |files: &[PathBuf]| files.iter().for_each(|f| drop(std::fs::remove_file(f)));
+    for preset in &presets {
+        let path = flags.root.join(&preset.path);
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)
+                .map_err(|e| format!("could not make {}: {e}", parent.display()))?;
+        }
+        if let Err(e) = write_new(&path, &preset.text) {
+            undo(&written_files);
+            return Err(e);
+        }
+        written_files.push(path);
+    }
     let config_path = flags.root.join("pantheon.pkl");
-    write_new(&config_path, &text)?;
-    let written = match apply(&contract, &flags.root, &render(false)) {
+    if let Err(e) = write_new(&config_path, &text) {
+        undo(&written_files);
+        return Err(e);
+    }
+    written_files.push(config_path);
+    let written = match apply(&contract, &flags.root, &render(false, hashes)) {
         Ok(done) if done.refusals.is_empty() => done.written,
         Ok(done) => {
-            let _ = std::fs::remove_file(&config_path);
+            undo(&written_files);
             io.complain(&format!(
                 "refused {} file(s):\n  {}",
                 done.refusals.len(),
@@ -599,12 +705,17 @@ fn run_migrate(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
             return Ok(EXIT_REFUSED);
         }
         Err(e) => {
-            let _ = std::fs::remove_file(&config_path);
+            undo(&written_files);
             return Err(e.to_string());
         }
     };
+    let kept = if presets.is_empty() {
+        String::new()
+    } else {
+        format!(", {} Preset(s)", presets.len())
+    };
     io.say(&format!(
-        "migrate: {counts}. Wrote pantheon.pkl and {written} file(s). Next: run mise lock, then commit."
+        "migrate: {counts}. Wrote pantheon.pkl{kept} and {written} file(s). Next: run mise lock, then commit."
     ));
     Ok(EXIT_OK)
 }

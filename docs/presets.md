@@ -135,6 +135,8 @@ files.toMap().filter((path, _) -> path != "deny.toml").toMapping()
 
 Editing a Preset is how you change what is rendered: edit it and run `render`. If you edit a Preset and do not render, `check` reports the changed hash, or drift in the files whose content would change.
 
+`migrate --as-presets` writes Presets of this kind for you, one per drifted file, each holding the whole file (see [migrate.md](migrate.md)).
+
 ## Messages you may meet
 
 | Message | Meaning |

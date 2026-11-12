@@ -96,10 +96,9 @@ fn pkl_escaped(text: &str) -> String {
     text.replace('\\', "\\\\").replace('"', "\\\"")
 }
 
-/// The text of `pantheon.pkl`.
-pub fn config_text(opts: &InitOptions, package: &Package) -> Result<String, InitError> {
-    validate(opts)?;
-    let (base, runner) = match package {
+/// Where the package is, as the start of a module address, and the runner pin a folder needs because it has no version.
+fn locate(package: &Package) -> Result<(String, Option<&String>), InitError> {
+    Ok(match package {
         Package::Release { version, checksum } => {
             if parse_semver(version).is_none() {
                 return Err(not_a_version(version));
@@ -133,7 +132,28 @@ pub fn config_text(opts: &InitOptions, package: &Package) -> Result<String, Init
             }
             (pkl_escaped(dir), Some(runner_version))
         }
-    };
+    })
+}
+
+/// The address of a module of the package, for an `import` line.
+pub fn module_address(package: &Package, module: &str) -> Result<String, InitError> {
+    let (base, _) = locate(package)?;
+    Ok(format!("{base}/{module}"))
+}
+
+/// The text of `pantheon.pkl`.
+pub fn config_text(opts: &InitOptions, package: &Package) -> Result<String, InitError> {
+    config_text_with(opts, package, &[])
+}
+
+/// The text of `pantheon.pkl` with the Presets at these paths (under `presets/`) applied to the files, in order.
+pub fn config_text_with(
+    opts: &InitOptions,
+    package: &Package,
+    presets: &[String],
+) -> Result<String, InitError> {
+    validate(opts)?;
+    let (base, runner) = locate(package)?;
     let join = |module: &str| format!("{base}/{module}");
     let mut options = format!("  toolchain = \"{}\"\n", opts.toolchain);
     if let Some(runner) = runner {
@@ -147,8 +167,32 @@ pub fn config_text(opts: &InitOptions, package: &Package) -> Result<String, Init
     if let Some(name) = &opts.crate_name {
         options.push_str(&format!("  crateName = \"{name}\"\n"));
     }
+    let imports: String = presets
+        .iter()
+        .enumerate()
+        .map(|(i, path)| format!("import \"{}\" as preset{i}\n", pkl_escaped(path)))
+        .collect();
+    let listed: String = if presets.is_empty() {
+        String::new()
+    } else {
+        let paths: String = presets
+            .iter()
+            .map(|path| format!("  \"{}\"\n", pkl_escaped(path)))
+            .collect();
+        format!("presets {{\n{paths}}}\n\n")
+    };
+    let files = if presets.is_empty() {
+        "files {\n  ...Builtins.standardFiles(options)\n  ...Builtins.baseFiles(options)\n  ...Builtins.toolingFiles()\n  ...Builtins.miseFiles(options)\n  ...Builtins.hkFiles(options)\n}\n".to_owned()
+    } else {
+        let applied = (0..presets.len()).fold("standard".to_owned(), |inner, i| {
+            format!("preset{i}.apply({inner})")
+        });
+        format!(
+            "local standard = new Mapping {{\n  ...Builtins.standardFiles(options)\n  ...Builtins.baseFiles(options)\n  ...Builtins.toolingFiles()\n  ...Builtins.miseFiles(options)\n  ...Builtins.hkFiles(options)\n}}\n\nfiles = {applied}\n"
+        )
+    };
     Ok(format!(
-        "// Written by `pantheon-scaffold init`. From here on `pantheon-scaffold upgrade` edits the amends line and the imports of the package, and everything else is yours.\namends \"{}\"\n\nimport \"{}\"\n\noptions {{\n{options}}}\n\nworkflows {{ ...Builtins.standardWorkflows(options) }}\n\nfiles {{\n  ...Builtins.standardFiles(options)\n  ...Builtins.baseFiles(options)\n  ...Builtins.toolingFiles()\n  ...Builtins.miseFiles(options)\n  ...Builtins.hkFiles(options)\n}}\n",
+        "// Written by `pantheon-scaffold init`. From here on `pantheon-scaffold upgrade` edits the amends line and the imports of the package, and everything else is yours.\namends \"{}\"\n\nimport \"{}\"\n{imports}\noptions {{\n{options}}}\n\n{listed}workflows {{ ...Builtins.standardWorkflows(options) }}\n\n{files}",
         join("Config.pkl"),
         join("Builtins.pkl")
     ))
@@ -282,6 +326,53 @@ mod tests {
                 .unwrap_err()
                 .to_string(),
             "migrate needs --toolchain, for example --toolchain 1.96.1"
+        );
+    }
+
+    #[test]
+    fn presets_are_imported_listed_and_applied_in_order_to_the_files() {
+        let text = config_text_with(
+            &opts(),
+            &local(),
+            &["presets/a.pkl".to_owned(), "presets/b.pkl".to_owned()],
+        )
+        .unwrap();
+        assert!(text.contains("import \"/work/pkl/Builtins.pkl\"\nimport \"presets/a.pkl\" as preset0\nimport \"presets/b.pkl\" as preset1\n\noptions {"), "{text}");
+        assert!(
+            text.contains(
+                "}\n\npresets {\n  \"presets/a.pkl\"\n  \"presets/b.pkl\"\n}\n\nworkflows {"
+            ),
+            "{text}"
+        );
+        assert!(
+            text.contains("local standard = new Mapping {\n  ...Builtins.standardFiles(options)\n"),
+            "{text}"
+        );
+        assert!(
+            text.ends_with("}\n\nfiles = preset1.apply(preset0.apply(standard))\n"),
+            "{text}"
+        );
+        assert!(!text.contains("\nfiles {"), "{text}");
+    }
+
+    #[test]
+    fn with_no_presets_config_text_with_is_config_text() {
+        assert_eq!(
+            config_text_with(&opts(), &release(), &[]).unwrap(),
+            config_text(&opts(), &release()).unwrap()
+        );
+    }
+
+    #[test]
+    fn the_address_of_a_module_is_the_package_address_with_the_module() {
+        assert_eq!(
+            module_address(&local(), "Config.pkl").unwrap(),
+            "/work/pkl/Config.pkl"
+        );
+        let release = module_address(&release(), "Config.pkl").unwrap();
+        assert!(
+            release.ends_with(&format!("::sha256:{}#/Config.pkl", "c".repeat(64))),
+            "{release}"
         );
     }
 

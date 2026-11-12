@@ -196,6 +196,110 @@ pub fn classify(contract: &Contract, root: &Path) -> Result<Report, MigrateError
     Ok(Report { entries })
 }
 
+/// A Preset that keeps one drifted file as it is: `path` is where it goes (under `presets/`), `target` the file it replaces.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PresetFile {
+    pub path: String,
+    pub target: String,
+    pub text: String,
+}
+
+/// The name of a Preset for a file: its stem, with anything a Preset path does not allow turned into a dash.
+fn stem(target: &str) -> String {
+    let name = target.rsplit('/').next().unwrap_or(target);
+    let name = name.split_once('.').map_or(name, |(first, rest)| {
+        if first.is_empty() {
+            rest.split('.').next().unwrap_or(rest)
+        } else {
+            first
+        }
+    });
+    let clean: String = name
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '_' {
+                c
+            } else {
+                '-'
+            }
+        })
+        .collect();
+    let clean = clean.trim_matches('-');
+    if clean.is_empty() {
+        "file".to_owned()
+    } else {
+        clean.to_owned()
+    }
+}
+
+/// A pkl raw string holding `text` exactly. The delimiter has more `#` than any run in the text, so nothing in the text can end the
+/// string or start an interpolation. A multi-line string leaves out the line break before its closing delimiter, so one is added.
+fn raw_string(text: &str) -> String {
+    let longest = text
+        .split(|c| c != '#')
+        .map(str::len)
+        .max()
+        .unwrap_or_default();
+    let hashes = "#".repeat(longest + 1);
+    format!("{hashes}\"\"\"\n{text}\n\"\"\"{hashes}")
+}
+
+fn preset_text(config_import: &str, target: &str, text: &str, differences: &[String]) -> String {
+    let mut out = format!(
+        "// Written by `pantheon-scaffold migrate` from {target}, which differed from the Builtin.\n// The whole file, kept as it was. It does not follow the Builtin when the package changes.\n"
+    );
+    if !differences.is_empty() {
+        out.push_str("// What differed when this was written:\n");
+        for line in differences {
+            out.push_str(&format!("//   {}\n", line.replace(['\n', '\r'], " ")));
+        }
+    }
+    out.push_str(&format!(
+        "import \"{config_import}\"\n\nfunction apply(files: Mapping<String, Config.GenFile>): Mapping<String, Config.GenFile> =\n  (files) {{\n    [\"{}\"] = new Config.GenFile {{ content = {} }}\n  }}\n",
+        target.replace('\\', "\\\\").replace('"', "\\\""),
+        raw_string(text)
+    ));
+    out
+}
+
+/// One Preset per drifted file, each keeping the file as it is. `config_import` is the address of the package's `Config.pkl`. A file
+/// that is not text cannot be kept this way. A Preset never takes the name of a file that is already under `presets/`.
+pub fn verbatim_presets(
+    report: &Report,
+    root: &Path,
+    config_import: &str,
+) -> Result<Vec<PresetFile>, MigrateError> {
+    let mut taken: BTreeSet<String> = BTreeSet::new();
+    let mut out = Vec::new();
+    for entry in report.drifted() {
+        let abs = resolve_inside(root, &entry.path).map_err(|e| MigrateError(e.to_string()))?;
+        let text = std::fs::read(&abs)
+            .map_err(|e| MigrateError(format!("{} cannot be read: {e}", entry.path)))
+            .and_then(|bytes| {
+                String::from_utf8(bytes).map_err(|_| {
+                    MigrateError(format!(
+                        "{} cannot be kept as a Preset: it is not UTF-8 text",
+                        entry.path
+                    ))
+                })
+            })?;
+        let base = stem(&entry.path);
+        let path = std::iter::once(format!("presets/{base}.pkl"))
+            .chain((2..100).map(|n| format!("presets/{base}-{n}.pkl")))
+            .find(|path| !taken.contains(path) && !root.join(path).exists())
+            .ok_or_else(|| {
+                MigrateError(format!("{base}: there are too many Presets with this name"))
+            })?;
+        taken.insert(path.clone());
+        out.push(PresetFile {
+            text: preset_text(config_import, &entry.path, &text, &entry.differences),
+            path,
+            target: entry.path.clone(),
+        });
+    }
+    Ok(out)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -431,5 +535,117 @@ mod tests {
         for (class, label) in all {
             assert_eq!(class.label(), label);
         }
+    }
+
+    #[test]
+    fn a_preset_is_named_after_the_file_stem_and_never_after_a_file_that_is_there() {
+        let dir = tempfile::tempdir().unwrap();
+        put(dir.path(), ".github/workflows/ci.yml", "x: 1\n");
+        put(dir.path(), "ci.toml", "x = 1\n");
+        put(dir.path(), ".gitignore", "a\n");
+        put(dir.path(), "presets/ci.pkl", "mine\n");
+        let c = contract(&[
+            (".github/workflows/ci.yml", "owned", "x: 2\n"),
+            ("ci.toml", "owned", "x = 2\n"),
+            (".gitignore", "owned", "b\n"),
+        ]);
+        let r = classify(&c, dir.path()).unwrap();
+        let presets = verbatim_presets(&r, dir.path(), "PKG#/Config.pkl").unwrap();
+        let paths: Vec<&str> = presets.iter().map(|p| p.path.as_str()).collect();
+        assert_eq!(
+            paths,
+            [
+                "presets/ci-2.pkl",
+                "presets/ci-3.pkl",
+                "presets/gitignore.pkl"
+            ]
+        );
+        assert_eq!(presets[0].target, ".github/workflows/ci.yml");
+    }
+
+    #[test]
+    fn a_preset_holds_the_file_exactly_and_says_what_differed() {
+        let dir = tempfile::tempdir().unwrap();
+        put(dir.path(), "a.toml", "x = 1\n");
+        let c = contract(&[("a.toml", "owned", "x = 2\n")]);
+        let r = classify(&c, dir.path()).unwrap();
+        let text = verbatim_presets(&r, dir.path(), "PKG#/Config.pkl")
+            .unwrap()
+            .remove(0)
+            .text;
+        assert!(
+            text.starts_with("// Written by `pantheon-scaffold migrate` from a.toml"),
+            "{text}"
+        );
+        assert!(
+            text.contains(
+                "// What differed when this was written:\n//       line 1 on disk:  x = 1\n"
+            ),
+            "{text}"
+        );
+        assert!(text.contains("import \"PKG#/Config.pkl\"\n"), "{text}");
+        assert!(
+            text.contains(
+                "[\"a.toml\"] = new Config.GenFile { content = #\"\"\"\nx = 1\n\n\"\"\"# }"
+            ),
+            "{text}"
+        );
+    }
+
+    #[test]
+    fn the_raw_string_outgrows_any_run_of_hashes_in_the_text() {
+        assert_eq!(raw_string("a\n"), "#\"\"\"\na\n\n\"\"\"#");
+        assert_eq!(raw_string("a"), "#\"\"\"\na\n\"\"\"#");
+        assert_eq!(raw_string("x \"\"\"# y"), "##\"\"\"\nx \"\"\"# y\n\"\"\"##");
+        assert_eq!(raw_string("###"), "####\"\"\"\n###\n\"\"\"####");
+        assert_eq!(raw_string("#a##b#"), "###\"\"\"\n#a##b#\n\"\"\"###");
+    }
+
+    #[test]
+    fn a_file_that_is_not_utf8_cannot_be_kept_as_a_preset() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("a.bin"), [0xff, 0xfe, 0x00]).unwrap();
+        let c = contract(&[("a.bin", "owned", "x\n")]);
+        let r = classify(&c, dir.path()).unwrap();
+        let e = verbatim_presets(&r, dir.path(), "PKG#/Config.pkl").unwrap_err();
+        assert_eq!(
+            e.to_string(),
+            "a.bin cannot be kept as a Preset: it is not UTF-8 text"
+        );
+    }
+
+    #[test]
+    fn only_drifted_files_become_presets_and_the_import_is_one_upgrade_can_move() {
+        let dir = tempfile::tempdir().unwrap();
+        put(dir.path(), "same.toml", "x = 1\n");
+        put(dir.path(), "a.toml", "x = 1\n");
+        let c = contract(&[
+            ("same.toml", "owned", "x = 1\n"),
+            ("a.toml", "owned", "x = 2\n"),
+        ]);
+        let r = classify(&c, dir.path()).unwrap();
+        let pkg = format!(
+            "package://github.com/pantheon-org/pantheon-scaffold/releases/download/v0.2.0/pantheon-scaffold@0.2.0::sha256:{}#/Config.pkl",
+            "c".repeat(64)
+        );
+        let presets = verbatim_presets(&r, dir.path(), &pkg).unwrap();
+        assert_eq!(presets.len(), 1);
+        let checksum = "d".repeat(64);
+        let next = crate::pins::NewPins {
+            version: "0.3.0",
+            checksum: &checksum,
+        };
+        let moved = crate::pins::moved_imports(&presets[0].text, &next).unwrap();
+        assert_eq!(moved.map(|(_, count)| count), Some(1));
+    }
+
+    #[test]
+    fn the_stem_drops_the_directory_the_dots_and_what_a_preset_path_does_not_allow() {
+        assert_eq!(stem(".github/workflows/sync-labels.yml"), "sync-labels");
+        assert_eq!(stem(".gitignore"), "gitignore");
+        assert_eq!(stem("Dockerfile"), "Dockerfile");
+        assert_eq!(stem("a b.toml"), "a-b");
+        assert_eq!(stem("...."), "file");
+        assert_eq!(stem("my.file.name.yml"), "my");
     }
 }

@@ -127,3 +127,72 @@ Feature: migrate
     Then the exit code is 0
     When I run "render <repo>/pantheon.pkl --root <repo> --allow-local-package <package>"
     Then the output contains "written 0 file(s), deleted 0"
+
+  Scenario: --as-presets in a dry run lists the Preset each drifted file would become, and writes nothing
+    Given the project "migrate-mixed"
+    When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --as-presets"
+    Then the exit code is 0
+    And the output contains "preset     presets/aislop.pkl  keeps .github/workflows/aislop.yml"
+    And the output contains "Nothing was written. Run again with --write to write pantheon.pkl, 1 Preset(s) and the new files."
+    And the file "presets/aislop.pkl" does not exist
+    And the file "pantheon.pkl" does not exist
+
+  Scenario: a drifted workflow is kept as a Preset, and check, render and detach then behave as for any Preset
+    Given the project "migrate-mixed"
+    When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --write --as-presets"
+    Then the exit code is 0
+    And the output contains "Wrote pantheon.pkl, 1 Preset(s) and "
+    And the file "pantheon.pkl" contains 'presets/aislop.pkl'
+    And the file "presets/aislop.pkl" contains "// What differed when this was written:"
+    And the file "presets/aislop.pkl" contains "timeout-minutes: 20"
+    And the file ".github/workflows/aislop.yml" contains "timeout-minutes: 20"
+    And the file ".github/workflows/sync-labels.yml" contains "# Creates the labels Dependabot applies"
+    And the file "README.md" has the content "# Example\n"
+    When I run "check <repo>/pantheon.pkl --root <repo> --allow-local-package <package>"
+    Then the exit code is 0
+    And the output contains "preset presets/aislop.pkl"
+    When I run "render <repo>/pantheon.pkl --root <repo> --allow-local-package <package>"
+    Then the output contains "written 0 file(s), deleted 0"
+    When I run "detach --root <repo>"
+    Then the exit code is 0
+    And the file ".pkl-gen/manifest.json" does not exist
+    And the file "presets/aislop.pkl" exists
+    And the file ".github/workflows/aislop.yml" contains "timeout-minutes: 20"
+
+  Scenario: a drifted file that is not YAML, and has no final newline, is kept exactly
+    Given a new empty repository
+    And I write '[toolchain]\nchannel   = "1.96.1"' to the file "rust-toolchain.toml"
+    When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --write --as-presets"
+    Then the exit code is 0
+    And the file "rust-toolchain.toml" has the content '[toolchain]\nchannel   = "1.96.1"'
+    And the file "presets/rust-toolchain.pkl" exists
+    When I run "check <repo>/pantheon.pkl --root <repo> --allow-local-package <package>"
+    Then the exit code is 0
+
+  Scenario: a Preset never takes the name of a file already under presets/
+    Given the project "migrate-mixed"
+    And I write "mine\n" to the file "presets/aislop.pkl"
+    When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --write --as-presets"
+    Then the exit code is 0
+    And the file "presets/aislop.pkl" has the content "mine\n"
+    And the file "presets/aislop-2.pkl" exists
+    And the file "pantheon.pkl" contains 'presets/aislop-2.pkl'
+
+  Scenario: --as-presets with no drift writes no Preset
+    Given the project "migrate-adopt"
+    When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --write --as-presets"
+    Then the exit code is 0
+    And the output does not contain "Preset"
+    And the file "pantheon.pkl" does not contain "presets"
+
+  Scenario: the plain --write refusal names --as-presets
+    Given the project "migrate-mixed"
+    When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --write"
+    Then the exit code is 3
+    And the error contains "Run with --as-presets to keep each one as a Preset."
+
+  Scenario: --as-presets belongs to migrate, not to init
+    Given a new empty repository
+    When I run "init --root <repo> --allow-local-package <package> --toolchain 1.96.1 --as-presets"
+    Then the exit code is 2
+    And the error contains "--as-presets belongs to migrate"

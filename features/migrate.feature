@@ -1,4 +1,4 @@
-@rust-only @migrate
+@rust-only
 Feature: migrate
   `migrate` brings an existing repository under the scaffold. It renders the Builtins in memory for the options it is given
   (the flags of `init`) and compares each rendered file with the file already in the repository. It is a dry run unless given
@@ -13,8 +13,7 @@ Feature: migrate
     per-repo    a file the Builtins do not render, in .github/ or at the top of the repository. Files elsewhere (src/, docs/)
                 are not listed.
 
-  These scenarios are written ahead of the command (plan task 5.2). They carry the tag `migrate`, which CI skips until task 5.3
-  adds the command, so they are not evidence of anything yet. The TypeScript runner has no migrate.
+  They were written ahead of the command (plan task 5.2) and pass since task 5.3. The TypeScript runner has no migrate.
 
   Scenario: the dry run classifies every file and writes nothing
     Given the project "migrate-mixed"
@@ -37,6 +36,7 @@ Feature: migrate
     When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1"
     Then the output contains "identical  .github/workflows/sync-labels.yml"
     And the output does not contain "drifted    .github/workflows/sync-labels.yml"
+    And the output contains "equal as YAML, different text: --write replaces it with the render's text"
 
   Scenario: a workflow with one changed value is drifted, and the difference is shown
     Given the project "migrate-mixed"
@@ -46,10 +46,10 @@ Feature: migrate
 
   Scenario: a file that is not YAML is identical only when it matches byte for byte
     Given a new empty repository
-    And I write "[toolchain]\nchannel = \"1.96.1\"\ncomponents = [\"rustfmt\", \"clippy\"]\n" to the file "rust-toolchain.toml"
+    And I write '[toolchain]\nchannel = "1.96.1"\ncomponents = ["rustfmt", "clippy"]\n' to the file "rust-toolchain.toml"
     When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1"
     Then the output contains "identical  rust-toolchain.toml"
-    When I write "[toolchain]\nchannel   = \"1.96.1\"\ncomponents = [\"rustfmt\", \"clippy\"]\n" to the file "rust-toolchain.toml"
+    When I write '[toolchain]\nchannel   = "1.96.1"\ncomponents = ["rustfmt", "clippy"]\n' to the file "rust-toolchain.toml"
     And I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1"
     Then the output contains "drifted    rust-toolchain.toml"
 
@@ -113,3 +113,17 @@ Feature: migrate
     And the file ".pkl-gen/manifest.json" does not exist
     And the file "pantheon.pkl" exists
     And the file "mise.toml" exists
+
+  Scenario: --write adopts an identical YAML file with the render's text, and leaves the repository's own files alone
+    Given the project "migrate-adopt"
+    When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --write"
+    Then the exit code is 0
+    And the output contains "Wrote pantheon.pkl and "
+    And the output contains "Next: run mise lock, then commit."
+    And the file "pantheon.pkl" exists
+    And the file ".github/workflows/sync-labels.yml" contains "# Creates the labels Dependabot applies"
+    And the file "README.md" has the content "# Example\n"
+    When I run "check <repo>/pantheon.pkl --root <repo> --allow-local-package <package>"
+    Then the exit code is 0
+    When I run "render <repo>/pantheon.pkl --root <repo> --allow-local-package <package>"
+    Then the output contains "written 0 file(s), deleted 0"

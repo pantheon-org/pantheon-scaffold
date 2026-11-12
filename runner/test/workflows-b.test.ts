@@ -65,9 +65,19 @@ same("adr-like", adr, ".github/workflows/rust-ci.yml", text("workflows/rust-ci.y
 // The only difference from the repository's own file is that ignore list, added here to the pinned copy.
 const withDistIgnore = (upstream: string): string =>
   upstream.replace(`    cooldown:\n      default-days: 7\n    labels:\n      - "dependencies"\n      - "github-actions"`, `    cooldown:\n      default-days: 7\n    ignore:\n      - dependency-name: "actions/upload-artifact"\n      - dependency-name: "actions/download-artifact"\n    labels:\n      - "dependencies"\n      - "github-actions"`);
-same("adr-like", adr, ".github/dependabot.yml", withDistIgnore(text("workflows/dependabot.yml")));
+// The package also tells Dependabot to leave the workflow files it renders alone (`exclude-paths`), which the repositories' own files do not have.
+// The list is every standard workflow of the repository's options, in the order of Builtins.standardWorkflows, not only the files this fixture renders.
+const STANDARD = ["plumber", "sync-labels", "pr-auto-rebase", "release-automerge", "commit-types", "conventional-commits", "release-please", "zizmor", "agnix", "aislop", "rust-ci", "cargo-deny", "inline-scripts"];
+const withExcluded = (upstream: string, extra: { skills: boolean; binary: boolean }): string => {
+  const names = [...STANDARD, ...(extra.skills ? ["audit-skill"] : []), "scaffold-check", ...(extra.binary ? ["dist-check"] : [])];
+  const at = upstream.indexOf('package-ecosystem: "github-actions"');
+  const cooldown = "    cooldown:\n      default-days: 7\n";
+  const insert = upstream.indexOf(cooldown, at) + cooldown.length;
+  return `${upstream.slice(0, insert)}    exclude-paths:\n${names.map((n) => `      - ".github/workflows/${n}.yml"\n`).join("")}${upstream.slice(insert)}`;
+};
+same("adr-like", adr, ".github/dependabot.yml", withExcluded(withDistIgnore(text("workflows/dependabot.yml")), { skills: true, binary: true }));
 for (const n of ["release-please", "zizmor", "agnix", "aislop", "rust-ci"]) same("library-like", kit, `.github/workflows/${n}.yml`, text(`workflows-kit/${n}.yml`));
-same("library-like", kit, ".github/dependabot.yml", text("workflows-kit/dependabot.yml"));
+same("library-like", kit, ".github/dependabot.yml", withExcluded(text("workflows-kit/dependabot.yml"), { skills: false, binary: false }));
 same("auditor-like", auditor, ".github/workflows/zizmor.yml", text("workflows-auditor/zizmor.yml"));
 
 test("the verbatim config files are byte for byte the repositories' files", () => {

@@ -838,6 +838,8 @@ local distNote: String = "\n\n" + #"""
   dist-workspace.toml and run `dist generate`.
   """#
 
+/// The github-actions entry excludes every workflow file the package renders (`exclude-paths`): the runner owns them, so a Dependabot bump of a
+/// pin in one is drift, and `check` exits 4. Their pins move through Pins.pkl and `upgrade`. Workflows the repository writes itself are still updated.
 function dependabot(opts: Config.Options): Config.GenFile =
   let (names = opts.gitDependencyIgnore.toList().join(" and "))
   new Config.GenFile {
@@ -886,6 +888,7 @@ function dependabot(opts: Config.Options): Config.GenFile =
             schedule = new Dynamic { interval = "weekly"; day = "monday" }
             `open-pull-requests-limit` = 5
             cooldown = new Dynamic { `default-days` = 7 }
+            `exclude-paths` = standardWorkflows(opts).keys.toList().map((k) -> ".github/workflows/\(k).yml").toListing()
             when (opts.binary) {
               ignore = new Listing {
                 new Dynamic { `dependency-name` = "actions/upload-artifact" }

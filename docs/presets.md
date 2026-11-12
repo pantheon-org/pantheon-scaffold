@@ -108,6 +108,14 @@ workflows = (Builtins.standardWorkflows(options)) { ["nightly"] = extra.nightly(
 Presets.amendFile(files, ".gitignore", (f) -> (f) { content = f.content + "\nmy-own-entry/\n" })
 ```
 
+**Add a workflow of your own and keep Dependabot off it.** The rendered `.github/dependabot.yml` lists the workflow files the package owns under `exclude-paths`, so Dependabot does not bump pins in files the runner would then report as drift. A workflow you add in a Preset is not in that list. Add its path, the same way you change any rendered file:
+
+```pkl
+Presets.amendFile(files, ".github/dependabot.yml", (f) -> (f) { content = f.content.replaceFirst("  exclude-paths:\n", "  exclude-paths:\n  - .github/workflows/nightly.yml\n") })
+```
+
+Workflows you write by hand, outside `pantheon.pkl`, are not owned and Dependabot still updates them.
+
 **Keep your own version of a rendered file, or drop a Builtin.** Filter it out of the mapping, and the runner renders nothing for it:
 
 ```pkl

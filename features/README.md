@@ -84,3 +84,7 @@ Where a scenario and the runner disagree, or a behaviour cannot be a black-box s
 ### init
 
 `init.feature` is tagged `rust-only`: the TypeScript runner has no `init`. It runs against the package in this checkout (`--allow-local-package`), so it needs no release. The release part of `init` (the newest stable release that is not known bad, its checksum, the attestation) is tested in `crates/scaffold-cli/tests/init.rs` with a local server and fake `gh` and `pkl`.
+
+### migrate
+
+`migrate.feature` is tagged `rust-only` and `migrate`. It is written ahead of the command (task 5.2), so CI skips the tag `migrate` in both feature jobs until task 5.3 adds `migrate`; run it locally with `SCAFFOLD_SKIP_TAGS=migrate cargo test -p scaffold-features` until then. It fixes the contract the command is built to: the classes `identical`, `drifted`, `new` and `per-repo`, printed as the class padded to ten columns and then the path; the YAML equality rule for `.yml` and `.yaml` files and byte equality for the rest; `per-repo` limited to `.github/` and the top of the repository; the dry run as the default; exit 3 for an existing `pantheon.pkl`, and for `--write` while a file is drifted (until task 5.4 turns drift into a Preset); exit 2 without `--toolchain`. The starting repository is `features/projects/migrate-mixed`: two identical files, one drifted, and per-repo files, with no `pantheon.pkl`.

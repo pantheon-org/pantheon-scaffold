@@ -28,12 +28,13 @@ pub const USAGE: &str = "usage (exit codes: 0 ok, 1 error, 2 usage, 3 refused, 4
   pantheon-scaffold detach [--root <dir>] [--dry-run] [--force]
   pantheon-scaffold latest [--include-prereleases] [--url <url>] [--root <dir>] [--attempts <n>]
   pantheon-scaffold freshness [--url <url>] [--max-age-days <n>] [--attempts <n>]
-  pantheon-scaffold upgrade <version> [--root <dir>] [--config <file>] [--dry-run] [--force] [--no-render]";
+  pantheon-scaffold upgrade <version> [--root <dir>] [--config <file>] [--dry-run] [--force] [--no-render]
+  pantheon-scaffold init --toolchain <x.y.z> [--package-version <x.y.z>] [--binary --crate-name <name>] [--skills --skill-name <name>] [--write] [--root <dir>] [--cache-dir <dir>] [--allow-local-package <dir>] [--attempts <n>]";
 
 /// The default age limit of `freshness`, in days.
 pub const MAX_AGE_DAYS: u64 = 30;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Flags {
     pub include_prereleases: bool,
     pub url: Option<String>,
@@ -48,6 +49,13 @@ pub struct Flags {
     pub cache_dir: Option<PathBuf>,
     pub local: Vec<PathBuf>,
     pub attempts: u32,
+    pub toolchain: Option<String>,
+    pub package_version: Option<String>,
+    pub crate_name: Option<String>,
+    pub skill_name: Option<String>,
+    pub write: bool,
+    pub binary: bool,
+    pub skills: bool,
 }
 
 /// An absolute path with `.` and `..` folded away, like Node's `path.resolve`. Nothing is read from the disk.
@@ -89,6 +97,13 @@ pub fn parse_flags(args: &[String], cwd: &Path) -> Result<Flags, String> {
         cache_dir: None,
         local: Vec::new(),
         attempts: 3,
+        toolchain: None,
+        package_version: None,
+        crate_name: None,
+        skill_name: None,
+        write: false,
+        binary: false,
+        skills: false,
     };
     let mut rest = args.iter();
     while let Some(a) = rest.next().map(String::as_str) {
@@ -99,6 +114,9 @@ pub fn parse_flags(args: &[String], cwd: &Path) -> Result<Flags, String> {
             "--strict" => f.strict = true,
             "--no-render" => f.no_render = true,
             "--include-prereleases" => f.include_prereleases = true,
+            "--write" => f.write = true,
+            "--binary" => f.binary = true,
+            "--skills" => f.skills = true,
             "--max-age-days" | "--attempts" => {
                 let n = whole_number(rest.next())
                     .ok_or_else(|| format!("{a} needs a whole number of at least 1"))?;
@@ -108,7 +126,15 @@ pub fn parse_flags(args: &[String], cwd: &Path) -> Result<Flags, String> {
                     f.max_age_days = n;
                 }
             }
-            "--url" | "--root" | "--allow-local-package" | "--cache-dir" | "--config" => {
+            "--url"
+            | "--root"
+            | "--allow-local-package"
+            | "--cache-dir"
+            | "--config"
+            | "--toolchain"
+            | "--package-version"
+            | "--crate-name"
+            | "--skill-name" => {
                 let value = rest
                     .next()
                     .filter(|v| !v.is_empty())
@@ -118,6 +144,10 @@ pub fn parse_flags(args: &[String], cwd: &Path) -> Result<Flags, String> {
                     "--root" => f.root = resolve(cwd, value),
                     "--cache-dir" => f.cache_dir = Some(resolve(cwd, value)),
                     "--config" => f.config = Some(value.clone()),
+                    "--toolchain" => f.toolchain = Some(value.clone()),
+                    "--package-version" => f.package_version = Some(value.clone()),
+                    "--crate-name" => f.crate_name = Some(value.clone()),
+                    "--skill-name" => f.skill_name = Some(value.clone()),
                     _ => f.local.push(resolve(cwd, value)),
                 }
             }
@@ -195,7 +225,7 @@ pub fn run_with_env(
         io.say(VERSION);
         return EXIT_OK;
     }
-    let no_config = matches!(cmd.as_str(), "detach" | "freshness" | "latest");
+    let no_config = matches!(cmd.as_str(), "detach" | "freshness" | "latest" | "init");
     let needs_config = matches!(cmd.as_str(), "contract" | "render" | "check" | "upgrade");
     let config = if no_config { None } else { rest.first() };
     if !(no_config || needs_config && config.is_some()) {
@@ -218,6 +248,7 @@ pub fn run_with_env(
         "detach" => finish(run_detach(&flags, &mut io), &mut io),
         "freshness" => finish(run_freshness(&flags, env, &mut io), &mut io),
         "latest" => finish(run_latest(&flags, env, &mut io), &mut io),
+        "init" => finish(run_init(&flags, env, &mut io), &mut io),
         "upgrade" => {
             let version = config.expect("checked above");
             finish(run_upgrade(version, &flags, env, &mut io), &mut io)
@@ -246,7 +277,12 @@ fn load_known_list(flags: &Flags, env: &Env) -> scaffold_core::knownbad::KnownBa
     load_known_bad(&flags.root, &options)
 }
 
-fn run_latest(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
+/// The newest release that qualifies: stable unless asked otherwise, not a draft, not known bad.
+fn newest_release(
+    flags: &Flags,
+    env: &Env,
+    include_prereleases: bool,
+) -> Result<Option<String>, String> {
     use scaffold_core::latest::{FetchOptions, RELEASES_API, fetch_releases, latest_version};
     use std::time::Duration;
     let fetcher = |url: &str, headers: &[(&str, &str)]| {
@@ -261,7 +297,15 @@ fn run_latest(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
     };
     let releases = fetch_releases(&options).map_err(|e| e.to_string())?;
     let known_bad = load_known_list(flags, env).list;
-    match latest_version(&releases, flags.include_prereleases, Some(&known_bad)) {
+    Ok(latest_version(
+        &releases,
+        include_prereleases,
+        Some(&known_bad),
+    ))
+}
+
+fn run_latest(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
+    match newest_release(flags, env, flags.include_prereleases)? {
         Some(version) => {
             io.say(&version);
             Ok(EXIT_OK)
@@ -278,6 +322,181 @@ fn run_latest(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
             Ok(EXIT_ERROR)
         }
     }
+}
+
+/// A folder in the system's temporary space for the config that `init` evaluates before it writes anything, removed when dropped.
+struct Scratch(PathBuf);
+
+impl Scratch {
+    fn new() -> Result<Self, String> {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| d.as_nanos());
+        let dir = std::env::temp_dir().join(format!(
+            "pantheon-scaffold-init-{}-{nanos}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&dir)
+            .map_err(|e| format!("could not make a scratch folder {}: {e}", dir.display()))?;
+        Ok(Self(dir))
+    }
+}
+
+impl Drop for Scratch {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+/// Which package the new config amends: the folder given with `--allow-local-package` (for working on the package, so no release
+/// and no attestation), or a published release, with the checksum of its package file checked against the attestation of its
+/// `checksums.txt` as `upgrade` does.
+fn init_package(flags: &Flags, env: &Env) -> Result<scaffold_core::init::Package, String> {
+    use scaffold_core::init::Package;
+    use scaffold_core::upgrade::{RELEASE_BASE, SystemDeps, verified_checksum};
+    if let Some(dir) = flags.local.first() {
+        return Ok(Package::Local {
+            dir: dir.display().to_string(),
+            runner_version: VERSION.to_owned(),
+        });
+    }
+    let version = match &flags.package_version {
+        Some(version) => version.strip_prefix('v').unwrap_or(version).to_owned(),
+        None => newest_release(flags, env, false)?.ok_or_else(|| {
+            "no release found that qualifies (stable, not a draft, not known bad). Name one with --package-version".to_owned()
+        })?,
+    };
+    let base = env.release_base.as_deref().unwrap_or(RELEASE_BASE);
+    let checksum =
+        verified_checksum(&version, base, &SystemDeps::default()).map_err(|e| e.to_string())?;
+    Ok(Package::Release { version, checksum })
+}
+
+/// `init`: writes `pantheon.pkl` once for a new project and renders it. Nothing is written without `--write`; then the config is
+/// evaluated against its package and the files it would write are listed. Nothing is written either when the render would be refused
+/// (a file that is there and differs), and a failure after `pantheon.pkl` is written takes it back.
+fn run_init(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
+    use scaffold_core::apply::{Kind, Options, apply};
+    use scaffold_core::init::{InitOptions, config_text, validate};
+    let request = InitOptions {
+        toolchain: flags.toolchain.clone().unwrap_or_default(),
+        binary: flags.binary,
+        crate_name: flags.crate_name.clone(),
+        skills: flags.skills,
+        skill_name: flags.skill_name.clone(),
+    };
+    if let Err(problem) = validate(&request) {
+        io.complain(&format!("{problem}\n{USAGE}"));
+        return Ok(EXIT_USAGE);
+    }
+    if flags.local.len() > 1 {
+        io.complain(&format!(
+            "init takes one --allow-local-package folder\n{USAGE}"
+        ));
+        return Ok(EXIT_USAGE);
+    }
+    let config_path = flags.root.join("pantheon.pkl");
+    if config_path.exists() {
+        io.complain(&format!(
+            "pantheon.pkl already exists in {}: init writes it once. Use upgrade to move it to another release.",
+            flags.root.display()
+        ));
+        return Ok(EXIT_REFUSED);
+    }
+    let text = config_text(&request, &init_package(flags, env)?).map_err(|e| e.to_string())?;
+    let scratch = Scratch::new()?;
+    let candidate = scratch.0.join("pantheon.pkl");
+    std::fs::write(&candidate, &text)
+        .map_err(|e| format!("could not write {}: {e}", candidate.display()))?;
+    let json =
+        scaffold_core::pkl::eval_contract_json(&candidate, &flags.root, &eval_options(flags))
+            .map_err(|e| e.to_string())?;
+    let contract = scaffold_core::contract::parse_contract(&json).map_err(|e| e.to_string())?;
+    // A new project must not start on a release that is known to be bad, which `render` only warns about unless it is strict.
+    let strict = Flags {
+        strict: true,
+        ..flags.clone()
+    };
+    let package_version = match gate(
+        &contract,
+        &strict,
+        scaffold_core::preflight::Mode::Render,
+        env,
+        io,
+    )? {
+        Gate::Stop(code) => return Ok(code),
+        Gate::Go(version) => version,
+    };
+    let render = |dry_run| Options {
+        dry_run,
+        package_version: package_version.clone(),
+        ..Options::default()
+    };
+    let plan = apply(&contract, &flags.root, &render(true)).map_err(|e| e.to_string())?;
+    let refused = |refusals: &[String], io: &mut Io| {
+        let lines: Vec<String> = refusals.iter().map(|r| format!("  {r}")).collect();
+        io.complain(&format!(
+            "refused {} file(s), nothing was written:\n{}",
+            refusals.len(),
+            lines.join("\n")
+        ));
+        EXIT_REFUSED
+    };
+    if !plan.refusals.is_empty() {
+        return Ok(refused(&plan.refusals, io));
+    }
+    if !flags.write {
+        io.say("pantheon.pkl would be written:");
+        io.say(text.trim_end());
+        for action in &plan.actions {
+            io.say(&format!("{:<9} {}", action.kind.name(), action.path));
+        }
+        let files = plan
+            .actions
+            .iter()
+            .filter(|a| matches!(a.kind, Kind::Create | Kind::Update | Kind::Seed))
+            .count();
+        io.say(&format!(
+            "dry run: init would write pantheon.pkl and {files} file(s). Run again with --write to write them."
+        ));
+        return Ok(EXIT_OK);
+    }
+    write_new(&config_path, &text)?;
+    let report = match apply(&contract, &flags.root, &render(false)) {
+        Ok(report) => report,
+        Err(e) => {
+            let _ = std::fs::remove_file(&config_path);
+            return Err(e.to_string());
+        }
+    };
+    if !report.refusals.is_empty() {
+        let _ = std::fs::remove_file(&config_path);
+        return Ok(refused(&report.refusals, io));
+    }
+    for action in &report.actions {
+        io.say(&format!("{:<9} {}", action.kind.name(), action.path));
+    }
+    io.say(&format!(
+        "init: wrote pantheon.pkl and {} file(s). Next: run mise lock, then commit.",
+        report.written
+    ));
+    Ok(EXIT_OK)
+}
+
+/// Writes a file that must not exist yet, so a `pantheon.pkl` made in the meantime is never overwritten.
+fn write_new(path: &Path, text: &str) -> Result<(), String> {
+    use std::io::Write;
+    let failed = |e: std::io::Error| format!("pantheon.pkl could not be written: {e}");
+    std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(path)
+        .map_err(failed)?
+        .write_all(text.as_bytes())
+        .map_err(|e| {
+            let _ = std::fs::remove_file(path);
+            failed(e)
+        })
 }
 
 fn run_upgrade(version: &str, flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
@@ -1200,6 +1419,194 @@ mod tests {
         assert_eq!(code, EXIT_DRIFT);
         assert_eq!(out, "preset presets/ci.pkl\n");
         assert!(err.starts_with("drift in 1 of 1 owned file(s):"), "{err}");
+    }
+
+    // `init`, against the package in this checkout (no release, no attestation).
+    fn init_in(dir: &Path, extra: &[&str]) -> (i32, String, String) {
+        let (package, root) = (package(), dir.display().to_string());
+        let mut items = vec![
+            "init",
+            "--root",
+            root.as_str(),
+            "--allow-local-package",
+            package.as_str(),
+        ];
+        items.extend_from_slice(extra);
+        go(&items, &here())
+    }
+
+    #[test]
+    fn the_scratch_folder_exists_while_it_is_held_and_is_removed_when_dropped() {
+        let path = {
+            let scratch = Scratch::new().expect("a scratch folder");
+            assert!(scratch.0.is_dir());
+            scratch.0.clone()
+        };
+        assert!(!path.exists(), "{} is still there", path.display());
+    }
+
+    #[test]
+    fn init_reads_its_options() {
+        let f = flags(&[
+            "--toolchain",
+            "1.96.1",
+            "--package-version",
+            "0.2.0",
+            "--crate-name",
+            "c",
+            "--skill-name",
+            "s",
+            "--write",
+            "--binary",
+            "--skills",
+        ]);
+        assert_eq!(f.toolchain.as_deref(), Some("1.96.1"));
+        assert_eq!(f.package_version.as_deref(), Some("0.2.0"));
+        assert_eq!(f.crate_name.as_deref(), Some("c"));
+        assert_eq!(f.skill_name.as_deref(), Some("s"));
+        assert!(f.write && f.binary && f.skills);
+        let d = flags(&[]);
+        assert!(!(d.write || d.binary || d.skills));
+        assert_eq!(
+            (d.toolchain, d.package_version, d.crate_name, d.skill_name),
+            (None, None, None, None)
+        );
+        for option in [
+            "--toolchain",
+            "--package-version",
+            "--crate-name",
+            "--skill-name",
+        ] {
+            assert_eq!(flag_error(&[option]), format!("{option} needs a value"));
+        }
+    }
+
+    #[test]
+    fn init_without_a_toolchain_or_with_a_bad_request_is_a_usage_error_that_shows_the_usage() {
+        let dir = tempfile::tempdir().expect("a directory");
+        let (code, out, err) = init_in(dir.path(), &[]);
+        assert_eq!((code, out.as_str()), (EXIT_USAGE, ""));
+        assert!(
+            err.starts_with("init needs --toolchain, for example --toolchain 1.96.1\nusage"),
+            "{err}"
+        );
+        let (code, _, err) = init_in(dir.path(), &["--toolchain", "1.96.1", "--binary"]);
+        assert_eq!(code, EXIT_USAGE);
+        assert!(
+            err.starts_with("--binary needs --crate-name\nusage"),
+            "{err}"
+        );
+        assert!(!dir.path().join("pantheon.pkl").exists());
+    }
+
+    #[test]
+    fn init_is_a_dry_run_unless_told_to_write_and_shows_the_config_and_the_files() {
+        let dir = tempfile::tempdir().expect("a directory");
+        let (code, out, err) = init_in(dir.path(), &["--toolchain", "1.96.1"]);
+        assert_eq!((code, err.as_str()), (EXIT_OK, ""));
+        assert!(
+            out.starts_with(
+                "pantheon.pkl would be written:\n// Written by `pantheon-scaffold init`."
+            ),
+            "{out}"
+        );
+        assert!(out.contains("\ncreate    mise.toml\n"), "{out}");
+        assert!(out.contains("\nseed      hk.pkl\n"), "{out}");
+        assert!(
+            out.trim_end()
+                .ends_with("Run again with --write to write them."),
+            "{out}"
+        );
+        assert!(
+            out.contains("dry run: init would write pantheon.pkl and "),
+            "{out}"
+        );
+        assert_eq!(
+            std::fs::read_dir(dir.path()).expect("a listing").count(),
+            0,
+            "a dry run writes nothing"
+        );
+    }
+
+    #[test]
+    fn init_with_write_creates_the_config_and_the_files_and_check_then_passes() {
+        let dir = tempfile::tempdir().expect("a directory");
+        let (code, out, err) = init_in(dir.path(), &["--toolchain", "1.96.1", "--write"]);
+        assert_eq!((code, err.as_str()), (EXIT_OK, ""));
+        assert!(out.contains("create    mise.toml\n"), "{out}");
+        assert!(
+            out.trim_end()
+                .ends_with("Next: run mise lock, then commit."),
+            "{out}"
+        );
+        assert!(out.contains("init: wrote pantheon.pkl and "), "{out}");
+        for file in [
+            "pantheon.pkl",
+            "mise.toml",
+            "rust-toolchain.toml",
+            ".pkl-gen/manifest.json",
+            ".github/workflows/rust-ci.yml",
+        ] {
+            assert!(dir.path().join(file).exists(), "{file}");
+        }
+        let (code, out, _) = in_project("check", &[], dir.path());
+        assert_eq!(code, EXIT_OK, "{out}");
+        let (code, out, _) = in_project("render", &[], dir.path());
+        assert_eq!(code, EXIT_OK);
+        assert!(out.ends_with("written 0 file(s), deleted 0\n"), "{out}");
+    }
+
+    #[test]
+    fn init_never_overwrites_a_pantheon_pkl() {
+        let dir = tempfile::tempdir().expect("a directory");
+        std::fs::write(dir.path().join("pantheon.pkl"), "mine\n").expect("a file");
+        let (code, out, err) = init_in(dir.path(), &["--toolchain", "1.96.1", "--write"]);
+        assert_eq!((code, out.as_str()), (EXIT_REFUSED, ""));
+        assert!(err.starts_with("pantheon.pkl already exists in "), "{err}");
+        assert!(err.contains("init writes it once"), "{err}");
+        assert_eq!(
+            std::fs::read_to_string(dir.path().join("pantheon.pkl")).expect("the file"),
+            "mine\n"
+        );
+        assert!(!dir.path().join("mise.toml").exists());
+    }
+
+    #[test]
+    fn init_that_would_overwrite_a_file_is_refused_and_writes_nothing_not_even_the_config() {
+        let dir = tempfile::tempdir().expect("a directory");
+        std::fs::write(dir.path().join(".gitignore"), "target/\n").expect("a file");
+        for extra in [
+            vec!["--toolchain", "1.96.1"],
+            vec!["--toolchain", "1.96.1", "--write"],
+        ] {
+            let (code, _, err) = init_in(dir.path(), &extra);
+            assert_eq!(code, EXIT_REFUSED, "{extra:?}");
+            assert!(err.starts_with("refused 1 file(s), nothing was written:\n  .gitignore: already exists and differs"), "{err}");
+        }
+        assert!(!dir.path().join("pantheon.pkl").exists());
+        assert!(!dir.path().join("mise.toml").exists());
+    }
+
+    #[test]
+    fn init_that_fails_after_writing_the_config_takes_it_back() {
+        let dir = tempfile::tempdir().expect("a directory");
+        // A render that is held by another process: the plan passes, the real write cannot take the lock.
+        std::fs::create_dir_all(dir.path().join(".pkl-gen")).expect("a directory");
+        std::fs::write(
+            dir.path().join(".pkl-gen/lock"),
+            format!(
+                "{{\"pid\":{},\"started\":\"{}\"}}",
+                std::process::id(),
+                time::OffsetDateTime::now_utc()
+                    .format(&time::format_description::well_known::Rfc3339)
+                    .expect("a time")
+            ),
+        )
+        .expect("a lock");
+        let (code, _, err) = init_in(dir.path(), &["--toolchain", "1.96.1", "--write"]);
+        assert_eq!(code, EXIT_ERROR, "{err}");
+        assert!(err.contains(".pkl-gen/lock is held"), "{err}");
+        assert!(!dir.path().join("pantheon.pkl").exists());
     }
 
     #[test]

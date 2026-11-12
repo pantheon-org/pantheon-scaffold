@@ -18,6 +18,7 @@ pub mod detach;
 pub mod equality;
 pub mod freshness;
 pub mod http;
+pub mod init;
 pub mod knownbad;
 pub mod latest;
 pub mod lockcheck;

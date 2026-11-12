@@ -271,7 +271,11 @@ fn record_seal(root: &Path, seal: Seal) -> Result<(), UpgradeError> {
 }
 
 /// Downloads the release's checksums file and returns the package checksum, after the attestation says the file is genuine.
-fn verified_checksum(version: &str, base: &str, deps: &dyn Deps) -> Result<String, UpgradeError> {
+pub fn verified_checksum(
+    version: &str,
+    base: &str,
+    deps: &dyn Deps,
+) -> Result<String, UpgradeError> {
     let url = checksum_asset_url(base, version);
     let text = deps
         .fetch_text(&url)

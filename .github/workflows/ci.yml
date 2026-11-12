@@ -190,7 +190,8 @@ jobs:
       SCAFFOLD_BIN: ${{ github.workspace }}/dist/pantheon-scaffold-${{ matrix.target }}
       SCAFFOLD_VERSION: 0.0.1-ci.${{ github.run_number }}
       # The TypeScript runner does not record or list Presets and will not: it is removed in task 3.4.
-      SCAFFOLD_SKIP_TAGS: rust-only
+      # migrate: the scenarios are written ahead of the command (task 5.2); the tag leaves this list when 5.3 adds it.
+      SCAFFOLD_SKIP_TAGS: rust-only,migrate
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -216,8 +217,8 @@ jobs:
       - name: Run the features against the built binary
         run: mise x -- cargo test -p scaffold-features --locked
 
-  # The same features, run against the Rust build: every scenario, nothing skipped. SCAFFOLD_SKIP_TAGS (see features/README.md) exists
-  # for a scenario that one build cannot pass.
+  # The same features, run against the Rust build: every scenario except those still waiting for their command (the tag `migrate`, until
+  # task 5.3). SCAFFOLD_SKIP_TAGS (see features/README.md) exists for a scenario that one build cannot pass.
   features-rust:
     name: Features (Rust) ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
@@ -235,6 +236,7 @@ jobs:
       GITHUB_TOKEN: ${{ github.token }}
       SCAFFOLD_VERSION: 0.0.1-ci.${{ github.run_number }}
       SCAFFOLD_BIN: ${{ github.workspace }}/target/debug/pantheon-scaffold
+      SCAFFOLD_SKIP_TAGS: migrate
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

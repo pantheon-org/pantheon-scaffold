@@ -1,0 +1,18 @@
+name: "Sync Labels"
+"on":
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths: [".github/labels.txt", ".github/scripts/sync-labels.sh", ".github/workflows/sync-labels.yml"]
+permissions: {contents: read, issues: write}
+jobs:
+  sync-labels:
+    name: "Sync Labels"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with: {persist-credentials: false}
+      - name: Create or update labels
+        run: bash .github/scripts/sync-labels.sh
+        env: {GH_TOKEN: "${{ github.token }}", GH_REPO: "${{ github.repository }}"}

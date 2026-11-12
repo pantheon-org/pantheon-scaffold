@@ -1,6 +1,6 @@
 # `init`: putting a new project under the scaffold
 
-Written for the owner of a new Rust repository. `pantheon-scaffold init` writes `pantheon.pkl` once and renders the standard set into the repository. For a project that already has its own workflows and files, use `migrate` (task 5.2 to 5.4 of the plan, not built yet); `init` refuses to overwrite anything.
+Written for the owner of a new Rust repository. `pantheon-scaffold init` writes `pantheon.pkl` once and renders the standard set into the repository. For a project that already has its own workflows and files, use `migrate` (task 5.2 to 5.4 of the plan, not built yet); `init` refuses to overwrite anything. It needs the runner of release 0.1.7 or later.
 
 ```sh
 pantheon-scaffold init --toolchain 1.96.1            # shows what it would do, writes nothing

@@ -20,6 +20,7 @@ Dropped for now: repository governance (rulesets, merge settings and drift check
 | To | Read |
 |---|---|
 | Adopt, upgrade or leave the scaffold | [docs/adopting.md](docs/adopting.md) |
+| Start a new project under the scaffold (`init`) | [docs/init.md](docs/init.md) |
 | Cut or promote a release, and the accepted risks | [docs/release-process.md](docs/release-process.md) |
 | Install the runner, and what `upgrade`, `render`, `check` and `detach` do | [docs/runner-install.md](docs/runner-install.md), [docs/runner-upgrade.md](docs/runner-upgrade.md), [docs/runner-lifecycle.md](docs/runner-lifecycle.md), [docs/runner-safety.md](docs/runner-safety.md) |
 | Run `check` in CI | [docs/check-in-ci.md](docs/check-in-ci.md) |

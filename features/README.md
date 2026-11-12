@@ -80,3 +80,7 @@ Where a scenario and the runner disagree, or a behaviour cannot be a black-box s
 ### Presets
 
 `presets.feature` starts from a small project in `features/projects/<name>` (a `pantheon.pkl` and its `presets/`), copied into an empty repository by the step `Given the project "<name>"`, which replaces `@PACKAGE@` in every `.pkl` file with the package under test. The scenarios for the pkl API pass since task 4.2 (the helpers in `Presets.pkl`, the `presets` list of the config and its validation); since task 4.3 the Rust runner records Presets in the manifest and `check` lists them, and the four scenarios for that are tagged `rust-only`. The two `upgrade` scenarios of `docs/presets-design.md` are integration tests in `crates/scaffold-cli/tests/upgrade.rs` (task 4.3), because they need a published package with a renamed job.
+
+### init
+
+`init.feature` is tagged `rust-only`: the TypeScript runner has no `init`. It runs against the package in this checkout (`--allow-local-package`), so it needs no release. The release part of `init` (the newest stable release that is not known bad, its checksum, the attestation) is tested in `crates/scaffold-cli/tests/init.rs` with a local server and fake `gh` and `pkl`.

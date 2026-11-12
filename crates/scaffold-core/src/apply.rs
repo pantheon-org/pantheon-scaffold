@@ -23,6 +23,9 @@ pub struct Options {
     /// The Preset files this render applies, by path, with their hashes (see `presets`). Recorded in the manifest, which keeps
     /// only the last render's: a render that applies none clears them.
     pub presets: std::collections::BTreeMap<String, String>,
+    /// Existing files that differ from the render and may be overwritten on first adoption, by path. `migrate` names the YAML
+    /// files that are equal to the render and differ only in their text. Any other differing file is still refused.
+    pub adopt: std::collections::BTreeSet<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -312,7 +315,7 @@ pub fn plan(
             }
         } else if text == content {
             settle(&mut plan, f, &abs, true)?;
-        } else if opts.force {
+        } else if opts.force || opts.adopt.contains(&f.path) {
             plan.writes.push(to_write());
             plan.actions.push(action(Kind::Update));
         } else {
@@ -717,6 +720,34 @@ mod tests {
         put(dir.path(), "a.txt", "mine\n");
         let r = run_with(&one("a.txt", "theirs\n"), dir.path(), force());
         assert_eq!(kinds(&r), ["update:a.txt"]);
+        assert_eq!(get(dir.path(), "a.txt"), "theirs\n");
+    }
+
+    #[test]
+    fn first_adoption_overwrites_a_differing_file_only_when_it_is_named_in_adopt() {
+        let dir = tmp();
+        put(dir.path(), "a.txt", "mine\n");
+        put(dir.path(), "b.txt", "mine\n");
+        let contract = contract_of(vec![file("a.txt", "theirs\n"), file("b.txt", "theirs\n")]);
+        let named = Options {
+            adopt: ["a.txt".to_owned()].into(),
+            ..Options::default()
+        };
+        let r = run_with(&contract, dir.path(), named);
+        assert_eq!(r.refusals.len(), 1, "{:?}", r.refusals);
+        assert!(r.refusals[0].starts_with("b.txt: already exists and differs"));
+        assert_eq!(
+            get(dir.path(), "a.txt"),
+            "mine\n",
+            "a refusal writes nothing"
+        );
+        let both = Options {
+            adopt: ["a.txt".to_owned(), "b.txt".to_owned()].into(),
+            ..Options::default()
+        };
+        let r = run_with(&contract, dir.path(), both);
+        assert!(r.refusals.is_empty());
+        assert_eq!(kinds(&r), ["update:a.txt", "update:b.txt"]);
         assert_eq!(get(dir.path(), "a.txt"), "theirs\n");
     }
 

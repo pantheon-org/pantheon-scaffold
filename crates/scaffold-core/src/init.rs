@@ -61,8 +61,15 @@ fn check_name(flag: &str, name: &str) -> Result<(), InitError> {
 
 /// The problems with what was asked for, as the message to show.
 pub fn validate(opts: &InitOptions) -> Result<(), InitError> {
+    validate_for("init", opts)
+}
+
+/// `validate`, with the name of the command that was run in the message: `migrate` takes the same options as `init`.
+pub fn validate_for(command: &str, opts: &InitOptions) -> Result<(), InitError> {
     if opts.toolchain.is_empty() {
-        return refuse("init needs --toolchain, for example --toolchain 1.96.1");
+        return refuse(format!(
+            "{command} needs --toolchain, for example --toolchain 1.96.1"
+        ));
     }
     if parse_semver(&opts.toolchain).is_none() {
         return refuse(format!(
@@ -266,6 +273,16 @@ mod tests {
             ..opts()
         };
         assert_eq!(validate(&full), Ok(()));
+    }
+
+    #[test]
+    fn the_message_names_the_command_that_was_run() {
+        assert_eq!(
+            validate_for("migrate", &InitOptions::default())
+                .unwrap_err()
+                .to_string(),
+            "migrate needs --toolchain, for example --toolchain 1.96.1"
+        );
     }
 
     #[test]

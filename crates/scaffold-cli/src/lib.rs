@@ -29,7 +29,8 @@ pub const USAGE: &str = "usage (exit codes: 0 ok, 1 error, 2 usage, 3 refused, 4
   pantheon-scaffold latest [--include-prereleases] [--url <url>] [--root <dir>] [--attempts <n>]
   pantheon-scaffold freshness [--url <url>] [--max-age-days <n>] [--attempts <n>]
   pantheon-scaffold upgrade <version> [--root <dir>] [--config <file>] [--dry-run] [--force] [--no-render]
-  pantheon-scaffold init --toolchain <x.y.z> [--package-version <x.y.z>] [--binary --crate-name <name>] [--skills --skill-name <name>] [--write] [--root <dir>] [--cache-dir <dir>] [--allow-local-package <dir>] [--attempts <n>]";
+  pantheon-scaffold init --toolchain <x.y.z> [--package-version <x.y.z>] [--binary --crate-name <name>] [--skills --skill-name <name>] [--write] [--root <dir>] [--cache-dir <dir>] [--allow-local-package <dir>] [--attempts <n>]
+  pantheon-scaffold migrate --toolchain <x.y.z> [--package-version <x.y.z>] [--binary --crate-name <name>] [--skills --skill-name <name>] [--write] [--root <dir>] [--cache-dir <dir>] [--allow-local-package <dir>] [--attempts <n>]";
 
 /// The default age limit of `freshness`, in days.
 pub const MAX_AGE_DAYS: u64 = 30;
@@ -225,7 +226,10 @@ pub fn run_with_env(
         io.say(VERSION);
         return EXIT_OK;
     }
-    let no_config = matches!(cmd.as_str(), "detach" | "freshness" | "latest" | "init");
+    let no_config = matches!(
+        cmd.as_str(),
+        "detach" | "freshness" | "latest" | "init" | "migrate"
+    );
     let needs_config = matches!(cmd.as_str(), "contract" | "render" | "check" | "upgrade");
     let config = if no_config { None } else { rest.first() };
     if !(no_config || needs_config && config.is_some()) {
@@ -249,6 +253,7 @@ pub fn run_with_env(
         "freshness" => finish(run_freshness(&flags, env, &mut io), &mut io),
         "latest" => finish(run_latest(&flags, env, &mut io), &mut io),
         "init" => finish(run_init(&flags, env, &mut io), &mut io),
+        "migrate" => finish(run_migrate(&flags, env, &mut io), &mut io),
         "upgrade" => {
             let version = config.expect("checked above");
             finish(run_upgrade(version, &flags, env, &mut io), &mut io)
@@ -375,9 +380,22 @@ fn init_package(flags: &Flags, env: &Env) -> Result<scaffold_core::init::Package
 /// `init`: writes `pantheon.pkl` once for a new project and renders it. Nothing is written without `--write`; then the config is
 /// evaluated against its package and the files it would write are listed. Nothing is written either when the render would be refused
 /// (a file that is there and differs), and a failure after `pantheon.pkl` is written takes it back.
-fn run_init(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
-    use scaffold_core::apply::{Kind, Options, apply};
-    use scaffold_core::init::{InitOptions, config_text, validate};
+/// What `init` and `migrate` both start from: a `pantheon.pkl` text for the options and package, evaluated in a scratch folder
+/// (so a repository with no `pantheon.pkl` yet can be rendered from it), and passed through the strict gate, because a project
+/// must not start on a release that is known to be bad. Returns the exit code instead when it has to stop.
+struct Prepared {
+    text: String,
+    contract: scaffold_core::contract::Contract,
+    package_version: Option<String>,
+}
+
+fn prepare(
+    command: &str,
+    flags: &Flags,
+    env: &Env,
+    io: &mut Io,
+) -> Result<Result<Prepared, i32>, String> {
+    use scaffold_core::init::{InitOptions, config_text, validate_for};
     let request = InitOptions {
         toolchain: flags.toolchain.clone().unwrap_or_default(),
         binary: flags.binary,
@@ -385,23 +403,22 @@ fn run_init(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
         skills: flags.skills,
         skill_name: flags.skill_name.clone(),
     };
-    if let Err(problem) = validate(&request) {
+    if let Err(problem) = validate_for(command, &request) {
         io.complain(&format!("{problem}\n{USAGE}"));
-        return Ok(EXIT_USAGE);
+        return Ok(Err(EXIT_USAGE));
     }
     if flags.local.len() > 1 {
         io.complain(&format!(
-            "init takes one --allow-local-package folder\n{USAGE}"
+            "{command} takes one --allow-local-package folder\n{USAGE}"
         ));
-        return Ok(EXIT_USAGE);
+        return Ok(Err(EXIT_USAGE));
     }
-    let config_path = flags.root.join("pantheon.pkl");
-    if config_path.exists() {
+    if flags.root.join("pantheon.pkl").exists() {
         io.complain(&format!(
-            "pantheon.pkl already exists in {}: init writes it once. Use upgrade to move it to another release.",
+            "pantheon.pkl already exists in {}: {command} writes it once. Use upgrade to move it to another release.",
             flags.root.display()
         ));
-        return Ok(EXIT_REFUSED);
+        return Ok(Err(EXIT_REFUSED));
     }
     let text = config_text(&request, &init_package(flags, env)?).map_err(|e| e.to_string())?;
     let scratch = Scratch::new()?;
@@ -412,21 +429,37 @@ fn run_init(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
         scaffold_core::pkl::eval_contract_json(&candidate, &flags.root, &eval_options(flags))
             .map_err(|e| e.to_string())?;
     let contract = scaffold_core::contract::parse_contract(&json).map_err(|e| e.to_string())?;
-    // A new project must not start on a release that is known to be bad, which `render` only warns about unless it is strict.
     let strict = Flags {
         strict: true,
         ..flags.clone()
     };
-    let package_version = match gate(
+    match gate(
         &contract,
         &strict,
         scaffold_core::preflight::Mode::Render,
         env,
         io,
     )? {
-        Gate::Stop(code) => return Ok(code),
-        Gate::Go(version) => version,
+        Gate::Stop(code) => Ok(Err(code)),
+        Gate::Go(package_version) => Ok(Ok(Prepared {
+            text,
+            contract,
+            package_version,
+        })),
+    }
+}
+
+fn run_init(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
+    use scaffold_core::apply::{Kind, Options, apply};
+    let Prepared {
+        text,
+        contract,
+        package_version,
+    } = match prepare("init", flags, env, io)? {
+        Ok(prepared) => prepared,
+        Err(code) => return Ok(code),
     };
+    let config_path = flags.root.join("pantheon.pkl");
     let render = |dry_run| Options {
         dry_run,
         package_version: package_version.clone(),
@@ -479,6 +512,99 @@ fn run_init(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
     io.say(&format!(
         "init: wrote pantheon.pkl and {} file(s). Next: run mise lock, then commit.",
         report.written
+    ));
+    Ok(EXIT_OK)
+}
+
+/// `migrate`: brings an existing repository under the scaffold. It renders the Builtins for the options in memory and lists, for
+/// each file, whether it is identical to the Builtin, drifted from it, or new, and which files are the repository's own. Nothing is
+/// written without `--write`. `--write` is refused while any file has drifted, so no difference is lost; otherwise it writes
+/// `pantheon.pkl` and the new files, and overwrites only the YAML files that are equal to the render and differ in their text.
+fn run_migrate(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
+    use scaffold_core::apply::{Options, apply};
+    use scaffold_core::migrate::{Class, classify};
+    let Prepared {
+        text,
+        contract,
+        package_version,
+    } = match prepare("migrate", flags, env, io)? {
+        Ok(prepared) => prepared,
+        Err(code) => return Ok(code),
+    };
+    let report = classify(&contract, &flags.root).map_err(|e| e.to_string())?;
+    for entry in &report.entries {
+        io.say(&format!("{:<10} {}", entry.class.label(), entry.path));
+        for difference in &entry.differences {
+            io.say(&format!("           {difference}"));
+        }
+        if entry.text_differs {
+            io.say("           equal as YAML, different text: --write replaces it with the render's text");
+        }
+    }
+    let counts = format!(
+        "{} identical, {} drifted, {} new, {} per-repo",
+        report.count(Class::Identical),
+        report.count(Class::Drifted),
+        report.count(Class::New),
+        report.count(Class::PerRepo)
+    );
+    let drifted = report.drifted();
+    if !drifted.is_empty() {
+        if !flags.write {
+            io.say(&format!(
+                "migrate: {counts}. Nothing was written. --write is refused while a file has drifted."
+            ));
+            return Ok(EXIT_OK);
+        }
+        let lines: Vec<String> = drifted.iter().map(|e| format!("  {}", e.path)).collect();
+        io.complain(&format!(
+            "refused: {} file(s) drifted from the Builtins and would be lost, nothing was written:\n{}",
+            drifted.len(),
+            lines.join("\n")
+        ));
+        return Ok(EXIT_REFUSED);
+    }
+    let render = |dry_run| Options {
+        dry_run,
+        package_version: package_version.clone(),
+        adopt: report.adopt(),
+        ..Options::default()
+    };
+    let plan = apply(&contract, &flags.root, &render(true)).map_err(|e| e.to_string())?;
+    if !plan.refusals.is_empty() {
+        io.complain(&format!(
+            "refused {} file(s), nothing was written:\n  {}",
+            plan.refusals.len(),
+            plan.refusals.join("\n  ")
+        ));
+        return Ok(EXIT_REFUSED);
+    }
+    if !flags.write {
+        io.say(&format!(
+            "migrate: {counts}. Nothing was written. Run again with --write to write pantheon.pkl and the new files."
+        ));
+        return Ok(EXIT_OK);
+    }
+    let config_path = flags.root.join("pantheon.pkl");
+    write_new(&config_path, &text)?;
+    let written = match apply(&contract, &flags.root, &render(false)) {
+        Ok(done) if done.refusals.is_empty() => done.written,
+        Ok(done) => {
+            let _ = std::fs::remove_file(&config_path);
+            io.complain(&format!(
+                "refused {} file(s):\n  {}",
+                done.refusals.len(),
+                done.refusals.join("\n  ")
+            ));
+            return Ok(EXIT_REFUSED);
+        }
+        Err(e) => {
+            let _ = std::fs::remove_file(&config_path);
+            return Err(e.to_string());
+        }
+    };
+    io.say(&format!(
+        "migrate: {counts}. Wrote pantheon.pkl and {written} file(s). Next: run mise lock, then commit."
     ));
     Ok(EXIT_OK)
 }

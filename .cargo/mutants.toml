@@ -3,3 +3,9 @@
 # real binary runs, which the cucumber features do. The unit tests of the other crates kill the
 # mutants.
 exclude_globs = ["crates/scaffold-features/**", "crates/scaffold-cli/src/main.rs"]
+
+# A justified survivor, excluded by name. `migrate` plans the render as a dry run first and stops on any refusal, so the render that
+# writes can only refuse if a file changes between the two calls. No test can cause that without a race; the guard is kept so that a
+# refusal in that case still removes the pantheon.pkl it wrote. The mutant that makes the guard always true behaves the same on every
+# run that reaches it. The mutant that makes it always false is caught (the successful write test).
+exclude_re = ["replace match guard done\\.refusals\\.is_empty\\(\\) with true in run_migrate"]

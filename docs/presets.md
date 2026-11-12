@@ -2,7 +2,7 @@
 
 Written for the owner of a repository that uses the scaffold. A **Preset** is a small pkl file in your repository that takes something the package renders (a workflow, a job, a step, a file) and returns a changed version. Use one when a toggle in `options` is not enough and you do not want to give up the rest of the Builtin.
 
-Presets need package **0.1.7 or later** and the Rust runner. 0.1.7 is not released yet (the newest is 0.1.6, 11-11-2026), so none of this works against a published release today. The design and the experiments behind it are in [presets-design.md](presets-design.md).
+Presets need package **0.1.7 or later** (released on 12-11-2026) and the Rust runner of the same release. The design and the experiments behind it are in [presets-design.md](presets-design.md).
 
 **Do not edit a rendered file by hand.** The runner refuses a hand-edited owned file. A Preset is how a change survives the next render and the next upgrade.
 

@@ -4,7 +4,7 @@ Defines the GitHub CI/CD of the `pantheon-*` repositories in pkl, and renders it
 
 ## Status
 
-Early stage, being refocused (see [docs/refocus-2026-11-10.md](docs/refocus-2026-11-10.md)). The package and the runner, a Rust program, are published together as GitHub releases. The newest is 0.1.6, the first with the Rust runner, a stable release since 11-11-2026 (see [docs/release-process.md](docs/release-process.md)). No repository has adopted it yet. The repository was created on 07-11-2026 after feasibility spikes.
+Early stage, being refocused (see [docs/refocus-2026-11-10.md](docs/refocus-2026-11-10.md)). The package and the runner, a Rust program, are published together as GitHub releases. The newest is 0.1.7, with Presets and `init`, a stable release since 12-11-2026 (0.1.6 was the first with the Rust runner) (see [docs/release-process.md](docs/release-process.md)). No repository has adopted it yet. The repository was created on 07-11-2026 after feasibility spikes.
 
 Where it is heading:
 

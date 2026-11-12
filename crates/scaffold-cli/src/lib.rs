@@ -29,8 +29,8 @@ pub const USAGE: &str = "usage (exit codes: 0 ok, 1 error, 2 usage, 3 refused, 4
   pantheon-scaffold latest [--include-prereleases] [--url <url>] [--root <dir>] [--attempts <n>]
   pantheon-scaffold freshness [--url <url>] [--max-age-days <n>] [--attempts <n>]
   pantheon-scaffold upgrade <version> [--root <dir>] [--config <file>] [--dry-run] [--force] [--no-render]
-  pantheon-scaffold init --toolchain <x.y.z> [--package-version <x.y.z>] [--binary --crate-name <name>] [--skills --skill-name <name>] [--write] [--root <dir>] [--cache-dir <dir>] [--allow-local-package <dir>] [--attempts <n>]
-  pantheon-scaffold migrate --toolchain <x.y.z> [--package-version <x.y.z>] [--binary --crate-name <name>] [--skills --skill-name <name>] [--write] [--as-presets] [--root <dir>] [--cache-dir <dir>] [--allow-local-package <dir>] [--attempts <n>]";
+  pantheon-scaffold init --toolchain <x.y.z> [--package-version <x.y.z>] [--binary --crate-name <name>] [--skills --skill-name <name>] [--composite-action] [--git-dependency-ignore <name>]... [--write] [--root <dir>] [--cache-dir <dir>] [--allow-local-package <dir>] [--attempts <n>]
+  pantheon-scaffold migrate --toolchain <x.y.z> [--package-version <x.y.z>] [--binary --crate-name <name>] [--skills --skill-name <name>] [--composite-action] [--git-dependency-ignore <name>]... [--write] [--as-presets] [--root <dir>] [--cache-dir <dir>] [--allow-local-package <dir>] [--attempts <n>]";
 
 /// The default age limit of `freshness`, in days.
 pub const MAX_AGE_DAYS: u64 = 30;
@@ -56,6 +56,8 @@ pub struct Flags {
     pub skill_name: Option<String>,
     pub write: bool,
     pub as_presets: bool,
+    pub composite_action: bool,
+    pub git_dependency_ignore: Vec<String>,
     pub binary: bool,
     pub skills: bool,
 }
@@ -105,6 +107,8 @@ pub fn parse_flags(args: &[String], cwd: &Path) -> Result<Flags, String> {
         skill_name: None,
         write: false,
         as_presets: false,
+        composite_action: false,
+        git_dependency_ignore: Vec::new(),
         binary: false,
         skills: false,
     };
@@ -119,6 +123,7 @@ pub fn parse_flags(args: &[String], cwd: &Path) -> Result<Flags, String> {
             "--include-prereleases" => f.include_prereleases = true,
             "--write" => f.write = true,
             "--as-presets" => f.as_presets = true,
+            "--composite-action" => f.composite_action = true,
             "--binary" => f.binary = true,
             "--skills" => f.skills = true,
             "--max-age-days" | "--attempts" => {
@@ -138,7 +143,8 @@ pub fn parse_flags(args: &[String], cwd: &Path) -> Result<Flags, String> {
             | "--toolchain"
             | "--package-version"
             | "--crate-name"
-            | "--skill-name" => {
+            | "--skill-name"
+            | "--git-dependency-ignore" => {
                 let value = rest
                     .next()
                     .filter(|v| !v.is_empty())
@@ -152,6 +158,7 @@ pub fn parse_flags(args: &[String], cwd: &Path) -> Result<Flags, String> {
                     "--package-version" => f.package_version = Some(value.clone()),
                     "--crate-name" => f.crate_name = Some(value.clone()),
                     "--skill-name" => f.skill_name = Some(value.clone()),
+                    "--git-dependency-ignore" => f.git_dependency_ignore.push(value.clone()),
                     _ => f.local.push(resolve(cwd, value)),
                 }
             }
@@ -436,6 +443,8 @@ fn prepare(
         crate_name: flags.crate_name.clone(),
         skills: flags.skills,
         skill_name: flags.skill_name.clone(),
+        composite_action: flags.composite_action,
+        git_dependency_ignore: flags.git_dependency_ignore.clone(),
     };
     if let Err(problem) = validate_for(command, &request) {
         io.complain(&format!("{problem}\n{USAGE}"));
@@ -1716,6 +1725,26 @@ mod tests {
         ] {
             assert_eq!(flag_error(&[option]), format!("{option} needs a value"));
         }
+    }
+
+    #[test]
+    fn the_composite_action_and_the_ignored_dependencies_are_read_and_the_ignores_can_be_repeated()
+    {
+        let f = flags(&[
+            "--composite-action",
+            "--git-dependency-ignore",
+            "a",
+            "--git-dependency-ignore",
+            "b",
+        ]);
+        assert!(f.composite_action);
+        assert_eq!(f.git_dependency_ignore, ["a", "b"]);
+        let d = flags(&[]);
+        assert!(!d.composite_action && d.git_dependency_ignore.is_empty());
+        assert_eq!(
+            flag_error(&["--git-dependency-ignore"]),
+            "--git-dependency-ignore needs a value"
+        );
     }
 
     #[test]

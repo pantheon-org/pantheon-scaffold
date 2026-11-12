@@ -75,3 +75,21 @@ Feature: init
     Then the exit code is 0
     And the file "pantheon.pkl" contains 'skillName = "my-skill"'
     And the file ".github/workflows/audit-skill.yml" exists
+
+  Scenario: the composite action and the git dependencies Dependabot must leave alone are written to the config and reach the files
+    Given a new empty repository
+    And I run "init --root <repo> --allow-local-package <package> --toolchain 1.96.1 --composite-action --git-dependency-ignore pahdk-core --git-dependency-ignore pahdk-install --write"
+    Then the exit code is 0
+    And the file "pantheon.pkl" contains "compositeAction = true"
+    And the file "pantheon.pkl" contains 'gitDependencyIgnore { "pahdk-core"; "pahdk-install" }'
+    And the file ".github/dependabot.yml" contains "dependency-name: pahdk-core"
+    And the file ".github/dependabot.yml" contains "dependency-name: pahdk-install"
+    When I run "check <repo>/pantheon.pkl --root <repo> --allow-local-package <package>"
+    Then the exit code is 0
+
+  Scenario: a name that is not a dependency name is a usage error
+    Given a new empty repository
+    When I run "init --root <repo> --allow-local-package <package> --toolchain 1.96.1 --git-dependency-ignore a/b"
+    Then the exit code is 2
+    And the error contains "may hold only letters, digits, dots, dashes and underscores"
+    And the file "pantheon.pkl" does not exist

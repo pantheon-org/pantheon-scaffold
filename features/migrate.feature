@@ -196,3 +196,10 @@ Feature: migrate
     When I run "init --root <repo> --allow-local-package <package> --toolchain 1.96.1 --as-presets"
     Then the exit code is 2
     And the error contains "--as-presets belongs to migrate"
+
+  Scenario: migrate takes the same options as init, so the dry run renders what the repository sets
+    Given a new empty repository
+    When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --composite-action --git-dependency-ignore pahdk-core --write"
+    Then the exit code is 0
+    And the file "pantheon.pkl" contains "compositeAction = true"
+    And the file ".github/dependabot.yml" contains "dependency-name: pahdk-core"

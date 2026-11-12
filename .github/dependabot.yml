@@ -38,6 +38,21 @@ updates:
   open-pull-requests-limit: 5
   cooldown:
     default-days: 7
+  exclude-paths:
+  - .github/workflows/plumber.yml
+  - .github/workflows/sync-labels.yml
+  - .github/workflows/pr-auto-rebase.yml
+  - .github/workflows/release-automerge.yml
+  - .github/workflows/commit-types.yml
+  - .github/workflows/conventional-commits.yml
+  - .github/workflows/release-please.yml
+  - .github/workflows/zizmor.yml
+  - .github/workflows/agnix.yml
+  - .github/workflows/aislop.yml
+  - .github/workflows/rust-ci.yml
+  - .github/workflows/cargo-deny.yml
+  - .github/workflows/inline-scripts.yml
+  - .github/workflows/scaffold-check.yml
   labels:
   - dependencies
   - github-actions

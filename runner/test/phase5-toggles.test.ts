@@ -29,7 +29,7 @@ const same = (a?: Row, b?: Row) => JSON.stringify(a) === JSON.stringify(b);
 const EXPECTED: [string, Partial<T>, { removed: string[]; changed: string[] }][] = [
   ["skills off", { skills: false }, {
     removed: [".github/workflows/audit-skill.yml"],
-    changed: [".agnix.toml", ".coderabbit.yaml", ".github/workflows/agnix.yml", "SECURITY.md"],
+    changed: [".agnix.toml", ".coderabbit.yaml", ".github/dependabot.yml", ".github/workflows/agnix.yml", "SECURITY.md"],
   }],
   ["binary off", { binary: false }, {
     removed: [".github/actionlint.yaml", ".github/scripts/tag-release.sh", ".github/workflows/dist-check.yml", ".github/workflows/release.yml", ".github/zizmor.yml", "dist-workspace.toml"],

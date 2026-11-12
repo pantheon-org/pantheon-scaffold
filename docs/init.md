@@ -18,6 +18,8 @@ mise lock                                            # records the checksums of 
 | `--package-version <x.y.z>` | The release to use. Without it, the newest stable release that is not a draft and not on the known-bad list (what `latest` prints). A known-bad release is refused even when named. |
 | `--binary --crate-name <name>` | The repository releases a binary with cargo-dist. Both are needed together. |
 | `--skills --skill-name <name>` | The repository carries a skill. Both are needed together. |
+| `--composite-action` | The repository is the skill auditor itself: its own action runs the audit, and zizmor also scans `action.yml`. |
+| `--git-dependency-ignore <name>` | A git dependency Dependabot cannot resolve and must leave alone. Repeat it for each one. Names hold letters, digits, dots, dashes and underscores, and are given once. |
 | `--write` | Write. Without it `init` is a dry run. |
 | `--root <dir>` | The repository, default the current directory. |
 

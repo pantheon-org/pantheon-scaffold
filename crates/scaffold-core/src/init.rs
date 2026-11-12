@@ -22,6 +22,10 @@ pub struct InitOptions {
     pub crate_name: Option<String>,
     pub skills: bool,
     pub skill_name: Option<String>,
+    /// The repository is the skill auditor itself: its own action runs the audit and zizmor also scans `action.yml`.
+    pub composite_action: bool,
+    /// Git dependencies Dependabot cannot resolve, which it must leave alone (`gitDependencyIgnore`).
+    pub git_dependency_ignore: Vec<String>,
 }
 
 /// Which package the config amends.
@@ -84,11 +88,18 @@ pub fn validate_for(command: &str, opts: &InitOptions) -> Result<(), InitError> 
         (false, None) => {}
     }
     match (opts.skills, &opts.skill_name) {
-        (true, None) => refuse("--skills needs --skill-name"),
-        (false, Some(_)) => refuse("--skill-name needs --skills"),
-        (true, Some(name)) => check_name("--skill-name", name),
-        (false, None) => Ok(()),
+        (true, None) => return refuse("--skills needs --skill-name"),
+        (false, Some(_)) => return refuse("--skill-name needs --skills"),
+        (true, Some(name)) => check_name("--skill-name", name)?,
+        (false, None) => {}
     }
+    for (i, name) in opts.git_dependency_ignore.iter().enumerate() {
+        check_name("--git-dependency-ignore", name)?;
+        if opts.git_dependency_ignore[..i].contains(name) {
+            return refuse(format!("--git-dependency-ignore {name:?} is given twice"));
+        }
+    }
+    Ok(())
 }
 
 /// A pkl string literal's contents: a quote or a backslash would end or bend the string.
@@ -191,6 +202,20 @@ pub fn config_text_with(
             "local standard = new Mapping {{\n  ...Builtins.standardFiles(options)\n  ...Builtins.baseFiles(options)\n  ...Builtins.toolingFiles()\n  ...Builtins.miseFiles(options)\n  ...Builtins.hkFiles(options)\n}}\n\nfiles = {applied}\n"
         )
     };
+    if opts.composite_action {
+        options.push_str("  compositeAction = true\n");
+    }
+    if !opts.git_dependency_ignore.is_empty() {
+        let names: Vec<String> = opts
+            .git_dependency_ignore
+            .iter()
+            .map(|n| format!("\"{n}\""))
+            .collect();
+        options.push_str(&format!(
+            "  gitDependencyIgnore {{ {} }}\n",
+            names.join("; ")
+        ));
+    }
     Ok(format!(
         "// Written by `pantheon-scaffold init`. From here on `pantheon-scaffold upgrade` edits the amends line and the imports of the package, and everything else is yours.\namends \"{}\"\n\nimport \"{}\"\n{imports}\noptions {{\n{options}}}\n\n{listed}workflows {{ ...Builtins.standardWorkflows(options) }}\n\n{files}",
         join("Config.pkl"),
@@ -317,6 +342,43 @@ mod tests {
             ..opts()
         };
         assert_eq!(validate(&full), Ok(()));
+    }
+
+    #[test]
+    fn the_composite_action_and_the_ignored_git_dependencies_are_written_after_the_other_options() {
+        let o = InitOptions {
+            composite_action: true,
+            git_dependency_ignore: vec!["pahdk-core".into(), "pahdk-install".into()],
+            ..opts()
+        };
+        let text = config_text(&o, &local()).unwrap();
+        assert!(
+            text.contains("  skills = false\n  binary = false\n  compositeAction = true\n  gitDependencyIgnore { \"pahdk-core\"; \"pahdk-install\" }\n}\n"),
+            "{text}"
+        );
+        let plain = config_text(&opts(), &local()).unwrap();
+        assert!(!plain.contains("compositeAction") && !plain.contains("gitDependencyIgnore"));
+    }
+
+    #[test]
+    fn an_ignored_dependency_is_a_name_and_is_given_once() {
+        let with = |names: &[&str]| InitOptions {
+            git_dependency_ignore: names.iter().map(|n| (*n).to_owned()).collect(),
+            ..opts()
+        };
+        assert_eq!(validate(&with(&["a", "b.c_d-e"])), Ok(()));
+        assert_eq!(
+            problem(&with(&["a", "b", "a"])),
+            "--git-dependency-ignore \"a\" is given twice"
+        );
+        assert_eq!(
+            problem(&with(&["a b"])),
+            "--git-dependency-ignore \"a b\" may hold only letters, digits, dots, dashes and underscores"
+        );
+        assert_eq!(
+            problem(&with(&[""])),
+            "--git-dependency-ignore \"\" may hold only letters, digits, dots, dashes and underscores"
+        );
     }
 
     #[test]

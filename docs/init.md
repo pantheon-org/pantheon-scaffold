@@ -49,7 +49,7 @@ workflows { ...Builtins.standardWorkflows(options) }
 files {
   ...Builtins.standardFiles(options)
   ...Builtins.baseFiles(options)
-  ...Builtins.toolingFiles()
+  ...Builtins.toolingFiles(options)
   ...Builtins.miseFiles(options)
   ...Builtins.hkFiles(options)
 }

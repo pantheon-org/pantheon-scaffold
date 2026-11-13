@@ -29,8 +29,8 @@ The 55 JSON files in `/tmp/baseline`, concatenated in name order, have sha256 `3
 ## Checking a tree
 
 ```bash
-runner/scripts/builtins-baseline/check.sh /tmp/baseline /tmp/scaffold-0b466dc/target/debug/pantheon-scaffold "" --api old
+runner/scripts/builtins-baseline/check.sh /tmp/baseline /tmp/scaffold-0b466dc/target/debug/pantheon-scaffold
 ```
 
-Use `--api old` on a tree where `toolingFiles()` takes no argument and `--api new` after the presence work. Expect `55 configurations compared, 0 differences`.
+The default is `--api new` (`toolingFiles(options)`); pass `--api old` for the baseline tree, where `toolingFiles()` takes no argument. Expect `55 configurations compared, 0 differences`.
 The binary is the same for both sides on purpose: a change to the Rust runner would otherwise hide inside the comparison.

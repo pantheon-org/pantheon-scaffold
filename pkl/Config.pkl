@@ -39,6 +39,11 @@ class Options {
   skillName: String?
   /// Git dependencies pinned by tag that Dependabot cannot resolve, so it must ignore them.
   gitDependencyIgnore: Listing<String> = new {}
+  /// Builtins to leave out, by name: the folder names under `pkl/Builtins/` (`rumdl`, `pull-request-template`, `mise` and the rest). Empty by default,
+  /// so every builtin is present. The aggregators in Builtins.pkl skip a left-out builtin, and a builtin that cannot work without another fails with
+  /// an error that names both. A name that is not a builtin, or one listed twice, is an error. Only the aggregators read it: calling a single builtin
+  /// function (`rustCi(opts)`) still renders it, and not spreading an aggregator is not leaving its builtins out.
+  without: Listing<String> = new {}
 }
 
 /// A workflow step. Typed keys cover what the workflows use. `raw` is the escape hatch (decision 33):

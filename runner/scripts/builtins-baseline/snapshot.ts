@@ -2,8 +2,8 @@
 //
 //   command bun snapshot.ts <tree root> <binary> <out dir> [--api old|new]
 //
-// --api names how the matrix configurations call the aggregators that gained a parameter: `old` is `toolingFiles()`, `new` is `toolingFiles(options)`.
-// Use old for a tree before the presence work (the baseline tree), new after it.
+// --api names how the matrix configurations call the aggregators that gained a parameter: `new` (the default) is `toolingFiles(options)`, `old` is `toolingFiles()`, for a tree before the presence work.
+// Use old for the baseline tree (origin/main at 0b466dc).
 //
 // Configurations: the tree's own pantheon.pkl, every runner/test/fixtures/*/pantheon.pkl, and an option matrix written into
 // <out dir>/_matrix (skills, binary, compositeAction, features, plus error paths), all built on the tree's pkl/ folder.
@@ -15,7 +15,7 @@ import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
 
 const argv = Bun.argv.slice(2);
-const api = argv.includes("--api") ? argv[argv.indexOf("--api") + 1] : "old";
+const api = argv.includes("--api") ? argv[argv.indexOf("--api") + 1] : "new";
 if (api !== "old" && api !== "new") {
   console.error("--api must be old or new");
   process.exit(2);

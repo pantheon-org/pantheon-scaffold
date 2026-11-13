@@ -75,3 +75,62 @@ function miseSetup(): List<Config.Step> = List(
     }
   }
 )
+
+/// The names of the builtins, one for each folder of `pkl/Builtins/`: `options.without` takes these names. A test compares this list with the
+/// folder listing, so the two cannot drift. A workflow key can differ from the name (`dist-check` is rendered by the `release` builtin).
+const builtinNames: List<String> = List(
+  "actionlint",
+  "agnix",
+  "aislop",
+  "audit-skill",
+  "cargo-deny",
+  "claude-settings",
+  "coderabbit",
+  "commit-types",
+  "conventional-commits",
+  "dependabot",
+  "gitignore",
+  "hk",
+  "inline-scripts",
+  "mise",
+  "plumber",
+  "pr-auto-rebase",
+  "pull-request-template",
+  "release",
+  "release-automerge",
+  "release-please",
+  "rumdl",
+  "rust-ci",
+  "rust-toolchain",
+  "scaffold-check",
+  "security",
+  "sync-labels",
+  "upgrade",
+  "zizmor"
+)
+
+/// Which builtins are present: every one except those `options.without` leaves out. `Builtins.pkl` builds it with `present(opts)` and passes it to
+/// the builtins that depend on another.
+class Present {
+  /// The builtins that are left out.
+  without: List<String>
+
+  /// Whether the builtin called `name` is present. A name that is not a builtin is an error, so a typo cannot silently never match.
+  function has(name: String): Boolean =
+    if (!builtinNames.contains(name))
+      throw("\"\(name)\" is not a builtin of this package version. Builtins: \(builtinNames.join(", "))")
+    else
+      !without.contains(name)
+}
+
+/// The `Present` value for these options. Fails, naming the builtins there are, when `options.without` has a name that is not a builtin
+/// (an empty name included) or names one twice.
+function present(opts: Config.Options): Present =
+  let (names = opts.without.toList())
+  let (notBuiltins = names.filter((n) -> !builtinNames.contains(n)))
+  if (!notBuiltins.isEmpty)
+    throw("options.without names \(notBuiltins.map((n) -> "\"\(n)\"").join(", ")), which \(if (notBuiltins.length == 1) "is" else "are") not a builtin of this package version. Builtins: \(builtinNames.join(", "))")
+  else if (names.toSet().length != names.length)
+    throw("options.without names a builtin more than once: \(names.filter((n) -> names.count((m) -> m == n) > 1).toSet().toList().join(", "))")
+  else
+    new Present { without = names }

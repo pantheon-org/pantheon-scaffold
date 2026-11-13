@@ -27,6 +27,6 @@ workflows = scaffoldCheck.apply(rustCi.apply(Builtins.standardWorkflows(options)
 
 // standardFiles does not render the scripts that the workflows run: baseFiles has those of rust-ci, cargo-deny and inline-scripts (and
 // deny.toml and rust-toolchain.toml), toolingFiles the others (and .rumdl.toml and the Claude Code settings).
-local allFiles = (Builtins.standardFiles(options)) { ...Builtins.baseFiles(options); ...Builtins.toolingFiles() }
+local allFiles = (Builtins.standardFiles(options)) { ...Builtins.baseFiles(options); ...Builtins.toolingFiles(options) }
 
 files = ownDeny.apply(gitignore.apply(allFiles))

@@ -51,7 +51,7 @@ try {
     const dir = join(work, name);
     mkdirSync(dir, { recursive: true });
     const common = `toolchain = "1.96.1"\n  runnerVersion = "0.1.9"\n  ${body}`;
-    const composition = `workflows { ...Builtins.standardWorkflows(options) }\nfiles {\n  ...Builtins.standardFiles(options)\n  ...Builtins.baseFiles(options)\n  ...Builtins.toolingFiles()\n  ...Builtins.miseFiles(options)\n  ...Builtins.hkFiles(options)\n}\n`;
+    const composition = `workflows { ...Builtins.standardWorkflows(options) }\nfiles {\n  ...Builtins.standardFiles(options)\n  ...Builtins.baseFiles(options)\n  ...Builtins.toolingFiles(options)\n  ...Builtins.miseFiles(options)\n  ...Builtins.hkFiles(options)\n}\n`;
     writeFileSync(join(dir, "pantheon.pkl"), `amends "${base}#/Config.pkl"\nimport "${base}#/Builtins.pkl"\noptions {\n  ${common}\n}\n${composition}`);
     writeFileSync(join(dir, "folder.pkl"), `amends "file://${tree}/pkl/Config.pkl"\nimport "file://${tree}/pkl/Builtins.pkl"\noptions {\n  ${common}\n}\n${composition}`);
     const p = Bun.spawn(

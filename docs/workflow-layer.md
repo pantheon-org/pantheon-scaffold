@@ -25,7 +25,7 @@ The folder is named after the builtin's key in `standardWorkflows` (`rust-ci`, `
 | `Builtins.commitTypes()` | `.github/workflows/commit-types.yml` | `.github/commit-types.txt` |
 | `Builtins.conventionalCommits()` | `.github/workflows/conventional-commits.yml` | none |
 
-`Builtins.workflowFiles()` renders the four config files and `.github/pull_request_template.md`, byte for byte from `pantheon-adr` at `1e2fd46`. The scripts these workflows call stay in `Builtins.toolingFiles()` (phase 3).
+`Builtins.workflowFiles(options)` renders the four config files and `.github/pull_request_template.md`, byte for byte from `pantheon-adr` at `1e2fd46`. The scripts these workflows call stay in `Builtins.toolingFiles()` (phase 3).
 
 Each workflow is compared with the pinned `pantheon-adr` copy under the P.1 rule, job ids and job names are compared (the required status checks depend on them), and `actionlint` runs over the render.
 

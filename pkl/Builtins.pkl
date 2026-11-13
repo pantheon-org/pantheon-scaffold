@@ -8,6 +8,14 @@ import "Config.pkl"
 import "Pins.pkl"
 import "Tools.pkl"
 import "Builtins/Shared.pkl"
+import "Builtins/commit-types/Builtin.pkl" as commitTypesBuiltin
+import "Builtins/conventional-commits/Builtin.pkl" as conventionalCommitsBuiltin
+import "Builtins/release-automerge/Builtin.pkl" as releaseAutomergeBuiltin
+import "Builtins/pr-auto-rebase/Builtin.pkl" as prAutoRebaseBuiltin
+import "Builtins/sync-labels/Builtin.pkl" as syncLabelsBuiltin
+import "Builtins/inline-scripts/Builtin.pkl" as inlineScriptsBuiltin
+import "Builtins/rust-ci/Builtin.pkl" as rustCiBuiltin
+import "Builtins/cargo-deny/Builtin.pkl" as cargoDenyBuiltin
 import "Builtins/plumber/Builtin.pkl" as plumberBuiltin
 
 // Aliases of the shared helpers while builtins still sit in this file. Each goes when its last user moves into a folder.
@@ -23,99 +31,21 @@ local function needCrateName(opts: Config.Options): String = Shared.needCrateNam
 local function miseSetup(): List<Config.Step> = Shared.miseSetup()
 
 /// Checks the dependency tree against deny.toml.
-function cargoDeny(opts: Config.Options): Config.Workflow = new {
-  header = """
-    Checks the dependency tree against deny.toml: RustSec advisories (including
-    yanked and unmaintained crates), licences, banned or duplicate crates, and
-    allowed registries and git sources. The advisory database changes without a
-    commit here, so a weekly run catches new advisories on an idle repository.
-    """
-  name = "Cargo Deny"
-  on = new Mapping<String, Any?> {
-    ...mainTriggers()
-    ["schedule"] = new Listing { new Mapping { ["cron"] = "17 5 * * 1" } }
-    ["workflow_dispatch"] = new Mapping {}
-  }
-  permissions = readOnly
-  concurrency = concurrencyPerRef
-  jobs {
-    ["cargo-deny"] {
-      name = "Cargo Deny"
-      `timeout-minutes` = 10
-      steps {
-        checkout
-        installToolchain(opts.toolchain, null)
-        new { name = "Check dependencies"; run = "bash .github/scripts/cargo-deny.sh" }
-      }
-    }
-  }
-}
-
+function cargoDeny(opts: Config.Options): Config.Workflow = cargoDenyBuiltin.workflow(opts)
 /// Format, lint, build and test the Rust workspace. With `features = "all"` (the library repository) clippy, the build and the tests run with
 /// `--all-features`, and an extra step builds with the default features.
-function rustCi(opts: Config.Options): Config.Workflow =
-  let (features = if (opts.features == "all") "--all-features " else "")
-  new {
-  name = "Rust CI"
-  on = mainTriggers()
-  permissions = readOnly
-  concurrency = concurrencyPerRef
-  jobs {
-    ["build-test"] {
-      name = "Build, test, lint"
-      `timeout-minutes` = 15
-      steps {
-        checkout
-        new { name = "Check toolchain versions"; run = "bash .github/scripts/check-toolchain-version.sh" }
-        installToolchain(opts.toolchain, "rustfmt,clippy")
-        new { name = "Format check"; run = "cargo fmt --all --check" }
-        new { name = "Clippy"; run = "cargo clippy --workspace --all-targets \(features)--locked -- -D warnings" }
-        new { name = "Build"; run = "cargo build --workspace \(features)--locked" }
-        when (opts.features == "all") { new { name = "Build with default features"; run = "cargo build --workspace --locked" } }
-        new { name = "Test"; run = "cargo test --workspace \(features)--locked" }
-      }
-    }
-  }
-}
-
+function rustCi(opts: Config.Options): Config.Workflow = rustCiBuiltin.workflow(opts)
 /// A run block in a workflow or composite action may hold at most 15 lines of code.
-function inlineScripts(): Config.Workflow = new {
-  header = """
-    Rule: a `run:` block in a workflow or composite action may hold at most 15 lines
-    of code (blank and comment lines excluded). Longer logic belongs in a script under
-    .github/scripts/, where it can be run locally, shellchecked and tested; the step
-    then calls it. Values reach the script through `env:`, never by pasting `${{ }}`
-    into its text. A block that must stay long can opt out with a line
-    `# inline-ok: <reason>` inside it. Ported from pantheon-org/tekhne.
-
-    No path filter, so the check always reports a conclusion; also runs on push to
-    main as a post-merge safety net. Deterministic and offline.
-    """
-  name = "Inline Scripts"
-  on = mainTriggers()
-  permissions = readOnly
-  concurrency = concurrencyPerRef
-  jobs {
-    ["inline-scripts"] {
-      name = "Inline Scripts"
-      `timeout-minutes` = 5
-      steps {
-        checkout
-        new { name = "Check run blocks are short"; run = "bash .github/scripts/check-inline-scripts.sh" }
-      }
-    }
-  }
-}
-
+function inlineScripts(): Config.Workflow = inlineScriptsBuiltin.workflow()
 /// The verbatim files the three builtins depend on.
 function baseFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
   ["rust-toolchain.toml"] = new Config.GenFile {
     content = read("assets/rust-toolchain.toml.tmpl").text.replaceAll("@@TOOLCHAIN@@", opts.toolchain)
   }
   ["deny.toml"] = new Config.GenFile { content = read("assets/deny.toml").text }
-  [".github/scripts/cargo-deny.sh"] = new Config.GenFile { content = read("assets/cargo-deny.sh").text; executable = true }
-  [".github/scripts/check-inline-scripts.sh"] = new Config.GenFile { content = read("assets/check-inline-scripts.sh").text; executable = true }
-  [".github/scripts/check-toolchain-version.sh"] = new Config.GenFile { content = read("assets/check-toolchain-version.sh").text; executable = true }
+  ...cargoDenyBuiltin.baseFiles()
+  ...inlineScriptsBuiltin.baseFiles()
+  ...rustCiBuiltin.baseFiles()
 }
 
 /// The tooling files the four Rust repositories share, all verbatim: the seven shared scripts that `baseFiles` does not cover (with
@@ -126,10 +56,10 @@ function toolingFiles(): Mapping<String, Config.GenFile> = new {
   [".github/scripts/agnix-assemble-comment.sh"] = new Config.GenFile { content = read("assets/agnix-assemble-comment.sh").text; executable = true }
   [".github/scripts/agnix-file-issues.sh"] = new Config.GenFile { content = read("assets/agnix-file-issues.sh").text; executable = true }
   [".github/scripts/agnix-introduced-errors.sh"] = new Config.GenFile { content = read("assets/agnix-introduced-errors.sh").text; executable = true }
-  [".github/scripts/auto-rebase.sh"] = new Config.GenFile { content = read("assets/auto-rebase.sh").text; executable = true }
-  [".github/scripts/check-commit-types.sh"] = new Config.GenFile { content = read("assets/check-commit-types.sh").text; executable = true }
-  [".github/scripts/release-automerge.sh"] = new Config.GenFile { content = read("assets/release-automerge.sh").text; executable = true }
-  [".github/scripts/sync-labels.sh"] = new Config.GenFile { content = read("assets/sync-labels.sh").text; executable = true }
+  ...prAutoRebaseBuiltin.toolingFiles()
+  ...commitTypesBuiltin.toolingFiles()
+  ...releaseAutomergeBuiltin.toolingFiles()
+  ...syncLabelsBuiltin.toolingFiles()
   [".rumdl.toml"] = new Config.GenFile { content = read("assets/rumdl.toml").text }
   [".claude/settings.json"] = new Config.GenFile { content = read("assets/claude-settings.json").text }
 }
@@ -183,229 +113,20 @@ function hkFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
 function plumber(): Config.Workflow = plumberBuiltin.workflow()
 
 /// Creates the labels Dependabot applies, from .github/labels.txt.
-function syncLabels(): Config.Workflow = new {
-  header = #"""
-    Creates the labels Dependabot applies (see .github/dependabot.yml). Dependabot
-    cannot create labels itself and comments on its PRs when one is missing.
-    Edit .github/labels.txt to add a label; this runs on push to main or on demand.
-    """#
-  name = "Sync Labels"
-  on = new Mapping<String, Any?> {
-    ["push"] = new Mapping {
-      ["branches"] = new Listing { "main" }
-      ["paths"] = new Listing { ".github/labels.txt"; ".github/scripts/sync-labels.sh"; ".github/workflows/sync-labels.yml" }
-    }
-    ["workflow_dispatch"] = new Mapping {}
-  }
-  permissions = new Mapping {
-    ["contents"] = "read"
-    ["issues"] = "write"
-  }
-  jobs {
-    ["sync-labels"] {
-      name = "Sync Labels"
-      `timeout-minutes` = 5
-      steps {
-        checkout
-        new {
-          name = "Create or update labels"
-          env = new Mapping {
-            ["GH_TOKEN"] = "${{ github.token }}"
-            ["GH_REPO"] = "${{ github.repository }}"
-          }
-          run = "bash .github/scripts/sync-labels.sh"
-        }
-      }
-    }
-  }
-}
-
+function syncLabels(): Config.Workflow = syncLabelsBuiltin.workflow()
 /// Rebases open pull request branches that are behind main, under the App token so the required checks run again on the new head.
-function prAutoRebase(opts: Config.Options): Config.Workflow = new {
-  header = #"""
-    The `main` ruleset requires linear history and a strict "branches must be up
-    to date" status-check policy, so every push to `main` marks all open PRs as
-    BEHIND and blocks them until rebased. This workflow rebases those branches
-    onto the latest `main` using the pantheon-ai-bot App token, which (unlike the
-    default GITHUB_TOKEN) re-triggers the required checks on the new head.
-    Ported from pantheon-org/tekhne.
-
-    Needs the org secret GH_APP_PRIVATE_KEY to be available to this repository and
-    the App installed on it with contents and pull-requests write.
-    """#
-  name = "Auto-rebase PR branches"
-  on = new Mapping<String, Any?> {
-    ["push"] = new Mapping { ["branches"] = new Listing { "main" } }
-    ["workflow_dispatch"] = new Mapping {}
-  }
-  permissions = readOnly
-  concurrency = new Mapping {
-    ["group"] = "pr-auto-rebase"
-    ["cancel-in-progress"] = true
-  }
-  jobs {
-    ["rebase"] {
-      name = "Rebase behind PR branches"
-      `timeout-minutes` = 5
-      steps {
-        mintToken(opts)
-        checkoutScripts
-        new {
-          name = "Rebase behind, non-draft PRs"
-          env = new Mapping {
-            ["GH_TOKEN"] = "${{ steps.app-token.outputs.token }}"
-            ["GH_REPO"] = "${{ github.repository }}"
-          }
-          run = "bash .github/scripts/auto-rebase.sh"
-        }
-      }
-    }
-  }
-}
-
+function prAutoRebase(opts: Config.Options): Config.Workflow = prAutoRebaseBuiltin.workflow(opts)
 /// Mondays: squash-merges the open release-please pull request, under the App token so the push to main starts release-please.
-function releaseAutomerge(opts: Config.Options): Config.Workflow = new {
-  header = #"""
-    Mondays: squash-merges the open release-please PR so a release lands without a
-    human clicking merge. The merge runs under the pantheon-ai-bot App token so the
-    push to main fires release-please.yml, which then tags the version.
-    Ported from pantheon-org/tekhne. Needs the org secret GH_APP_PRIVATE_KEY.
-    """#
-  name = "Release Auto-merge"
-  on = new Mapping<String, Any?> {
-    ["schedule"] = new Listing { new Mapping { ["cron"] = "37 8 * * 1" } }
-    ["workflow_dispatch"] = new Mapping {}
-  }
-  permissions = readOnly
-  concurrency = new Mapping {
-    ["group"] = "release-automerge"
-    ["cancel-in-progress"] = false
-  }
-  jobs {
-    ["automerge"] {
-      name = "Merge open release PR"
-      `timeout-minutes` = 5
-      steps {
-        mintToken(opts)
-        checkoutScripts
-        new {
-          name = "Merge open release-please PR"
-          env = new Mapping {
-            ["GH_TOKEN"] = "${{ steps.app-token.outputs.token }}"
-            ["GH_REPO"] = "${{ github.repository }}"
-          }
-          run = "bash .github/scripts/release-automerge.sh"
-        }
-      }
-    }
-  }
-}
-
+function releaseAutomerge(opts: Config.Options): Config.Workflow = releaseAutomergeBuiltin.workflow(opts)
 /// Fails when the commit types copied into the title gate drift from .github/commit-types.txt.
-function commitTypes(): Config.Workflow = new {
-  header = #"""
-    Keeps the PR title gate honest. conventional-commits.yml carries a copy of
-    the allowed commit types inside its regex, because it runs on
-    pull_request_target and must not read repository files. This runs on an
-    ordinary pull_request, where reading them is safe, and fails if:
-
-      - the copy has drifted from .github/commit-types.txt, the canonical list, or
-      - the regex no longer accepts or rejects the titles in the script's table,
-        including release-please's own pull request titles.
-
-    Path-filtered on purpose. Unlike the title gate and zizmor it is not meant to
-    be a required status check: a required check that is skipped blocks the pull
-    request forever, so only change this to required after removing the filter.
-    Also runs on push to main as a post-merge safety net.
-    """#
-  name = "Commit Types"
-  on = new Mapping<String, Any?> {
-    ["pull_request"] = new Mapping {
-      ["types"] = new Listing { "opened"; "synchronize"; "reopened" }
-      ["branches"] = new Listing { "main" }
-      ["paths"] = commitTypesPaths
-    }
-    ["push"] = new Mapping {
-      ["branches"] = new Listing { "main" }
-      ["paths"] = commitTypesPaths
-    }
-  }
-  permissions = readOnly
-  concurrency = concurrencyPerRef
-  jobs {
-    ["commit-types"] {
-      name = "Commit Types"
-      `timeout-minutes` = 5
-      steps {
-        checkout
-        new { name = "Check the gate has not drifted from the canonical list"; run = "bash .github/scripts/check-commit-types.sh" }
-      }
-    }
-  }
-}
-
-local commitTypesPaths: Listing<String> = new {
-  ".github/commit-types.txt"
-  ".github/workflows/conventional-commits.yml"
-  ".github/workflows/commit-types.yml"
-  ".github/scripts/check-commit-types.sh"
-}
-
+function commitTypes(): Config.Workflow = commitTypesBuiltin.workflow()
 /// Checks that the pull request title is a conventional commit. The job name is the required status check, so it must not change.
-function conventionalCommits(): Config.Workflow = new {
-  header = #"""
-    Pull requests are squash-merged, so the title becomes the commit message on
-    main and is what release-please parses to pick the version bump and write
-    the changelog. A malformed title produces a wrong bump or no release at all,
-    silently.
-
-    The allowed types are copied into the regex below from .github/commit-types.txt.
-    The copy is deliberate: this runs on pull_request_target, where the workflow
-    has a privileged token, so it checks out nothing and reads only the event
-    payload. .github/scripts/check-commit-types.sh fails if the copy drifts, and
-    the Commit Types workflow runs that check on pull requests.
-    """#
-  name = "Conventional Commit Title"
-  onComment = "zizmor: ignore[dangerous-triggers] reads only the PR title; checks out and runs no PR code"
-  on = new Mapping<String, Any?> {
-    ["pull_request_target"] = new Mapping {
-      ["types"] = new Listing { "opened"; "edited"; "reopened"; "synchronize" }
-    }
-  }
-  permissions = new Mapping {}
-  concurrency = new Mapping {
-    ["group"] = "${{ github.workflow }}-${{ github.event.pull_request.number }}"
-    ["cancel-in-progress"] = true
-  }
-  jobs {
-    ["title"] {
-      name = "Conventional Commit Title"
-      `timeout-minutes` = 5
-      steps {
-        new {
-          name = "Check the pull request title"
-          env = new Mapping { ["PR_TITLE"] = "${{ github.event.pull_request.title }}" }
-          run = #"""
-            pattern='^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([[:alnum:]][[:alnum:]./_-]*\))?!?: [[:lower:]](.*[[:graph:]])?$'
-            if [[ ! "$PR_TITLE" =~ $pattern ]]; then
-              echo "::error title=Invalid pull request title::The title does not match the required format."
-              printf 'Received title: %q\n' "$PR_TITLE"
-              echo "Use: <type>[optional scope][optional !]: <summary starting lowercase>"
-              echo "Types: build chore ci docs feat fix perf refactor revert style test"
-              exit 1
-            fi\#n
-            """#
-        }
-      }
-    }
-  }
-}
-
+function conventionalCommits(): Config.Workflow = conventionalCommitsBuiltin.workflow()
 /// The verbatim config files the wave A workflows use, from pantheon-adr at 1e2fd46.
 function workflowFiles(): Mapping<String, Config.GenFile> = new {
-  ...plumberBuiltin.files()
-  [".github/labels.txt"] = new Config.GenFile { content = read("assets/labels.txt").text }
-  [".github/commit-types.txt"] = new Config.GenFile { content = read("assets/commit-types.txt").text }
+  ...plumberBuiltin.workflowFiles()
+  ...syncLabelsBuiltin.workflowFiles()
+  ...commitTypesBuiltin.workflowFiles()
   [".github/pull_request_template.md"] = new Config.GenFile { content = read("assets/pull_request_template.md").text }
 }
 

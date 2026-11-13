@@ -1,0 +1,38 @@
+/// The rust-ci builtin. `Builtins.pkl` re-exports it; import `Builtins.pkl`, not this file.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.builtins.RustCi
+
+import "../../Config.pkl"
+import "../Shared.pkl"
+
+/// Format, lint, build and test the Rust workspace. With `features = "all"` (the library repository) clippy, the build and the tests run with
+/// `--all-features`, and an extra step builds with the default features.
+function workflow(opts: Config.Options): Config.Workflow =
+  let (features = if (opts.features == "all") "--all-features " else "")
+  new {
+  name = "Rust CI"
+  on = Shared.mainTriggers()
+  permissions = Shared.readOnly
+  concurrency = Shared.concurrencyPerRef
+  jobs {
+    ["build-test"] {
+      name = "Build, test, lint"
+      `timeout-minutes` = 15
+      steps {
+        Shared.checkout
+        new { name = "Check toolchain versions"; run = "bash .github/scripts/check-toolchain-version.sh" }
+        Shared.installToolchain(opts.toolchain, "rustfmt,clippy")
+        new { name = "Format check"; run = "cargo fmt --all --check" }
+        new { name = "Clippy"; run = "cargo clippy --workspace --all-targets \(features)--locked -- -D warnings" }
+        new { name = "Build"; run = "cargo build --workspace \(features)--locked" }
+        when (opts.features == "all") { new { name = "Build with default features"; run = "cargo build --workspace --locked" } }
+        new { name = "Test"; run = "cargo test --workspace \(features)--locked" }
+      }
+    }
+  }
+}
+
+/// The verbatim file of this builtin that `baseFiles()` renders.
+function baseFiles(): Mapping<String, Config.GenFile> = new {
+  [".github/scripts/check-toolchain-version.sh"] = new Config.GenFile { content = read("assets/check-toolchain-version.sh").text; executable = true }
+}

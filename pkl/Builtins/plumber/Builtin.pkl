@@ -72,6 +72,6 @@ function workflow(): Config.Workflow = new {
 }
 
 /// The verbatim configuration the workflow reads.
-function files(): Mapping<String, Config.GenFile> = new {
+function workflowFiles(): Mapping<String, Config.GenFile> = new {
   [".plumber.yaml"] = new Config.GenFile { content = read("assets/plumber.yaml").text }
 }

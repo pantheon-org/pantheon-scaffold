@@ -1,0 +1,49 @@
+/// The release-automerge builtin. `Builtins.pkl` re-exports it; import `Builtins.pkl`, not this file.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.builtins.ReleaseAutomerge
+
+import "../../Config.pkl"
+import "../Shared.pkl"
+
+/// Mondays: squash-merges the open release-please pull request, under the App token so the push to main starts release-please.
+function workflow(opts: Config.Options): Config.Workflow = new {
+  header = #"""
+    Mondays: squash-merges the open release-please PR so a release lands without a
+    human clicking merge. The merge runs under the pantheon-ai-bot App token so the
+    push to main fires release-please.yml, which then tags the version.
+    Ported from pantheon-org/tekhne. Needs the org secret GH_APP_PRIVATE_KEY.
+    """#
+  name = "Release Auto-merge"
+  on = new Mapping<String, Any?> {
+    ["schedule"] = new Listing { new Mapping { ["cron"] = "37 8 * * 1" } }
+    ["workflow_dispatch"] = new Mapping {}
+  }
+  permissions = Shared.readOnly
+  concurrency = new Mapping {
+    ["group"] = "release-automerge"
+    ["cancel-in-progress"] = false
+  }
+  jobs {
+    ["automerge"] {
+      name = "Merge open release PR"
+      `timeout-minutes` = 5
+      steps {
+        Shared.mintToken(opts)
+        Shared.checkoutScripts
+        new {
+          name = "Merge open release-please PR"
+          env = new Mapping {
+            ["GH_TOKEN"] = "${{ steps.app-token.outputs.token }}"
+            ["GH_REPO"] = "${{ github.repository }}"
+          }
+          run = "bash .github/scripts/release-automerge.sh"
+        }
+      }
+    }
+  }
+}
+
+/// The verbatim file of this builtin that `toolingFiles()` renders.
+function toolingFiles(): Mapping<String, Config.GenFile> = new {
+  [".github/scripts/release-automerge.sh"] = new Config.GenFile { content = read("assets/release-automerge.sh").text; executable = true }
+}

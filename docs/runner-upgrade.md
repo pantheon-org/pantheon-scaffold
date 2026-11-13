@@ -2,7 +2,7 @@
 
 `pantheon-scaffold upgrade <version> [--root <dir>] [--config <file>] [--dry-run] [--force] [--no-render]`
 
-Added in phase 2b, wave B2. It was built and tested against a faked release (a local server, plus fake `mise` and `gh` programs). The release pipeline's `verify-release` job runs `upgrade --dry-run` against the real release, which is the first time the real download and the real attestation check are used. See [release-process.md](release-process.md).
+Added in phase 2b, wave B2. It was built and tested against a faked release (a local server, plus fake `mise` and `gh` programs). The release pipeline's `verify-release` job runs `upgrade --dry-run` against the real release, which is the first time the real download and the real attestation check are used. See [release-process.md](release-process.md). Since 13-11-2026 it has also been run for real, not as a dry run, from one published release to the next with a Preset present: see [Checked on the real releases](#checked-on-the-real-releases) below.
 
 ## What it does, in order
 
@@ -34,3 +34,22 @@ Added in phase 2b, wave B2. It was built and tested against a faked release (a l
 `upgrade <older> --force` moves the pins back, but the render that follows is refused with exit 3, because the package is older than the one that last rendered this repository (the version rule in [runner-lifecycle.md](runner-lifecycle.md)). `upgrade` does not pass `--force` on to the render: it would also overwrite hand edits. Run `pantheon-scaffold render pantheon.pkl --force` once the pins are back, and `check` then passes. This was run end to end for 0.1.3 back to 0.1.1 (Phase 7, [proof-report-0.1.3.md](../archive/proof/docs/proof-report-0.1.3.md)).
 
 If the new package drops or renames an owned file, the render after an upgrade is also refused until the pin change is committed, because the runner deletes an orphan only from a clean tracked tree. Commit the pins, then run `render`.
+
+## Checked on the real releases
+
+On 13-11-2026, at the owner's request, an agent upgraded a throwaway git repository from 0.1.7 to 0.1.8 with the published 0.1.7 runner, against the real 0.1.8 release (a pre-release at the time), in an isolated tool environment on macOS arm64. The repository was made by `init --package-version 0.1.7` and had a real Preset, `presets/ci.pkl`, that imports the package by its published address and raises `timeout-minutes` of the `build-test` job of `rust-ci` to 30 (the example in [presets.md](presets.md)). Tool versions: `mise` 2026.11.1, `gh` 2.103.3, and `pkl` 0.32.2 for `init` and 0.33.0 for the rest (the version the rendered `mise.toml` resolves).
+
+What held:
+
+- `upgrade 0.1.8` exited 0. Its report named `presets/ci.pkl: 2 imports of the package`, the move of `pantheon.pkl` and of the runner pin in `mise.toml` from 0.1.7 to 0.1.8, and one re-rendered file.
+- Both imports of the Preset, the `amends` line and the Builtins import carried 0.1.8 and one checksum, equal to the `pantheon-scaffold@0.1.8` line of the attested `checksums.txt`.
+- `mise.lock` named only the three runner binaries, and the runner `mise` installed printed 0.1.8.
+- `check` exited 0, listed `preset presets/ci.pkl`, and printed no "changed since the last render" warning. The manifest held a new hash of the Preset, `rust-ci.yml` still had `timeout-minutes: 30`, and a second `render` wrote 0 files.
+- Only six files differed from the committed state: `pantheon.pkl`, `presets/ci.pkl`, `mise.toml`, `mise.lock`, `.pkl-gen/manifest.json` and `.github/dependabot.yml`. The last one changed because the only package change between the two releases is the Dependabot exclusion list.
+- The one-week `minimum_release_age` in the rendered `mise.toml` did not stop `mise install` of the exact 0.1.7 and 0.1.8 pins, although both releases were less than a week old.
+
+What it did not exercise:
+
+- The path in step 5a that stops with exit 1 when the new package breaks a Preset: `rust-ci` and `build-test` exist in both releases.
+- Downgrade, `detach` and `migrate`.
+- Running the runner on a platform other than macOS arm64. The lock covered linux-x64, linux-arm64 and macos-arm64.

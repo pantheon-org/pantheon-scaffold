@@ -80,6 +80,19 @@ impl Report {
             .map(|e| e.path.clone())
             .collect()
     }
+
+    /// The paths of every drifted file, in report order: what `--accept-builtins` replaces.
+    pub fn drifted_paths(&self) -> Vec<&str> {
+        self.drifted().iter().map(|e| e.path.as_str()).collect()
+    }
+
+    /// [`Report::adopt`] plus every drifted file: the files a write may overwrite when the owner has accepted the Builtins'
+    /// version of each drifted one. A new file is never in it, and neither is a file the render does not list.
+    pub fn adopt_accepting_drifted(&self) -> BTreeSet<String> {
+        let mut paths = self.adopt();
+        paths.extend(self.drifted_paths().into_iter().map(str::to_owned));
+        paths
+    }
 }
 
 fn is_yaml(path: &str) -> bool {
@@ -359,6 +372,43 @@ mod tests {
         );
         assert!(!find(&r, "a.toml").text_differs);
         assert!(r.adopt().is_empty(), "identical bytes need no overwrite");
+    }
+
+    #[test]
+    fn accepting_the_builtins_adds_the_drifted_files_to_the_ones_a_write_may_overwrite() {
+        let dir = tempfile::tempdir().unwrap();
+        put(dir.path(), "same.toml", "x = 1\n");
+        put(dir.path(), "old.toml", "x = 0\n");
+        put(dir.path(), "z.toml", "z = 0\n");
+        put(
+            dir.path(),
+            ".github/workflows/ci.yml",
+            "name: \"CI\"\n\"on\": push\njobs: {test: {timeout-minutes: 10}}\n",
+        );
+        put(dir.path(), "own.md", "mine\n");
+        let c = contract(&[
+            ("same.toml", "owned", "x = 1\n"),
+            ("old.toml", "owned", "x = 1\n"),
+            ("z.toml", "owned", "z = 1\n"),
+            (".github/workflows/ci.yml", "owned", WORKFLOW),
+            ("fresh.toml", "owned", "n = 1\n"),
+        ]);
+        let r = classify(&c, dir.path()).unwrap();
+        assert_eq!(r.drifted_paths(), vec!["old.toml", "z.toml"]);
+        assert_eq!(
+            r.adopt_accepting_drifted().into_iter().collect::<Vec<_>>(),
+            vec![
+                ".github/workflows/ci.yml".to_owned(),
+                "old.toml".to_owned(),
+                "z.toml".to_owned()
+            ],
+            "the text-only YAML file and both drifted files, and neither the identical nor the new file"
+        );
+        assert_eq!(
+            r.adopt().into_iter().collect::<Vec<_>>(),
+            vec![".github/workflows/ci.yml".to_owned()],
+            "adopt() itself is unchanged"
+        );
     }
 
     #[test]

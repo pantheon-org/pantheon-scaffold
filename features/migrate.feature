@@ -203,3 +203,106 @@ Feature: migrate
     Then the exit code is 0
     And the file "pantheon.pkl" contains "compositeAction = true"
     And the file ".github/dependabot.yml" contains "dependency-name: pahdk-core"
+
+  # --accept-builtins (follow-up 1, docs/migrate-accept-builtins-design.md). It replaces every drifted file with the render, and
+  # only in a git work tree whose tracked tree is clean, so the git diff of the adoption commit is the full record.
+
+  Scenario: --accept-builtins in a dry run lists what it would replace, reports the git check and writes nothing
+    Given the project "migrate-mixed"
+    And a new git repository
+    And I commit everything
+    When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --accept-builtins"
+    Then the exit code is 0
+    And the output contains "drifted    .github/workflows/aislop.yml"
+    And the output contains "git guard: ok, 1 file(s) to replace are tracked and the tree is clean"
+    And the output contains "would replace 1 file(s)"
+    And the output contains "Nothing was written."
+    And the file "pantheon.pkl" does not exist
+    And the file "mise.toml" does not exist
+
+  Scenario: --accept-builtins in a dry run outside git says a write would be refused
+    Given the project "migrate-mixed"
+    When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --accept-builtins"
+    Then the exit code is 0
+    And the output contains "git guard: a write would be refused"
+    And the output contains "not a git repository"
+    And the file "pantheon.pkl" does not exist
+
+  Scenario: --accept-builtins --write replaces the drifted file in a clean git tree, and the repository is then in sync
+    Given the project "migrate-mixed"
+    And a new git repository
+    And I commit everything
+    When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --accept-builtins --write"
+    Then the exit code is 0
+    And the output contains "replaced by --accept-builtins (the git diff of the adoption commit is the full record):"
+    And the output contains "  .github/workflows/aislop.yml"
+    And the file "pantheon.pkl" exists
+    And the file ".pkl-gen/manifest.json" exists
+    When I run "check <repo>/pantheon.pkl --root <repo> --allow-local-package <package>"
+    Then the exit code is 0
+    When I run "render <repo>/pantheon.pkl --root <repo> --allow-local-package <package>"
+    Then the output contains "written 0 file(s), deleted 0"
+
+  Scenario: a second migrate on an adopted repository is still refused
+    Given the project "migrate-mixed"
+    And a new git repository
+    And I commit everything
+    And I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --accept-builtins --write"
+    When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --accept-builtins --write"
+    Then the exit code is 3
+    And the error contains "pantheon.pkl already exists"
+
+  Scenario: --accept-builtins --write is refused while the tracked tree has uncommitted changes, and nothing is written
+    Given the project "migrate-mixed"
+    And a new git repository
+    And I commit everything
+    And I write "# edited\n" to the file "README.md"
+    When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --accept-builtins --write"
+    Then the exit code is 3
+    And the error contains "not clean"
+    And the file "pantheon.pkl" does not exist
+    And the file "mise.toml" does not exist
+    And the file ".pkl-gen/manifest.json" does not exist
+
+  Scenario: --accept-builtins --write is refused for a drifted file git does not track, and nothing is written
+    Given the project "migrate-mixed"
+    And a new git repository
+    When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --accept-builtins --write"
+    Then the exit code is 3
+    And the error contains ".github/workflows/aislop.yml: not tracked by git"
+    And the file "pantheon.pkl" does not exist
+
+  Scenario: --accept-builtins --write is refused outside a git repository, and nothing is written
+    Given the project "migrate-mixed"
+    When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --accept-builtins --write"
+    Then the exit code is 3
+    And the error contains "not a git repository"
+    And the file "pantheon.pkl" does not exist
+    And the file "mise.toml" does not exist
+
+  Scenario: --accept-builtins cannot be combined with --as-presets
+    Given the project "migrate-mixed"
+    When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --accept-builtins --as-presets"
+    Then the exit code is 2
+    And the error contains "--accept-builtins cannot be used with --as-presets"
+
+  Scenario: --accept-builtins belongs to migrate, not to init
+    Given a new empty repository
+    When I run "init --root <repo> --allow-local-package <package> --toolchain 1.96.1 --accept-builtins"
+    Then the exit code is 2
+    And the error contains "--accept-builtins belongs to migrate"
+
+  Scenario: --accept-builtins with nothing drifted replaces nothing
+    Given a new empty repository
+    When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --accept-builtins"
+    Then the exit code is 0
+    And the output contains "no file has drifted, so --accept-builtins replaces nothing"
+
+  Scenario: the --write refusal and the dry-run summary both name --accept-builtins
+    Given the project "migrate-mixed"
+    When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1"
+    Then the output contains "--accept-builtins"
+    When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --write"
+    Then the exit code is 3
+    And the error contains "--accept-builtins"
+    And the error contains "Run with --as-presets to keep each one as a Preset."

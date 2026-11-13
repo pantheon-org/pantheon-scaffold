@@ -10,9 +10,9 @@ Workflows the four Rust repositories share, rendered from typed pkl by the built
 |---|---|
 | `pkl/Builtins/<name>/Builtin.pkl` | One builtin: its workflow function (`workflow`) and the slices of the file aggregators it feeds (`baseFiles`, `toolingFiles`, `workflowFiles`, `analysisFiles`, `verbatimFiles`, `parameterisedFiles`), or `files` for a builtin that renders only files (`mise`, `hk`). |
 | `pkl/Builtins/<name>/assets/` | The verbatim files and templates that builtin reads, found with `read("assets/...")` from its own module. Each asset has exactly one copy. |
-| `pkl/Builtins/Shared.pkl` | The steps and values several builtins use (`checkout`, `mainTriggers`, `mintToken` and others). Internal: not part of the API, and not for Presets. |
+| `pkl/Builtins/Shared.pkl` | The steps and values several builtins use (`checkout`, `mainTriggers`, `mintToken` and others), the registry of builtin names, the `Present` class and the table of hard requirements behind `options.without`. Internal: not part of the API, and not for Presets. |
 
-The folder is named after the builtin's key in `standardWorkflows` (`rust-ci`, `conventional-commits`), or after the tool for a builtin that renders only files (`rumdl`, `claude-settings`, `gitignore`). The aggregators in `Builtins.pkl` spread each folder's slice in a fixed order, which is the order the files and keys render in. A module never calls back into `Builtins.pkl`: when a builtin needs something from another (`dependabot` needs the workflow names), the facade passes it in as an argument.
+The folder is named after the builtin's key in `standardWorkflows` (`rust-ci`, `conventional-commits`), or after the tool for a builtin that renders only files (`rumdl`, `claude-settings`, `gitignore`). The aggregators in `Builtins.pkl` spread each folder's slice in a fixed order, which is the order the files and keys render in. `options.without` leaves builtins out: each aggregator builds a `Present` value from it and skips a builtin that is left out ([adopting.md](adopting.md#leaving-builtins-out-optionswithout)). A module never calls back into `Builtins.pkl`: when a builtin needs something from another (`dependabot` needs the workflow names), the facade passes it in as an argument.
 
 ## Wave A: the workflows that are identical in all four repositories
 

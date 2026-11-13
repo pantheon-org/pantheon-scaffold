@@ -141,7 +141,7 @@ Editing a Preset is how you change what is rendered: edit it and run `render`. I
 
 | Message | Meaning |
 |---|---|
-| `preset: workflow "rust-cii" is not a builtin of this package version. Builtins: ...` | A typo, or a package that no longer has that workflow. |
+| `preset: workflow "rust-cii" is not a builtin of this package version. Builtins: ...` | A typo, a package that no longer has that workflow, or a builtin that `options.without` leaves out (the message ends by saying so). |
 | `preset: job "build" does not exist in workflow "Rust CI". Jobs: build-test` | The same, for a job. |
 | `preset presets/x.pkl is listed by pantheon.pkl but the file does not exist` | `presets { }` lists a file that is not there. |
 | `pantheon.pkl does not evaluate with 0.1.8, so nothing was changed:` followed by pkl's message | `upgrade` found that the new package breaks the config or a Preset. |
@@ -151,6 +151,7 @@ Editing a Preset is how you change what is rendered: edit it and run `render`. I
 
 - **Order is precedence.** The Builtins come first, then your Presets in the order your config applies them. If two Presets change the same field, the later one wins, silently. The order is in `pantheon.pkl`, and `check` prints it.
 - **Presets are inputs, not outputs.** They are yours. Only owned files that the runner writes are protected from hand edits.
+- **A Preset cannot remove a builtin.** Leave it out with `options.without` ([adopting.md](adopting.md#leaving-builtins-out-optionswithout)). A Preset that amends a builtin that is left out fails, because the builtin is not in the mapping.
 - **The escape hatch still counts.** A Preset that uses `raw` counts in the quality gate like any other use.
 - **The TypeScript runner does not know Presets.** It is removed in task 3.4 of the plan.
 - **`upgrade` moves the package imports in your Presets.** Every `.pkl` file under `presets/` next to your config that imports the package gets the new version and checksum, as `pantheon.pkl` does, because a Preset left at the old version makes pkl stop with `Module version conflict`. Files outside `presets/` are not moved, so a helper module that imports the package from elsewhere must be updated by hand.

@@ -120,8 +120,38 @@ Commit the result, including `.pkl-gen/manifest.json` (what the runner knows it 
 | `binary` | `true`, needs `crateName` | adds `dist-workspace.toml`, `dist-check.yml`, `tag-release.sh`, the dist lint config, and the artifact-action ignore in `dependabot.yml` |
 | `features` | `"default"` | `"all"` builds and tests with `--all-features` |
 | `compositeAction` | `false` | the repository's own `action.yml` is audited and scanned |
+| `without` | empty | builtins left out, by name (next section) |
 
 A toggle that needs a name and has none stops the render with an error that names the option. Details and what each toggle removes: [feature-toggles.md](feature-toggles.md).
+
+## Leaving builtins out: `options.without`
+
+`options.without` lists builtins to leave out, by the folder names under `pkl/Builtins/` in the package (`plumber`, `aislop`, `rumdl`, `pull-request-template`, `mise`, `hk` and the rest; the list is `builtinNames` in `Shared.pkl`):
+
+```pkl
+options {
+  toolchain = "1.96.1"
+  without { "plumber"; "aislop" }
+}
+```
+
+What it does:
+
+- The aggregators (`standardWorkflows`, `standardFiles`, `baseFiles`, `toolingFiles(options)`, `workflowFiles(options)`, `miseFiles`, `hkFiles` and the others) skip a left-out builtin and keep the order of the rest. `dependabot.yml` stops excluding workflow files that are not rendered. With `without` empty the render is what it was.
+- It affects only the aggregators. A single builtin function (`Builtins.rustCi(options)`) renders whatever you pass it, and not spreading an aggregator is not leaving its builtins out. A Preset cannot remove a builtin; `without` does.
+- A name that is not a builtin, an empty name, or a name listed twice stops the render with an error that lists the builtins.
+- A builtin that cannot work without another fails with an error that names both and the way out. `commit-types` needs `conventional-commits`, and `rust-ci` needs `rust-toolchain` and `cargo-deny`, because its `check-toolchain-version.sh` reads their files. Leave the dependent out too, or keep the other.
+- `mise` and `hk` are not on that list, because you can supply `mise.toml` and `hk.pkl` yourself. If you leave `mise` out, `scaffold-check`, `release`, `upgrade` and the toolchain check of `rust-ci` still read `mise.toml` and the runner pin in it, so write your own.
+- Not yet reduced: the tools in `mise.toml` and the steps in `hk.shared.pkl` are the same whatever is left out, and `.rumdl.toml` keeps its ignore for the pull request template. Those follow in a later change.
+
+In a repository that already uses the scaffold, leaving a builtin out is a render like any other:
+
+- Its owned files are deleted on the next `render` when they are tracked, unedited and the tree is clean. A file you edited by hand makes the render refuse (exit 3, "it is not deleted"), and `--force` deletes it together with your edit.
+- A seeded file is never deleted. Leaving out `hk` removes `hk.shared.pkl` and keeps `hk.pkl`, which still imports it: delete `hk.pkl` yourself. The same goes for `.mise/conf.d/repo.toml` and `SECURITY.md`.
+- `mise.lock` belongs to mise and is not touched: run `mise lock` after you change `mise.toml`.
+- Putting a builtin back writes its files again.
+
+Checks: `runner/test/presence.test.ts` (what each of the 28 builtins removes when it is left out, the errors, and the cases above in a scratch git repository) and `features/without.feature`.
 
 ## What the render changes in a real repository
 
@@ -171,6 +201,8 @@ mise x -- pantheon-scaffold upgrade NEWVERSION
 ```
 
 It verifies the new release's attestation first, then rewrites the `amends` line, **every import of the package**, and the runner pin in one step, runs `mise install` and `mise lock`, and renders with the new runner. If `mise` fails, everything is put back. If the final render is refused, the pins stay updated: fix what it reports and run `render` again.
+
+**From 0.1.10, `Builtins.toolingFiles` and `Builtins.workflowFiles` take `options`.** `upgrade` moves the version, the checksum and the imports, but it does not rewrite the composition in `pantheon.pkl`, so when you go from 0.1.9 or earlier change `...Builtins.toolingFiles()` to `...Builtins.toolingFiles(options)` (and `workflowFiles` the same way, if you call it) by hand. pkl reports a call with a missing argument if you forget. The change makes `options.without` possible: see [Leaving builtins out](#leaving-builtins-out-optionswithout).
 
 Releases before 0.1.5 had two `upgrade` bugs, and they are on the known-bad list. If you are on 0.1.3 or earlier, the old runner moves only the `amends` line: edit the `Builtins.pkl` import to the new version by hand before the first `upgrade`. If you are on 0.1.2, 0.1.3 or 0.1.4, the render at the end of `upgrade` is refused for `mise.toml` (exit 3), because the old runner did not record its pin edit: read the refusal, check that the only difference is the runner pin, and run `render --force`.
 

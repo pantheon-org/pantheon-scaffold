@@ -47,6 +47,8 @@ The four toggles are options of `pantheon.pkl`: `skills`, `binary`, `features` a
 
 A toggle that needs a name and does not get one stops the render with an error that names the option and the way out: `options.skillName is required when options.skills is true ... Set skillName, or set skills = false.` Turning `skills` or `binary` off needs no name.
 
+A toggle stays inside the builtins it switches: `binary` off does not leave `actionlint` out of `mise.toml` or the hook steps, and `skills` off does not leave `agnix` out. `options.without` is separate: it names whole builtins ([adopting.md](adopting.md#leaving-builtins-out-optionswithout)). A name that a toggle already removes (`audit-skill` with `skills = false`, `release` with `binary = false`) is allowed and changes nothing.
+
 The external `release.yml` is never written, hashed or deleted, so turning `binary` off leaves a `release.yml` that `dist generate` wrote. Removing it is the repository's own change.
 
 Checks: `runner/test/phase5-toggles.test.ts` flips each toggle from a base configuration and asserts the exact files removed and changed and none added, the two error messages, and, in a scratch git repository, the files deleted when `skills` and `binary` go off (and that the external `release.yml` stays) and that turning a toggle back on writes its files again. The mutation check is in `archive/spikes/phase-5-wave-c`. The real-repository render, now through the two standard builtins, gives the same result as before.

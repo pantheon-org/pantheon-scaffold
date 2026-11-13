@@ -127,7 +127,7 @@
     },
     ".gitignore": {
       "class": "owned",
-      "hash": "0e07c03c6c26a4e6d65aff434913b78e9b97d1989ed1fe471bcd1370939c0256"
+      "hash": "8e706228cc7d147e69966814304cd5cd1b8483472e270c609ff7b2c1a48bf1be"
     },
     ".plumber.yaml": {
       "class": "owned",
@@ -147,7 +147,7 @@
     }
   },
   "presets": {
-    "presets/gitignore.pkl": "4f2a97df4e3ef1747a0e426d18e137494582c73df36e6a88104c5e48cb891751",
+    "presets/gitignore.pkl": "c005d0d7051ed017888166f482cf3b181d4ca262e9eb9ed238c9eb7a873fb4dc",
     "presets/own-deny.pkl": "97a203bf01d15bb4d0829dd257781909796cc34faa4a8afa8ee59e949543751c",
     "presets/rust-ci.pkl": "8aba8052614e85d391ffe30d578fc5a3d15377c09a8c8ff5611a9b791976a845",
     "presets/scaffold-check.pkl": "7e661bc4af5b070e49494b4ea11bc224c835dc04dbb609c14a2685ffe54a4534"

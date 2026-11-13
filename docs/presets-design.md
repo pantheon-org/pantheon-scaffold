@@ -48,7 +48,7 @@ A **Builtin** is a function in `Builtins.pkl` that returns a `Workflow` or a `Ge
 
 ## Experiments
 
-Files in `tmp/presets-spike/` (untracked working files). Config: `toolchain = "1.96.1"`, `skills = false`, `binary = false` unless the standard set was not used.
+Files in `.tmp/presets-spike/` (untracked working files). Config: `toolchain = "1.96.1"`, `skills = false`, `binary = false` unless the standard set was not used.
 
 | E | What was tried | Result |
 |---|---|---|

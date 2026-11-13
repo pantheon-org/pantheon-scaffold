@@ -7,5 +7,6 @@ node_modules/
 dist/
 .stage/
 .aislop/session.jsonl
+.tmp/
 archive/spikes/pkl-s1-spike/out/
 mutants.out*/

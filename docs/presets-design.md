@@ -4,7 +4,7 @@ Written on 11-11-2026 for task 4.0 of the refocus plan. It decides how a reposit
 
 ## What a Preset is
 
-A **Builtin** is a function in `Builtins.pkl` that returns a `Workflow` or a `GenFile` (`rustCi(options)`, `plumber()`). A **Preset** is a local pkl file in `presets/` that takes a Builtin's value and returns a changed one. Nothing new is needed in pkl to write one: a Preset is a module with functions, imported by `pantheon.pkl` (E6).
+A **Builtin** is a function in `Builtins.pkl` that returns a `Workflow` or a `GenFile` (`rustCi(options)`, `plumber()`); its body lives in `Builtins/<name>/Builtin.pkl` (see `docs/workflow-layer.md`), and that file is not a Preset. A **Preset** is a local pkl file in `presets/` that takes a Builtin's value and returns a changed one. Nothing new is needed in pkl to write one: a Preset is a module with functions, imported by `pantheon.pkl` (E6).
 
 ## Decisions
 

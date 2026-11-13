@@ -39,10 +39,7 @@ jobs:
       - name: Lint the workflows
         run: mise x -- actionlint
       - name: Evaluate every pkl module
-        run: |
-          for f in pkl/*.pkl; do
-            mise x -- pkl eval "$f" > /dev/null
-          done
+        run: find pkl -name '*.pkl' -print0 | xargs -0 -n1 mise x -- pkl eval > /dev/null
       - name: Build the package
         run: mise x -- pkl project package pkl --output-path "$RUNNER_TEMP/package"
       - name: Run the runner tests

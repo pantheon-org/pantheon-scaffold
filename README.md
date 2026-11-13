@@ -29,6 +29,7 @@ Dropped for now: repository governance (rulesets, merge settings and drift check
 | Run `check` in CI | [docs/check-in-ci.md](docs/check-in-ci.md) |
 | Change what the package renders for your repository (Presets) | [docs/presets.md](docs/presets.md), the design in [docs/presets-design.md](docs/presets-design.md) |
 | See what the package renders | [docs/tooling-layer.md](docs/tooling-layer.md), [docs/workflow-layer.md](docs/workflow-layer.md), [docs/feature-toggles.md](docs/feature-toggles.md) |
+| See where each Builtin lives (`pkl/Builtins/<name>/`) | [docs/workflow-layer.md](docs/workflow-layer.md#where-the-builtins-live) |
 | See the evidence for a release | [archive/proof/docs/proof-report-0.1.3.md](archive/proof/docs/proof-report-0.1.3.md), [archive/proof/docs/security-dossier-0.1.5.md](archive/proof/docs/security-dossier-0.1.5.md) |
 | See what changed in the refocus, and what was dropped | [docs/refocus-2026-11-10.md](docs/refocus-2026-11-10.md) |
 | See what was archived, and how to re-run it | [archive/README.md](archive/README.md) |

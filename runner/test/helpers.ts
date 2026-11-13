@@ -53,18 +53,14 @@ export const commitAll = (root: string, message: string): void => {
 
 /** Replaces the commit of every pinned action with a marker, so a pin moving to a newer release does not break a comparison with a pinned upstream copy. The pins themselves are checked by shape (`expectPins`) and by the pin update script. */
 /**
- * The repository-relative path of an asset the package ships, found by name under `pkl/Builtins/<builtin>/assets/` (and, while builtins are still
- * moving out of it, `pkl/assets/`). Fails when there is no copy, or more than one, and names what it found.
+ * The repository-relative path of an asset the package ships, found by name under `pkl/Builtins/<builtin>/assets/`. Fails when there is no copy,
+ * or more than one, and names what it found.
  */
 export function assetPath(name: string): string {
-  const pkl = join(import.meta.dir, "../../pkl");
+  const builtins = join(import.meta.dir, "../../pkl/Builtins");
   const found: string[] = [];
-  if (existsSync(join(pkl, "assets", name))) found.push(`pkl/assets/${name}`);
-  const builtins = join(pkl, "Builtins");
-  if (existsSync(builtins)) {
-    for (const e of readdirSync(builtins, { withFileTypes: true })) {
-      if (e.isDirectory() && existsSync(join(builtins, e.name, "assets", name))) found.push(`pkl/Builtins/${e.name}/assets/${name}`);
-    }
+  for (const e of readdirSync(builtins, { withFileTypes: true })) {
+    if (e.isDirectory() && existsSync(join(builtins, e.name, "assets", name))) found.push(`pkl/Builtins/${e.name}/assets/${name}`);
   }
   if (found.length !== 1) throw new Error(`asset ${name}: expected one copy under pkl/Builtins/*/assets, found ${found.length}${found.length ? `: ${found.join(", ")}` : ""}`);
   return found[0]!;

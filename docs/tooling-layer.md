@@ -31,7 +31,7 @@ The runner never reads the git index (it calls git only for the delete guard). T
 
 | File | Class | What it is |
 |---|---|---|
-| `mise.toml` | owned | The shared tools, tasks, hooks and settings, from `pkl/assets/mise.toml.tmpl` with the tool versions from `Tools.pkl`. |
+| `mise.toml` | owned | The shared tools, tasks, hooks and settings, from `pkl/Builtins/mise/assets/mise.toml.tmpl` with the tool versions from `Tools.pkl`. |
 | `mise.lock` | external | Written by mise, listed in the manifest and never written, hashed or deleted by the runner. |
 | `.mise/conf.d/repo.toml` | seed | Written once, empty `[tools]`, for the tools one repository needs on top. |
 

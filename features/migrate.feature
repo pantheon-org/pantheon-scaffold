@@ -306,3 +306,17 @@ Feature: migrate
     Then the exit code is 3
     And the error contains "--accept-builtins"
     And the error contains "Run with --as-presets to keep each one as a Preset."
+
+  Scenario: --features all is written to the config by migrate and reaches the Rust CI workflow
+    Given a new empty repository
+    When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --features all --write"
+    Then the exit code is 0
+    And the file "pantheon.pkl" contains 'features = "all"'
+    And the file ".github/workflows/rust-ci.yml" contains "--all-features"
+
+  Scenario: migrate refuses a --features value other than default or all, and writes nothing
+    Given a new empty repository
+    When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --features other --write"
+    Then the exit code is 2
+    And the error contains "--features must be default or all"
+    And the file "pantheon.pkl" does not exist

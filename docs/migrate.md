@@ -8,7 +8,7 @@ pantheon-scaffold migrate --toolchain 1.96.1 --write    # writes pantheon.pkl an
 mise lock                                               # then commit
 ```
 
-It takes the same options as [`init`](init.md) (`--toolchain` is required; set `--composite-action` and `--git-dependency-ignore` too when the repository does, or `dependabot.yml`, `audit-skill.yml` and `zizmor.yml` will show as drifted for that reason) and needs `mise` and the `gh` CLI for the same reason: it pins a verified release.
+It takes the same options as [`init`](init.md) (`--toolchain` is required; set `--composite-action`, `--git-dependency-ignore` and `--features all` too when the repository does, or `dependabot.yml`, `audit-skill.yml`, `zizmor.yml` and `rust-ci.yml` will show as drifted for that reason) and needs `mise` and the `gh` CLI for the same reason: it pins a verified release.
 
 ## What the report says
 
@@ -54,7 +54,7 @@ It replaces **every** drifted file or none. There is no way to pick some and kee
 
 **Read the difference first.** `migrate` cannot tell a stale file from a change someone made on purpose. The dry run lists each drifted file with its differences, and nothing is replaced until you add `--write`.
 
-**Set every option first.** A file that drifts because an option is missing (`--composite-action`, `--git-dependency-ignore`, and `features`, which has no option yet) is not stale. `--accept-builtins` would replace it with the wrong render. Until `--features` exists, a repository that needs `features = "all"` (the dev-kit's `rust-ci.yml`) cannot use this flag.
+**Set every option first.** A file that drifts because an option is missing (`--composite-action`, `--git-dependency-ignore` and `--features all`) is not stale. `--accept-builtins` would replace it with the wrong render. The dev-kit's `rust-ci.yml` is the known case: run `migrate --features all` first, and check that `rust-ci.yml` is `identical` before you accept the rest.
 
 It is for first adoption. It does not change files a manifest already records, and it cannot be combined with `--as-presets` or used with `init`. The decisions behind it are in [migrate-accept-builtins-design.md](migrate-accept-builtins-design.md).
 

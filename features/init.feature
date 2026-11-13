@@ -93,3 +93,28 @@ Feature: init
     Then the exit code is 2
     And the error contains "may hold only letters, digits, dots, dashes and underscores"
     And the file "pantheon.pkl" does not exist
+
+  Scenario: --features all is written to the config and reaches the Rust CI workflow and the hooks
+    Given a new empty repository
+    When I run "init --root <repo> --allow-local-package <package> --toolchain 1.96.1 --features all --write"
+    Then the exit code is 0
+    And the file "pantheon.pkl" contains 'features = "all"'
+    And the file ".github/workflows/rust-ci.yml" contains "--all-features"
+    And the file "hk.shared.pkl" contains "--all-features"
+    When I run "check <repo>/pantheon.pkl --root <repo> --allow-local-package <package>"
+    Then the exit code is 0
+
+  Scenario: --features default writes nothing to the config and nothing changes in the files
+    Given a new empty repository
+    When I run "init --root <repo> --allow-local-package <package> --toolchain 1.96.1 --features default --write"
+    Then the exit code is 0
+    And the file "pantheon.pkl" does not contain "features ="
+    And the file ".github/workflows/rust-ci.yml" does not contain "--all-features"
+    And the file "hk.shared.pkl" does not contain "--all-features"
+
+  Scenario: --features takes only default or all, and a bad value writes nothing
+    Given a new empty repository
+    When I run "init --root <repo> --allow-local-package <package> --toolchain 1.96.1 --features foo,bar"
+    Then the exit code is 2
+    And the error contains "--features must be default or all"
+    And the file "pantheon.pkl" does not exist

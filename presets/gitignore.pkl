@@ -11,6 +11,7 @@ function apply(files: Mapping<String, Config.GenFile>): Mapping<String, Config.G
       dist/
       .stage/
       .aislop/session.jsonl
+      .tmp/
       archive/spikes/pkl-s1-spike/out/
       mutants.out*/
 

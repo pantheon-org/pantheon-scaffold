@@ -13,7 +13,6 @@ import "Builtins/rust-toolchain/Builtin.pkl" as rustToolchainBuiltin
 import "Builtins/actionlint/Builtin.pkl" as actionlintBuiltin
 import "Builtins/coderabbit/Builtin.pkl" as coderabbitBuiltin
 import "Builtins/security/Builtin.pkl" as securityBuiltin
-import "Builtins/tag-release/Builtin.pkl" as tagReleaseBuiltin
 import "Builtins/hk/Builtin.pkl" as hkBuiltin
 import "Builtins/mise/Builtin.pkl" as miseBuiltin
 import "Builtins/gitignore/Builtin.pkl" as gitignoreBuiltin
@@ -162,7 +161,7 @@ function auditSkill(opts: Config.Options): Config.Workflow = auditSkillBuiltin.w
 function parameterisedFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
   ...coderabbitBuiltin.parameterisedFiles(opts)
   ...securityBuiltin.parameterisedFiles(opts)
-  ...tagReleaseBuiltin.parameterisedFiles(opts)
+  ...releasePleaseBuiltin.parameterisedFiles(opts)
 }
 
 /// Every workflow of the workflow layer for a repository with these options: the thirteen that every repository has, and `audit-skill` when

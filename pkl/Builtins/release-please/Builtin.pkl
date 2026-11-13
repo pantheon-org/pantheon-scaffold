@@ -80,3 +80,14 @@ local function bareCheckout(stepName: String): Config.Step = new {
   uses = Pins.checkout
   `with` = new Mapping { ["persist-credentials"] = false }
 }
+
+/// The release tagging script that `parameterisedFiles()` renders for a repository with a binary: the `release-please` workflow runs it (the step above)
+/// to tag the crate version when it has no tag yet. It names the crate.
+function parameterisedFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
+  when (opts.binary) {
+    [".github/scripts/tag-release.sh"] = new Config.GenFile {
+      content = read("assets/tag-release.sh.tmpl").text.replaceAll("@@CRATE@@", Shared.needCrateName(opts))
+      executable = true
+    }
+  }
+}

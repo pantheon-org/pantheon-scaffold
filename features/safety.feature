@@ -10,6 +10,15 @@ Feature: what the runner refuses to do
     And the error contains "is held"
     And the file "rust-toolchain.toml" does not exist
 
+  Scenario: a dry run takes no lock, and a check runs while the lock is held
+    Given a new empty repository
+    And the write lock is held by a running process
+    When I run "render <fixture:minimal> --root <repo> --allow-local-package <package> --dry-run"
+    Then the exit code is 0
+    When I run "check <fixture:minimal> --root <repo> --allow-local-package <package>"
+    Then the exit code is 4
+    And the file ".pkl-gen/lock" exists
+
   Scenario: an existing file that differs from the render is not adopted
     Given a new empty repository
     And I write "# mine\n" to the file "rust-toolchain.toml"

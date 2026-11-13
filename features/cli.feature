@@ -21,3 +21,16 @@ Feature: command line
     When I run "contract <fixture:minimal> --allow-local-package <package>"
     Then the exit code is 0
     And the output contains "contract ok: 4 files"
+
+  Scenario: a config that reads a local package is refused without --allow-local-package
+    Given a new empty repository
+    And the project "without-none"
+    When I run "contract <repo>/pantheon.pkl"
+    Then the exit code is 1
+    And the error contains "Refusing to read"
+
+  Scenario: contract --json prints the contract
+    When I run "contract <fixture:minimal> --json --allow-local-package <package>"
+    Then the exit code is 0
+    And the output contains '"schemaVersion":1'
+    And the output contains '"path":"rust-toolchain.toml"'

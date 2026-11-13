@@ -27,6 +27,13 @@ Feature: render, check and detach
     When I run "check <fixture:minimal> --root <repo> --allow-local-package <package>"
     Then the exit code is 0
 
+  Scenario: check on an empty repository reports every owned file as missing
+    Given a new empty repository
+    When I run "check <fixture:minimal> --root <repo> --allow-local-package <package>"
+    Then the exit code is 4
+    And the error contains "drift in 3 of 3 owned file"
+    And the error contains "rust-toolchain.toml: missing"
+
   Scenario: check reports a hand edit as drift
     Given a new empty repository
     And I run "render <fixture:minimal> --root <repo> --allow-local-package <package>"

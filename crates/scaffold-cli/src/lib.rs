@@ -22,7 +22,7 @@ pub const EXIT_DRIFT: i32 = 4;
 
 pub const USAGE: &str = "usage (exit codes: 0 ok, 1 error, 2 usage, 3 refused, 4 drift; --dry-run exits 3 when the render would be refused, otherwise 0):
   pantheon-scaffold --version
-  pantheon-scaffold contract <pantheon.pkl>
+  pantheon-scaffold contract <pantheon.pkl> [--json] [--cache-dir <dir>] [--allow-local-package <dir>]...
   pantheon-scaffold render <pantheon.pkl> [--root <dir>] [--dry-run] [--force] [--repair] [--strict] [--cache-dir <dir>] [--allow-local-package <dir>]... [--attempts <n>]
   pantheon-scaffold check <pantheon.pkl> [--root <dir>] [--strict] [--cache-dir <dir>] [--allow-local-package <dir>]... [--attempts <n>]
   pantheon-scaffold detach [--root <dir>] [--dry-run] [--force]
@@ -62,6 +62,8 @@ pub struct Flags {
     pub features_all: bool,
     pub binary: bool,
     pub skills: bool,
+    /// `contract --json`: print the contract instead of the summary. A seam for tests that read what a package renders.
+    pub json: bool,
 }
 
 /// An absolute path with `.` and `..` folded away, like Node's `path.resolve`. Nothing is read from the disk.
@@ -127,6 +129,7 @@ pub fn parse_flags(args: &[String], cwd: &Path) -> Result<Flags, String> {
         features_all: false,
         binary: false,
         skills: false,
+        json: false,
     };
     let mut rest = args.iter();
     while let Some(a) = rest.next().map(String::as_str) {
@@ -135,6 +138,7 @@ pub fn parse_flags(args: &[String], cwd: &Path) -> Result<Flags, String> {
             "--force" => f.force = true,
             "--repair" => f.repair = true,
             "--strict" => f.strict = true,
+            "--json" => f.json = true,
             "--no-render" => f.no_render = true,
             "--include-prereleases" => f.include_prereleases = true,
             "--write" => f.write = true,
@@ -966,6 +970,11 @@ fn command_inner(
     io: &mut Io,
 ) -> Result<i32, String> {
     let contract = load_contract(config, cwd, flags)?;
+    if cmd == "contract" && flags.json {
+        let text = serde_json::to_string(&contract).map_err(|e| e.to_string())?;
+        io.say(&text);
+        return Ok(EXIT_OK);
+    }
     if cmd == "contract" {
         let hatch = &contract.escape_hatch;
         io.say(&format!(
@@ -1282,6 +1291,7 @@ mod tests {
         assert!(flags(&["--force"]).force);
         assert!(flags(&["--repair"]).repair);
         assert!(flags(&["--strict"]).strict);
+        assert!(flags(&["--json"]).json);
         assert!(flags(&["--no-render"]).no_render);
         assert!(flags(&["--include-prereleases"]).include_prereleases);
         let all = flags(&[

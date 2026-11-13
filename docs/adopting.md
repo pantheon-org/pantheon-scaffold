@@ -146,7 +146,7 @@ Details: [tooling-layer.md](tooling-layer.md).
 
 ## One-off: Markdown findings
 
-`rumdl` reports Markdown findings in all four existing repositories today, with or without the package. Fix or exempt yours before you enforce `hk check --all` in CI. The render does not change them.
+`rumdl` reports Markdown findings in all four existing repositories today, with or without the package. Fix or exempt yours before you enforce `hk check --all` in CI. The render does not change them, with one exception: from 0.1.9 the `.rumdl.toml` it renders exempts the pull request template from MD041, a rule that file always failed.
 
 ## Adopt on a clean branch
 
@@ -233,7 +233,7 @@ A claim in this guide, and the test or the proof line that shows it. A path is a
 | The first-time setup works as written: install, checksum, `pantheon.pkl`, dry run, render, `check`, a second render that writes 0 files, and the rendered tree builds and passes its tests | Report, Phase 8 wave E (every step of this guide run on a scratch clone of `pantheon-adr`: 188 tests passed, 0 failed), `archive/proof/scripts/proof-adoption.ts` |
 | `mise.toml` changes by about ten lines added and four removed | `archive/proof/scripts/proof-categories.ts` (the rule), Report, wave A |
 | The `hk.pkl` migration keeps the hook results | `runner/test/hk.test.ts`, `runner/test/tooling.test.ts`; Report, wave A (`hk check --all` the same before and after) |
-| `rumdl` findings exist before and after, unchanged by the render | Report, wave A (findings per repository) |
+| `rumdl` findings exist before and after, unchanged by the render (except MD041 on the pull request template, from 0.1.9) | Report, wave A (findings per repository) |
 | The runner deletes only from a clean tracked tree, and only tracked files | `runner/test/guard.test.ts`, [runner-safety.md](runner-safety.md) |
 | `upgrade` verifies the attestation, moves the amends line, every import and the pin, and puts everything back if mise fails | `runner/test/upgrade.test.ts`, `runner/test/cli-upgrade.test.ts`; Report, wave B and wave D |
 | `upgrade` of a repository that renders `mise.toml` succeeds without `--force` | `runner/test/upgrade.test.ts` ("recorded in the manifest"); Report, wave D (0.1.3 to 0.1.5, exit 0, both clones) |

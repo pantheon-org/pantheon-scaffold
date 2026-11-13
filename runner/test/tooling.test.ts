@@ -12,7 +12,16 @@ const gitBlobSha = (text: string): string => {
   const body = new TextEncoder().encode(text);
   return new Bun.CryptoHasher("sha1").update(`blob ${body.length}\0`).update(body).digest("hex");
 };
-const pinned = (await Bun.file(join(import.meta.dir, "upstream/tooling-blobs.json")).json()) as Record<string, { blob: string; upstreamMode: string }>;
+const pinned = (await Bun.file(join(import.meta.dir, "upstream/tooling-blobs.json")).json()) as Record<string, { blob: string; upstreamMode: string; note?: string }>;
+
+// The one deliberate difference from pantheon-adr's files: .rumdl.toml ends with this table. The pull request template starts with an
+// HTML comment and a level 2 heading, so MD041 can never pass for it, and the rendered hook would fail the first commit of every project.
+// The same text is appended to pkl/assets/rumdl.toml. Keep it last in the file, because the test below strips it from the end.
+const RUMDL_ADDITION =
+  "\n# The pull request template starts with an HTML comment and a level 2 heading, so MD041 can never pass for it.\n" +
+  "# Every other file is still checked by MD041.\n" +
+  "[per-file-ignores]\n" +
+  '".github/pull_request_template.md" = ["MD041"]\n';
 
 // The nine scripts the four repos share (baseline SP-0.1): two come from baseFiles, seven from toolingFiles.
 const NINE = [
@@ -42,10 +51,28 @@ test("every file is an owned file with content, and the Phase 3 files use no esc
 });
 
 for (const [path, { blob }] of Object.entries(pinned)) {
-  test(`${path} renders byte for byte as the pinned pantheon-adr file (git blob ${blob.slice(0, 7)})`, () => {
-    expect(gitBlobSha(file(path).content!)).toBe(blob);
+  const title =
+    path === ".rumdl.toml"
+      ? `${path} renders as the pinned pantheon-adr file plus the one per-file-ignores table (git blob ${blob.slice(0, 7)} without it)`
+      : `${path} renders byte for byte as the pinned pantheon-adr file (git blob ${blob.slice(0, 7)})`;
+  test(title, () => {
+    const content = file(path).content!;
+    if (path !== ".rumdl.toml") {
+      expect(gitBlobSha(content)).toBe(blob);
+      return;
+    }
+    expect(content.endsWith(RUMDL_ADDITION)).toBe(true);
+    expect(content.split(RUMDL_ADDITION).length - 1).toBe(1);
+    expect(gitBlobSha(content.slice(0, -RUMDL_ADDITION.length))).toBe(blob);
   });
 }
+
+test("the rendered .rumdl.toml ignores MD041 for the pull request template and nowhere else", () => {
+  const toml = Bun.TOML.parse(file(".rumdl.toml").content!) as { global: { disable: string[] }; "per-file-ignores": Record<string, string[]> };
+  expect(Object.keys(toml["per-file-ignores"])).toEqual([".github/pull_request_template.md"]);
+  expect(toml["per-file-ignores"][".github/pull_request_template.md"]).toEqual(["MD041"]);
+  expect(toml.global.disable).not.toContain("MD041");
+});
 
 test("the pinned list covers the seven new scripts and both configs, and the nine scripts are all accounted for", () => {
   expect(Object.keys(pinned)).toHaveLength(9);

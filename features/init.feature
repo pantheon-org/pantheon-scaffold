@@ -118,3 +118,11 @@ Feature: init
     Then the exit code is 2
     And the error contains "--features must be default or all"
     And the file "pantheon.pkl" does not exist
+
+  Scenario: the rendered rumdl config ignores MD041 for the pull request template only
+    Given a new empty repository
+    When I run "init --root <repo> --allow-local-package <package> --toolchain 1.96.1 --write"
+    Then the exit code is 0
+    And the file ".rumdl.toml" contains '[per-file-ignores]'
+    And the file ".rumdl.toml" contains '".github/pull_request_template.md" = ["MD041"]'
+    And the file ".rumdl.toml" contains 'disable = ["MD060", "MD032", "MD013", "MD022", "MD024", "MD031", "MD037", "MD040", "MD047"]'

@@ -6,6 +6,6 @@
   ".github/scripts/check-commit-types.sh": { "blob": "089559087896b06ad8e6f09bfabde98f49978772", "upstreamMode": "100755" },
   ".github/scripts/release-automerge.sh": { "blob": "898bbaf3de803053308ade06073763875dbdc7dd", "upstreamMode": "100755" },
   ".github/scripts/sync-labels.sh": { "blob": "e7000cccfc4a7ae1997a4c3ccebfaffdf4ad5266", "upstreamMode": "100644" },
-  ".rumdl.toml": { "blob": "ece34432669f287d97f82d81e6258d2bae2b7fdf", "upstreamMode": "100644" },
+  ".rumdl.toml": { "blob": "ece34432669f287d97f82d81e6258d2bae2b7fdf", "upstreamMode": "100644", "note": "The blob is pantheon-adr's file. The package renders it with one per-file-ignores table appended (RUMDL_ADDITION in tooling.test.ts), so the pull request template passes MD041." },
   ".claude/settings.json": { "blob": "4807eed78be4e97fd4e82331c29c7ee792582774", "upstreamMode": "100644" }
 }

@@ -1,0 +1,54 @@
+/// The pr-auto-rebase builtin. `Builtins.pkl` re-exports it; import `Builtins.pkl`, not this file.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.builtins.PrAutoRebase
+
+import "../../Config.pkl"
+import "../Shared.pkl"
+
+/// Rebases open pull request branches that are behind main, under the App token so the required checks run again on the new head.
+function workflow(opts: Config.Options): Config.Workflow = new {
+  header = #"""
+    The `main` ruleset requires linear history and a strict "branches must be up
+    to date" status-check policy, so every push to `main` marks all open PRs as
+    BEHIND and blocks them until rebased. This workflow rebases those branches
+    onto the latest `main` using the pantheon-ai-bot App token, which (unlike the
+    default GITHUB_TOKEN) re-triggers the required checks on the new head.
+    Ported from pantheon-org/tekhne.
+
+    Needs the org secret GH_APP_PRIVATE_KEY to be available to this repository and
+    the App installed on it with contents and pull-requests write.
+    """#
+  name = "Auto-rebase PR branches"
+  on = new Mapping<String, Any?> {
+    ["push"] = new Mapping { ["branches"] = new Listing { "main" } }
+    ["workflow_dispatch"] = new Mapping {}
+  }
+  permissions = Shared.readOnly
+  concurrency = new Mapping {
+    ["group"] = "pr-auto-rebase"
+    ["cancel-in-progress"] = true
+  }
+  jobs {
+    ["rebase"] {
+      name = "Rebase behind PR branches"
+      `timeout-minutes` = 5
+      steps {
+        Shared.mintToken(opts)
+        Shared.checkoutScripts
+        new {
+          name = "Rebase behind, non-draft PRs"
+          env = new Mapping {
+            ["GH_TOKEN"] = "${{ steps.app-token.outputs.token }}"
+            ["GH_REPO"] = "${{ github.repository }}"
+          }
+          run = "bash .github/scripts/auto-rebase.sh"
+        }
+      }
+    }
+  }
+}
+
+/// The verbatim file of this builtin that `toolingFiles()` renders.
+function toolingFiles(): Mapping<String, Config.GenFile> = new {
+  [".github/scripts/auto-rebase.sh"] = new Config.GenFile { content = read("assets/auto-rebase.sh").text; executable = true }
+}

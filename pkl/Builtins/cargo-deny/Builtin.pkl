@@ -1,0 +1,41 @@
+/// The cargo-deny builtin. `Builtins.pkl` re-exports it; import `Builtins.pkl`, not this file.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.builtins.CargoDeny
+
+import "../../Config.pkl"
+import "../Shared.pkl"
+
+/// Checks the dependency tree against deny.toml.
+function workflow(opts: Config.Options): Config.Workflow = new {
+  header = """
+    Checks the dependency tree against deny.toml: RustSec advisories (including
+    yanked and unmaintained crates), licences, banned or duplicate crates, and
+    allowed registries and git sources. The advisory database changes without a
+    commit here, so a weekly run catches new advisories on an idle repository.
+    """
+  name = "Cargo Deny"
+  on = new Mapping<String, Any?> {
+    ...Shared.mainTriggers()
+    ["schedule"] = new Listing { new Mapping { ["cron"] = "17 5 * * 1" } }
+    ["workflow_dispatch"] = new Mapping {}
+  }
+  permissions = Shared.readOnly
+  concurrency = Shared.concurrencyPerRef
+  jobs {
+    ["cargo-deny"] {
+      name = "Cargo Deny"
+      `timeout-minutes` = 10
+      steps {
+        Shared.checkout
+        Shared.installToolchain(opts.toolchain, null)
+        new { name = "Check dependencies"; run = "bash .github/scripts/cargo-deny.sh" }
+      }
+    }
+  }
+}
+
+/// The verbatim files of this builtin that `baseFiles()` renders: the policy `deny.toml` and the script that runs cargo-deny against it.
+function baseFiles(): Mapping<String, Config.GenFile> = new {
+  ["deny.toml"] = new Config.GenFile { content = read("assets/deny.toml").text }
+  [".github/scripts/cargo-deny.sh"] = new Config.GenFile { content = read("assets/cargo-deny.sh").text; executable = true }
+}

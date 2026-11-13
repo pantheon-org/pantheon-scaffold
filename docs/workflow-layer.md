@@ -1,6 +1,18 @@
 # The workflow layer
 
-Workflows the four Rust repositories share, rendered from typed pkl by the builtins in `pkl/Builtins.pkl`. Phase 4 of the plan. This page grows wave by wave: wave A is here.
+Workflows the four Rust repositories share, rendered from typed pkl by the builtins in `pkl/Builtins/`. Phase 4 of the plan. This page grows wave by wave: wave A is here.
+
+## Where the builtins live
+
+`pkl/Builtins.pkl` is the API: every function a repository's `pantheon.pkl` calls (`standardWorkflows`, `standardFiles`, `rustCi`, `plumber` and the rest) is defined there, and each is one line that calls into a folder.
+
+| Path | What it holds |
+|---|---|
+| `pkl/Builtins/<name>/Builtin.pkl` | One builtin: its workflow function (`workflow`) and the slices of the file aggregators it feeds (`baseFiles`, `toolingFiles`, `workflowFiles`, `analysisFiles`, `verbatimFiles`, `parameterisedFiles`), or `files` for a builtin that renders only files (`mise`, `hk`). |
+| `pkl/Builtins/<name>/assets/` | The verbatim files and templates that builtin reads, found with `read("assets/...")` from its own module. Each asset has exactly one copy. |
+| `pkl/Builtins/Shared.pkl` | The steps and values several builtins use (`checkout`, `mainTriggers`, `mintToken` and others). Internal: not part of the API, and not for Presets. |
+
+The folder is named after the builtin's key in `standardWorkflows` (`rust-ci`, `conventional-commits`), or after the tool for a builtin that renders only files (`rumdl`, `claude-settings`, `gitignore`). The aggregators in `Builtins.pkl` spread each folder's slice in a fixed order, which is the order the files and keys render in. A module never calls back into `Builtins.pkl`: when a builtin needs something from another (`dependabot` needs the workflow names), the facade passes it in as an argument.
 
 ## Wave A: the workflows that are identical in all four repositories
 

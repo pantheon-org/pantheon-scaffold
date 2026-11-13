@@ -1,0 +1,65 @@
+/// The zizmor builtin. `Builtins.pkl` re-exports it; import `Builtins.pkl`, not this file.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.builtins.Zizmor
+
+import "../../Config.pkl"
+import "../../Pins.pkl"
+import "../../Tools.pkl"
+import "../Shared.pkl"
+
+/// The zizmor security scan of the workflows. It reads .github/zizmor.yml when the repository has a binary (the config silences findings in the
+/// cargo-dist generated release.yml), and also scans action.yml when the repository has its own composite action.
+function workflow(opts: Config.Options): Config.Workflow =
+  let (inputs = if (opts.compositeAction) ".github action.yml" else ".github")
+  let (cmd = if (opts.binary) "  GH_TOKEN=$(gh auth token) mise exec -- zizmor --min-severity high \\\n    --config .github/zizmor.yml \(inputs)" else "  GH_TOKEN=$(gh auth token) mise exec -- zizmor --min-severity high \(inputs)")
+  let (scope = if (opts.compositeAction) "Scans .github (the workflows and dependabot.yml) and the repository's own\ncomposite action, action.yml. Not the whole repository: the action's default\ninput is \".\", which also reaches the skill fixtures under crates/ and skills/." else "Scans .github only: the workflows and dependabot.yml. The action's default\ninput is the whole repository, which this gate does not need to cover.")
+  new {
+    header = #"""
+      Static analysis for GitHub Actions security problems: credential persistence,
+      template injection, over-broad permissions, unpinned actions. A finding at
+      high severity fails the job.
+
+      This runs beside Plumber rather than replacing it. Plumber reports without
+      blocking; zizmor blocks, and covers credential persistence and template
+      injection, which Plumber does not.
+
+      No path filter, so the check always reports a conclusion: a required check
+      that is skipped blocks the pull request forever. Also runs on push to main as
+      a post-merge safety net.
+
+      \#(scope)
+
+      Run it locally with the same findings (zizmor is pinned in mise.toml):
+      \#(cmd)
+      """#
+    name = "zizmor"
+    on = Shared.mainTriggers()
+    permissions = Shared.readOnly
+    concurrency = Shared.concurrencyPerRef
+    jobs {
+      ["zizmor"] {
+        name = "zizmor"
+        `timeout-minutes` = 10
+        steps {
+          Shared.checkout
+          new {
+            uses = Pins.zizmorAction
+            `with` = new Mapping {
+              ["version"] = Tools.zizmor
+              ["min-severity"] = "high"
+              ["inputs"] = inputs
+              when (opts.binary) { ["config"] = ".github/zizmor.yml" }
+              ["advanced-security"] = false
+            }
+          }
+        }
+      }
+    }
+  }
+
+/// The zizmor configuration that `analysisFiles()` renders, for a repository with a binary (the variant with the extra entry for action.yml when there is a composite action).
+function analysisFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
+  when (opts.binary) {
+    [".github/zizmor.yml"] = new Config.GenFile { content = read(if (opts.compositeAction) "assets/zizmor-composite.yml" else "assets/zizmor.yml").text }
+  }
+}

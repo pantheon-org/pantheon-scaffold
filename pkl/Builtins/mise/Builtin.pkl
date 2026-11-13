@@ -1,0 +1,34 @@
+/// The mise builtin. `Builtins.pkl` re-exports it; import `Builtins.pkl`, not this file.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.builtins.Mise
+
+import "pkl:reflect"
+import "../../Config.pkl"
+import "../../Tools.pkl"
+
+/// mise.toml, owned by the runner, and the files around it: mise.lock (written by mise, so external) and a per-repository mise config,
+/// seeded once. mise reads both config files, the second adds tools, and for a tool listed in both mise.toml wins (decision 29, checked
+/// against real mise in mise.test.ts). The tool pins come from Tools.pkl and the runner pin from the package version.
+function files(opts: Config.Options): Mapping<String, Config.GenFile> =
+  let (runner = opts.runnerVersion ?? packageVersion ?? throw("runnerVersion is not set and the package version cannot be read from a package URI: set options.runnerVersion when the package is loaded from a folder"))
+    new {
+      ["mise.toml"] = new Config.GenFile {
+        content =
+          read("assets/mise.toml.tmpl").text
+            .replaceAll("@@TOOLCHAIN@@", opts.toolchain)
+            .replaceAll("@@ACTIONLINT@@", Tools.actionlint)
+            .replaceAll("@@ZIZMOR@@", Tools.zizmor)
+            .replaceAll("@@RUMDL@@", Tools.rumdl)
+            .replaceAll("@@AGNIX@@", Tools.agnix)
+            .replaceAll("@@RUNNER@@", runner)
+            .replaceAll("@@MIN_RELEASE_AGE@@", Tools.minimumReleaseAge)
+            .replaceAll("@@LOCKFILE_PLATFORMS@@", Tools.lockfilePlatforms.map((p) -> "\"\(p)\"").join(", "))
+      }
+      ["mise.lock"] = new Config.GenFile { `class` = "external" }
+      [".mise/conf.d/repo.toml"] = new Config.GenFile { `class` = "seed"; content = read("assets/mise-repo.toml").text }
+    }
+
+/// The version of the package this module was loaded from, read from its package URI, or null for a package loaded from a folder.
+local packageVersion: String? =
+  let (matches = Regex(#"@([^@#/:]+)(?:::sha256:[0-9a-f]{64})?#"#).findMatchesIn(reflect.Class(Config.Options).enclosingDeclaration.uri))
+    if (matches.isEmpty) null else matches.first.groups[1].value

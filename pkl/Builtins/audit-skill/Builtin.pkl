@@ -1,0 +1,85 @@
+/// The audit-skill builtin. `Builtins.pkl` re-exports it; import `Builtins.pkl`, not this file.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.builtins.AuditSkill
+
+import "../../Config.pkl"
+import "../../Pins.pkl"
+import "../../Tools.pkl"
+import "../Shared.pkl"
+
+/// Validates and grades the bundled skill (`skills` toggle, option `skillName`). With `compositeAction` the repository is the skill auditor
+/// itself, so it runs its own action with a bootstrap binary instead of the released action.
+function workflow(opts: Config.Options): Config.Workflow =
+  let (skill = Shared.needSkillName(opts))
+  let (paths = new Listing {
+    "skills/\(skill)/**"
+    when (opts.compositeAction) { "action.yml" }
+    ".github/workflows/audit-skill.yml"
+  })
+  new {
+    header =
+      if (opts.compositeAction)
+        "The embedded skill (skills/\(skill)/) is audited with a released binary through this\nrepository's own action, the way a consuming repository would. Until this\nrepository has its own release, the bootstrap binary is the tekhne v\(Tools.skillAuditorBootstrapVersion) one."
+      else
+        "The bundled skill (skills/\(skill)/) is validated and graded with a released\npantheon-skill-auditor, installed through that repository's own action, the way\nany consuming repository would."
+    name = "Audit skill"
+    on = new Mapping<String, Any?> {
+      ["pull_request"] = new Mapping {
+        ["types"] = new Listing { "opened"; "synchronize"; "reopened" }
+        ["branches"] = new Listing { "main" }
+        ["paths"] = paths
+      }
+      ["push"] = new Mapping {
+        ["branches"] = new Listing { "main" }
+        ["paths"] = paths
+      }
+    }
+    permissions = Shared.readOnly
+    jobs {
+      ["audit"] {
+        name = "Audit skill"
+        `timeout-minutes` = 5
+        steps {
+          Shared.checkout
+          new {
+            name = "Install pantheon-skill-auditor"
+            uses = if (opts.compositeAction) "./" else skillAuditorPin
+            `with` = new Mapping {
+              ["version"] = if (opts.compositeAction) Tools.skillAuditorBootstrapVersion else Tools.skillAuditorVersion
+              ["sha256"] = if (opts.compositeAction) Tools.skillAuditorBootstrapSha256 else Tools.skillAuditorSha256
+              when (opts.compositeAction) { ["download-url"] = Tools.skillAuditorBootstrapUrl }
+            }
+          }
+          new {
+            name = "Validate structure"
+            run = #"""
+              rc=0
+              pantheon-skill-auditor validate structure --allow-dirs=evals skills/\#(skill) || rc=$?
+              case "$rc" in
+                0) ;;
+                2) echo "::warning::validate structure reported warnings only" ;;
+                *) exit "$rc" ;;
+              esac
+
+              """#
+          }
+          new {
+            name = "Grade the skill"
+            run = #"""
+              grade=$(pantheon-skill-auditor evaluate ./skills/\#(skill) --json | jq -r '.grade // "?"')
+              echo "grade: $grade"
+              case "$grade" in
+                A|A+) ;;
+                B+|B) echo "::warning::skill grade $grade is below A" ;;
+                *) echo "::error::skill grade $grade is below B"; exit 1 ;;
+              esac
+
+              """#
+          }
+        }
+      }
+    }
+  }
+
+/// The skill auditor action as a pin, built from Tools.pkl and not listed in Pins.pkl, so the pin update workflow cannot move it without its binary.
+local skillAuditorPin: Pins.Pin = new { action = "pantheon-org/pantheon-skill-auditor"; sha = Tools.skillAuditorAction; version = "v\(Tools.skillAuditorVersion)" }

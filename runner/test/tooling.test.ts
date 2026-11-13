@@ -16,7 +16,7 @@ const pinned = (await Bun.file(join(import.meta.dir, "upstream/tooling-blobs.jso
 
 // The one deliberate difference from pantheon-adr's files: .rumdl.toml ends with this table. The pull request template starts with an
 // HTML comment and a level 2 heading, so MD041 can never pass for it, and the rendered hook would fail the first commit of every project.
-// The same text is appended to pkl/assets/rumdl.toml. Keep it last in the file, because the test below strips it from the end.
+// The same text is appended to pkl/Builtins/rumdl/assets/rumdl.toml. Keep it last in the file, because the test below strips it from the end.
 const RUMDL_ADDITION =
   "\n# The pull request template starts with an HTML comment and a level 2 heading, so MD041 can never pass for it.\n" +
   "# Every other file is still checked by MD041.\n" +

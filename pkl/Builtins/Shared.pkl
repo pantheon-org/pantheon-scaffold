@@ -1,0 +1,77 @@
+/// INTERNAL. The steps and values that more than one builtin uses, moved out of `Builtins.pkl` unchanged. This module is not part of the
+/// package's API and not of the Presets API (docs/presets-design.md): import `Builtins.pkl`, not this file. It can change without notice.
+/// Pkl cannot import a `local` member, which is why these are not `local`.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.builtins.Shared
+
+import "../Config.pkl"
+import "../Pins.pkl"
+import "../Tools.pkl"
+
+function mainTriggers(): Mapping<String, Any?> = new Mapping<String, Any?> {
+  ["pull_request"] = new Mapping {
+    ["types"] = new Listing { "opened"; "synchronize"; "reopened" }
+    ["branches"] = new Listing { "main" }
+  }
+  ["push"] = new Mapping { ["branches"] = new Listing { "main" } }
+}
+
+concurrencyPerRef: Mapping<String, Any> = new Mapping {
+  ["group"] = "${{ github.workflow }}-${{ github.ref }}"
+  ["cancel-in-progress"] = true
+}
+
+readOnly: Mapping<String, String> = new Mapping { ["contents"] = "read" }
+
+checkout: Config.Step = new {
+  uses = Pins.checkout
+  `with` = new Mapping { ["persist-credentials"] = false }
+}
+
+function installToolchain(toolchain: String, components: String?): Config.Step = new {
+  name = "Install Rust toolchain"
+  run =
+    if (components == null)
+      "rustup toolchain install \(toolchain) --profile minimal\nrustup default \(toolchain)\n"
+    else
+      "rustup toolchain install \(toolchain) --profile minimal --component \(components)\nrustup default \(toolchain)\n"
+}
+
+function mintToken(opts: Config.Options): Config.Step = new {
+  name = "Mint pantheon-ai-bot token"
+  id = "app-token"
+  uses = Pins.createGithubAppToken
+  `with` = new Mapping {
+    ["client-id"] = opts.appClientId
+    ["private-key"] = "${{ secrets.GH_APP_PRIVATE_KEY }}"
+    ["permission-contents"] = "write"
+    ["permission-pull-requests"] = "write"
+  }
+}
+
+checkoutScripts: Config.Step = new {
+  name = "Checkout scripts"
+  uses = Pins.checkout
+  `with` = new Mapping {
+    ["persist-credentials"] = false
+    ["sparse-checkout"] = ".github/scripts"
+  }
+}
+
+function needSkillName(opts: Config.Options): String =
+  opts.skillName ?? throw("options.skillName is required when options.skills is true: it names the folder under skills/ that audit-skill.yml, .coderabbit.yaml and SECURITY.md refer to. Set skillName, or set skills = false.")
+
+function needCrateName(opts: Config.Options): String =
+  opts.crateName ?? throw("options.crateName is required when options.binary is true: tag-release.sh and SECURITY.md name the crate. Set crateName, or set binary = false.")
+
+function miseSetup(): List<Config.Step> = List(
+  checkout,
+  new Config.Step {
+    uses = Pins.miseAction
+    `with` = new Mapping {
+      ["version"] = Tools.mise
+      ["install"] = false
+      ["cache"] = false
+    }
+  }
+)

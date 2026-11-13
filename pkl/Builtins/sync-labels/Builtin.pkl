@@ -1,0 +1,54 @@
+/// The sync-labels builtin. `Builtins.pkl` re-exports it; import `Builtins.pkl`, not this file.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.builtins.SyncLabels
+
+import "../../Config.pkl"
+import "../Shared.pkl"
+
+/// Creates the labels Dependabot applies, from .github/labels.txt.
+function workflow(): Config.Workflow = new {
+  header = #"""
+    Creates the labels Dependabot applies (see .github/dependabot.yml). Dependabot
+    cannot create labels itself and comments on its PRs when one is missing.
+    Edit .github/labels.txt to add a label; this runs on push to main or on demand.
+    """#
+  name = "Sync Labels"
+  on = new Mapping<String, Any?> {
+    ["push"] = new Mapping {
+      ["branches"] = new Listing { "main" }
+      ["paths"] = new Listing { ".github/labels.txt"; ".github/scripts/sync-labels.sh"; ".github/workflows/sync-labels.yml" }
+    }
+    ["workflow_dispatch"] = new Mapping {}
+  }
+  permissions = new Mapping {
+    ["contents"] = "read"
+    ["issues"] = "write"
+  }
+  jobs {
+    ["sync-labels"] {
+      name = "Sync Labels"
+      `timeout-minutes` = 5
+      steps {
+        Shared.checkout
+        new {
+          name = "Create or update labels"
+          env = new Mapping {
+            ["GH_TOKEN"] = "${{ github.token }}"
+            ["GH_REPO"] = "${{ github.repository }}"
+          }
+          run = "bash .github/scripts/sync-labels.sh"
+        }
+      }
+    }
+  }
+}
+
+/// The verbatim file of this builtin that `toolingFiles()` renders.
+function toolingFiles(): Mapping<String, Config.GenFile> = new {
+  [".github/scripts/sync-labels.sh"] = new Config.GenFile { content = read("assets/sync-labels.sh").text; executable = true }
+}
+
+/// The verbatim file of this builtin that `workflowFiles()` renders.
+function workflowFiles(): Mapping<String, Config.GenFile> = new {
+  [".github/labels.txt"] = new Config.GenFile { content = read("assets/labels.txt").text }
+}

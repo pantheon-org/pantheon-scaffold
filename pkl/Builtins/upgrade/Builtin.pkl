@@ -1,0 +1,114 @@
+/// The upgrade builtin. `Builtins.pkl` re-exports it; import `Builtins.pkl`, not this file.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.builtins.Upgrade
+
+import "../../Config.pkl"
+import "../../Pins.pkl"
+
+/// The consumer upgrade workflow: weekly, checks the freshness record, finds the latest release the known-bad list allows, upgrades, and
+/// opens a pull request under the App token. Removed by `detach`, since it would fail on every run once the repository leaves the scaffold.
+/// The App steps are unverified: pushing a change to workflow files needs `workflows: write` on the App, which is not confirmed (plan P.4).
+function workflow(opts: Config.Options): Config.Workflow = new {
+  header = #"""
+    Weekly: proposes the latest pantheon-scaffold release as a pull request.
+    Fails when the package's freshness record is older than 30 days, so a package
+    whose pins are no longer checked is never proposed. Opens nothing when the
+    repository already runs the latest release.
+
+    Needs the org secret GH_APP_PRIVATE_KEY and the App installed on this repository
+    with contents, pull-requests and workflows write (workflows write is needed
+    because an upgrade can change files under .github/workflows).
+    """#
+  removeOnDetach = true
+  name = "Upgrade pantheon-scaffold"
+  on = new Mapping<String, Any?> {
+    ["schedule"] = new Listing { new Mapping { ["cron"] = "17 5 * * 1" } }
+    ["workflow_dispatch"] = new Mapping {}
+  }
+  permissions = new Mapping {}
+  concurrency = new Mapping {
+    ["group"] = "upgrade-scaffold"
+    ["cancel-in-progress"] = false
+  }
+  jobs {
+    ["upgrade"] {
+      name = "Propose the latest release"
+      `timeout-minutes` = 15
+      permissions = new Mapping { ["contents"] = "read" }
+      steps {
+        new {
+          name = "Mint pantheon-ai-bot token"
+          id = "app-token"
+          uses = Pins.createGithubAppToken
+          `with` = new Mapping {
+            ["client-id"] = opts.appClientId
+            ["private-key"] = "${{ secrets.GH_APP_PRIVATE_KEY }}"
+            ["permission-contents"] = "write"
+            ["permission-pull-requests"] = "write"
+            ["permission-workflows"] = "write"
+          }
+        }
+        new {
+          name = "Checkout"
+          uses = Pins.checkout
+          `with` = new Mapping { ["persist-credentials"] = false }
+        }
+        new {
+          name = "Install the pinned tools"
+          uses = Pins.miseAction
+          `with` = new Mapping { ["install"] = true }
+        }
+        new {
+          name = "Check the freshness record"
+          run = "mise x -- pantheon-scaffold freshness\n"
+        }
+        new {
+          name = "Find the latest release"
+          id = "latest"
+          env = new Mapping { ["GH_TOKEN"] = "${{ steps.app-token.outputs.token }}" }
+          run = #"""
+            latest="$(mise x -- pantheon-scaffold latest)"
+            current="$(mise x -- pantheon-scaffold --version)"
+            echo "latest=${latest}" >> "$GITHUB_OUTPUT"
+            if [ "$latest" = "$current" ]; then
+              echo "Already on ${current}, nothing to propose."
+              echo "needed=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "needed=true" >> "$GITHUB_OUTPUT"
+            fi
+
+            """#
+        }
+        new {
+          name = "Upgrade"
+          `if` = "steps.latest.outputs.needed == 'true'"
+          env = new Mapping {
+            ["GH_TOKEN"] = "${{ steps.app-token.outputs.token }}"
+            ["LATEST"] = "${{ steps.latest.outputs.latest }}"
+          }
+          run = "mise x -- pantheon-scaffold upgrade \"$LATEST\" --config pantheon.pkl\n"
+        }
+        new {
+          name = "Open the pull request"
+          `if` = "steps.latest.outputs.needed == 'true'"
+          env = new Mapping {
+            ["GH_TOKEN"] = "${{ steps.app-token.outputs.token }}"
+            ["LATEST"] = "${{ steps.latest.outputs.latest }}"
+            ["REPO"] = "${{ github.repository }}"
+          }
+          run = #"""
+            branch="chore/upgrade-pantheon-scaffold-${LATEST}"
+            git switch -c "$branch"
+            git add --all
+            git -c user.name="pantheon-ai-bot[bot]" -c user.email="pantheon-ai-bot[bot]@users.noreply.github.com" \
+              commit --message "chore: upgrade pantheon-scaffold to ${LATEST}"
+            git push "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" "$branch"
+            gh pr create --head "$branch" --title "chore: upgrade pantheon-scaffold to ${LATEST}" \
+              --body "Moves the pinned runner and package to ${LATEST}, then renders. Review the diff before merging."
+
+            """#
+        }
+      }
+    }
+  }
+}

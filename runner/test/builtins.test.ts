@@ -1,4 +1,4 @@
-import { expectPins, unpin } from "./helpers";
+import { assetPath, expectPins, unpin } from "./helpers";
 import { expect, test } from "bun:test";
 import { join } from "node:path";
 import { parseContract } from "../src/contract";
@@ -36,18 +36,18 @@ for (const name of ["cargo-deny", "inline-scripts", "rust-ci"]) {
 for (const name of ["cargo-deny", "check-inline-scripts", "check-toolchain-version"]) {
   test(`${name}.sh is byte for byte the asset and executable`, async () => {
     const f = file(`.github/scripts/${name}.sh`);
-    expect(f.content).toBe(await read(`pkl/assets/${name}.sh`));
+    expect(f.content).toBe(await read(assetPath(`${name}.sh`)));
     expect(f.mode).toBe("0755");
   });
 }
 
 test("deny.toml is byte for byte the asset and not executable", async () => {
-  expect(file("deny.toml").content).toBe(await read("pkl/assets/deny.toml"));
+  expect(file("deny.toml").content).toBe(await read(assetPath("deny.toml")));
   expect(file("deny.toml").mode).toBe("0644");
 });
 
 test("rust-toolchain.toml carries the one toolchain option", async () => {
-  expect(file("rust-toolchain.toml").content).toBe((await read("pkl/assets/rust-toolchain.toml.tmpl")).replace("@@TOOLCHAIN@@", "1.96.1"));
+  expect(file("rust-toolchain.toml").content).toBe((await read(assetPath("rust-toolchain.toml.tmpl"))).replace("@@TOOLCHAIN@@", "1.96.1"));
 });
 
 test("the toolchain option reaches both workflows that install it", () => {

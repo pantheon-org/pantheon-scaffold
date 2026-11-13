@@ -1,0 +1,58 @@
+/// The conventional-commits builtin. `Builtins.pkl` re-exports it; import `Builtins.pkl`, not this file.
+///
+/// Pair of `commit-types`: the types in the regex below are a copy of `commit-types/assets/commit-types.txt`, and the `commit-types` workflow
+/// checks that the copy has not drifted. The two share only rendered file names, not code.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.builtins.ConventionalCommits
+
+import "../../Config.pkl"
+
+/// Checks that the pull request title is a conventional commit. The job name is the required status check, so it must not change.
+function workflow(): Config.Workflow = new {
+  header = #"""
+    Pull requests are squash-merged, so the title becomes the commit message on
+    main and is what release-please parses to pick the version bump and write
+    the changelog. A malformed title produces a wrong bump or no release at all,
+    silently.
+
+    The allowed types are copied into the regex below from .github/commit-types.txt.
+    The copy is deliberate: this runs on pull_request_target, where the workflow
+    has a privileged token, so it checks out nothing and reads only the event
+    payload. .github/scripts/check-commit-types.sh fails if the copy drifts, and
+    the Commit Types workflow runs that check on pull requests.
+    """#
+  name = "Conventional Commit Title"
+  onComment = "zizmor: ignore[dangerous-triggers] reads only the PR title; checks out and runs no PR code"
+  on = new Mapping<String, Any?> {
+    ["pull_request_target"] = new Mapping {
+      ["types"] = new Listing { "opened"; "edited"; "reopened"; "synchronize" }
+    }
+  }
+  permissions = new Mapping {}
+  concurrency = new Mapping {
+    ["group"] = "${{ github.workflow }}-${{ github.event.pull_request.number }}"
+    ["cancel-in-progress"] = true
+  }
+  jobs {
+    ["title"] {
+      name = "Conventional Commit Title"
+      `timeout-minutes` = 5
+      steps {
+        new {
+          name = "Check the pull request title"
+          env = new Mapping { ["PR_TITLE"] = "${{ github.event.pull_request.title }}" }
+          run = #"""
+            pattern='^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([[:alnum:]][[:alnum:]./_-]*\))?!?: [[:lower:]](.*[[:graph:]])?$'
+            if [[ ! "$PR_TITLE" =~ $pattern ]]; then
+              echo "::error title=Invalid pull request title::The title does not match the required format."
+              printf 'Received title: %q\n' "$PR_TITLE"
+              echo "Use: <type>[optional scope][optional !]: <summary starting lowercase>"
+              echo "Types: build chore ci docs feat fix perf refactor revert style test"
+              exit 1
+            fi\#n
+            """#
+        }
+      }
+    }
+  }
+}

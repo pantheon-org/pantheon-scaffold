@@ -8,7 +8,7 @@ Phase 5. The toggles are the options `skills`, `binary`, `features` and `composi
 
 | File | When | Source |
 |---|---|---|
-| `.gitignore` | always | `pkl/assets/gitignore`: `target/` (the form three repositories use, decision 74), `.context/` and `.pkl-gen/cache/` (the runner's package cache, which must not be committed, decision 87). The three binary repositories gain one line, and the library repository changes `/target` to `target/` and gains the same line |
+| `.gitignore` | always | `pkl/Builtins/gitignore/assets/gitignore`: `target/` (the form three repositories use, decision 74), `.context/` and `.pkl-gen/cache/` (the runner's package cache, which must not be committed, decision 87). The three binary repositories gain one line, and the library repository changes `/target` to `target/` and gains the same line |
 | `.github/actionlint.yaml` | `binary` | byte for byte from `pantheon-adr` at 1e2fd46 (identical in `pantheon-journal` and `pantheon-skill-auditor`) |
 | `dist-workspace.toml` | `binary` | the pantheon-adr file with two action commits changed to the ones the repositories' `release.yml` uses (wave D, decision 85) |
 | `.github/workflows/release.yml` | `binary` | class `external`: listed with no content, so the runner never writes, hashes or deletes it. `dist generate` writes it. The drift check against `dist generate --check` is wave D |

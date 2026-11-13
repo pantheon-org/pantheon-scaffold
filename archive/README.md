@@ -23,5 +23,5 @@ git worktree add ../pantheon-scaffold-pre-refocus pre-refocus
 
 ## Known leftovers
 
-- Comments in `pkl/Builtins.pkl` still name `tmp/phase-4-generators`. That folder is now `archive/spikes/phase-4-generators`. The comments were left alone so this change does not touch the package.
+- The generators in `archive/spikes/phase-4-generators` wrote the blocks between `BEGIN generated` and `END generated` markers in `pkl/Builtins.pkl`. `Builtins.pkl` is now a facade over `pkl/Builtins/<name>/`, and the markers are gone, so the generators target the layout before the split. The archive code is not changed.
 - Fixtures under `runner/test/fixtures/` keep a few comments that name the old script paths.

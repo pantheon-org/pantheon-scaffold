@@ -1,0 +1,37 @@
+/// The aislop builtin. `Builtins.pkl` re-exports it; import `Builtins.pkl`, not this file.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.builtins.Aislop
+
+import "../../Config.pkl"
+import "../../Pins.pkl"
+import "../../Tools.pkl"
+import "../Shared.pkl"
+
+/// The code-quality gate (aislop), scored out of 100. aislop's version is pinned in Tools.pkl, because Dependabot does not read an inline npx
+/// version.
+function workflow(): Config.Workflow = new {
+  header = #"""
+    Code-quality gate (aislop): catches dead imports, duplicate logic, unsafe casts,
+    narrative comments, swallowed errors, oversized functions and similar, scored
+    out of 100. Enforced in CI because local hooks are bypassable (--no-verify,
+    web-UI merges, API commits). Ported from pantheon-org/tekhne.
+    """#
+  name = "aislop"
+  on = Shared.mainTriggers()
+  permissions = Shared.readOnly
+  concurrency = Shared.concurrencyPerRef
+  jobs {
+    ["quality-gate"] {
+      name = "aislop quality gate"
+      `timeout-minutes` = 10
+      steps {
+        Shared.checkout
+        new {
+          uses = Pins.setupNode
+          `with` = new Mapping { ["node-version"] = 22 }
+        }
+        new { name = "aislop ci"; run = "npx --yes aislop@\(Tools.aislop) ci ." }
+      }
+    }
+  }
+}

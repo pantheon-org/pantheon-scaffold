@@ -1,0 +1,19 @@
+/// The security builtin. `Builtins.pkl` re-exports it; import `Builtins.pkl`, not this file.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.builtins.Security
+
+import "../../Config.pkl"
+import "../Shared.pkl"
+
+/// The files of this builtin that `parameterisedFiles()` renders.
+function parameterisedFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
+  ["SECURITY.md"] = new Config.GenFile {
+    `class` = "seed"
+    content =
+      if (opts.binary)
+        read("assets/security-binary.md.tmpl").text
+          .replaceAll("@@CRATE@@", Shared.needCrateName(opts))
+          .replaceAll("@@SKILL_LINE@@\n", if (opts.skills) "- The bundled `\(Shared.needSkillName(opts))` skill and its scripts.\n" else "")
+      else read("assets/security-library.md").text
+  }
+}

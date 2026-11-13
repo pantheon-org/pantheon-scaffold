@@ -1,0 +1,12 @@
+/// The rust-toolchain builtin. `Builtins.pkl` re-exports it; import `Builtins.pkl`, not this file.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.builtins.RustToolchain
+
+import "../../Config.pkl"
+
+/// The files of this builtin that `baseFiles()` renders.
+function baseFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
+  ["rust-toolchain.toml"] = new Config.GenFile {
+    content = read("assets/rust-toolchain.toml.tmpl").text.replaceAll("@@TOOLCHAIN@@", opts.toolchain)
+  }
+}

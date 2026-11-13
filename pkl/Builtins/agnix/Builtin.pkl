@@ -1,0 +1,177 @@
+/// The agnix builtin. `Builtins.pkl` re-exports it; import `Builtins.pkl`, not this file.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.builtins.Agnix
+
+import "../../Config.pkl"
+import "../../Pins.pkl"
+import "../../Tools.pkl"
+import "../Shared.pkl"
+
+/// Lints the skill (or the agent files) with agnix. The pinned release is downloaded from its public URL and checked against a pinned SHA-256.
+/// A pull request fails only on an error it introduces.
+function workflow(opts: Config.Options): Config.Workflow =
+  let (lead = if (opts.skills) "Lints the bundled skill with agnix (https://github.com/agent-sh/agnix) against" else "Lints agent skills and agent config files with agnix (https://github.com/agent-sh/agnix) against")
+  new {
+    header = #"""
+      \#(lead)
+      Claude Code's documented formats: frontmatter fields and values, allowed-tools
+      names, broken links and leaked tool-call markup. The skill validator and auditor
+      do not check these.
+
+      Runs on every pull request and every push to main. A pull request fails only on
+      an error it introduces, meaning an error whose rule and file are not already an
+      error on the base branch (.github/scripts/agnix-introduced-errors.sh). Errors
+      already on main and warnings show as annotations and never fail. Configuration
+      lives in .agnix.toml. Never runs --fix.
+
+      Ported from pantheon-org/tekhne. Issues: one per error (rule and file) and one per
+      warning rule listing every affected file (.github/scripts/agnix-file-issues.sh). A
+      pull request opens a missing issue but never edits or closes one; the run on main
+      opens missing issues, refreshes warning file lists and closes issues whose finding
+      is gone. One "## agnix" pull request comment shows PASS or FAIL and is updated in
+      place on each run.
+
+      No third-party action for agnix itself: the pinned release is downloaded from its
+      public URL and checked against a pinned SHA-256 before it runs. The digest was
+      taken from a tarball whose GitHub build attestation verified against agnix's
+      release.yml.
+      """#
+    name = "agnix"
+    on = Shared.mainTriggers()
+    permissions = new Mapping {
+      ["contents"] = "read"
+      ["issues"] = "write"
+      ["pull-requests"] = "write"
+    }
+    concurrency = new Mapping {
+      ["group"] = "${{ github.workflow }}-${{ github.ref }}"
+      ["cancel-in-progress"] = "${{ github.event_name == 'pull_request' }}"
+    }
+    env = new Mapping {
+      ["AGNIX_VERSION"] = Tools.agnix
+      ["AGNIX_SHA256"] = Tools.agnixSha256
+    }
+    jobs {
+      ["agnix"] {
+        name = "agnix"
+        `if` = "github.event_name == 'push' || github.event.pull_request.head.repo.fork == false"
+        `timeout-minutes` = 10
+        steps {
+          Shared.checkout
+          new {
+            name = "Check out the base branch"
+            `if` = "github.event_name == 'pull_request'"
+            uses = Pins.checkout
+            `with` = new Mapping {
+              ["ref"] = "${{ github.event.pull_request.base.sha }}"
+              ["path"] = "base"
+              ["persist-credentials"] = false
+            }
+          }
+          new {
+            name = "Install agnix (pinned digest)"
+            run = #"""
+              set -euo pipefail
+              asset="agnix-x86_64-unknown-linux-gnu.tar.gz"
+              dir="$RUNNER_TEMP/agnix"
+              mkdir -p "$dir"
+              curl -fsSL -o "$dir/$asset" \
+                "https://github.com/agent-sh/agnix/releases/download/v${AGNIX_VERSION}/${asset}"
+              echo "${AGNIX_SHA256}  $dir/$asset" | sha256sum -c -
+              tar -xzf "$dir/$asset" -C "$dir"
+              echo "$dir" >> "$GITHUB_PATH"\#n
+              """#
+          }
+          new {
+            name = "Lint"
+            run = #"""
+              agnix --version
+              agnix -c .agnix.toml --format github . || true
+              agnix -c .agnix.toml --format json . > agnix.json || true\#n
+              """#
+          }
+          new {
+            name = "Lint the base branch"
+            `if` = "github.event_name == 'pull_request'"
+            run = #"""
+              (cd base && agnix -c ../.agnix.toml --format json . > ../agnix-base.json) || true\#n
+              """#
+          }
+          new {
+            name = "File issues for findings"
+            `continue-on-error` = true
+            env = new Mapping {
+              ["GH_TOKEN"] = "${{ github.token }}"
+              ["GITHUB_REPOSITORY"] = "${{ github.repository }}"
+              ["MODE"] = "${{ github.event_name == 'push' && 'main' || 'pr' }}"
+              ["PR_NUMBER"] = "${{ github.event.pull_request.number }}"
+              ["RUN_URL"] = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              ["TRACKED_FILE"] = "tracked-issues.md"
+            }
+            run = "bash .github/scripts/agnix-file-issues.sh agnix.json"
+          }
+          new {
+            name = "Find errors this pull request introduces"
+            id = "gate"
+            `if` = "github.event_name == 'pull_request'"
+            `continue-on-error` = true
+            env = new Mapping { ["INTRODUCED_FILE"] = "introduced-errors.txt" }
+            run = "bash .github/scripts/agnix-introduced-errors.sh agnix.json agnix-base.json"
+          }
+          new {
+            name = "Assemble comment"
+            `if` = "github.event_name == 'pull_request'"
+            run = "bash .github/scripts/agnix-assemble-comment.sh"
+          }
+          new {
+            name = "Find existing agnix comment"
+            id = "find-comment"
+            `if` = "github.event_name == 'pull_request'"
+            `continue-on-error` = true
+            uses = Pins.findComment
+            `with` = new Mapping {
+              ["issue-number"] = "${{ github.event.pull_request.number }}"
+              ["comment-author"] = "github-actions[bot]"
+              ["body-includes"] = "## agnix"
+            }
+          }
+          new {
+            name = "Post or update agnix comment"
+            `if` = "github.event_name == 'pull_request'"
+            `continue-on-error` = true
+            uses = Pins.createOrUpdateComment
+            `with` = new Mapping {
+              ["comment-id"] = "${{ steps.find-comment.outputs.comment-id }}"
+              ["issue-number"] = "${{ github.event.pull_request.number }}"
+              ["edit-mode"] = "replace"
+              ["body-path"] = "comment.md"
+            }
+          }
+          new {
+            name = "Fail on introduced errors"
+            `if` = "github.event_name == 'pull_request' && steps.gate.outcome == 'failure'"
+            run = #"""
+              echo "::error::This pull request introduces agnix errors; see the agnix comment."
+              exit 1\#n
+              """#
+          }
+        }
+      }
+    }
+  }
+
+/// The verbatim files of this builtin that `toolingFiles()` renders.
+function toolingFiles(): Mapping<String, Config.GenFile> = new {
+  [".github/scripts/agnix-assemble-comment.sh"] = new Config.GenFile { content = read("assets/agnix-assemble-comment.sh").text; executable = true }
+  [".github/scripts/agnix-file-issues.sh"] = new Config.GenFile { content = read("assets/agnix-file-issues.sh").text; executable = true }
+  [".github/scripts/agnix-introduced-errors.sh"] = new Config.GenFile { content = read("assets/agnix-introduced-errors.sh").text; executable = true }
+}
+
+/// The `.agnix.toml` that `analysisFiles()` renders; the first line depends on whether the repository has a skill.
+function analysisFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
+  [".agnix.toml"] = new Config.GenFile {
+    content =
+      if (opts.skills) read("assets/agnix.toml").text
+      else read("assets/agnix.toml").text.replaceFirst("# agnix lints the bundled skill against Claude Code's documented formats:", "# agnix lints agent skills and config files against Claude Code's documented formats:")
+  }
+}

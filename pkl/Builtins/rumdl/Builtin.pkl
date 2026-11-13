@@ -1,0 +1,10 @@
+/// The rumdl builtin. `Builtins.pkl` re-exports it; import `Builtins.pkl`, not this file.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.builtins.Rumdl
+
+import "../../Config.pkl"
+
+/// The verbatim file of this builtin that `toolingFiles()` renders.
+function toolingFiles(): Mapping<String, Config.GenFile> = new {
+  [".rumdl.toml"] = new Config.GenFile { content = read("assets/rumdl.toml").text }
+}

@@ -1,5 +1,5 @@
 import { expect } from "bun:test";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync, existsSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import type { Contract, ContractFile } from "../src/contract";
@@ -52,7 +52,21 @@ export const commitAll = (root: string, message: string): void => {
 };
 
 /** Replaces the commit of every pinned action with a marker, so a pin moving to a newer release does not break a comparison with a pinned upstream copy. The pins themselves are checked by shape (`expectPins`) and by the pin update script. */
-export const unpin = (text: string): string => text.replace(/@[0-9a-f]{40}\b/g, "@<pin>");
+/**
+ * The repository-relative path of an asset the package ships, found by name under `pkl/Builtins/<builtin>/assets/`. Fails when there is no copy,
+ * or more than one, and names what it found.
+ */
+export function assetPath(name: string): string {
+  const builtins = join(import.meta.dir, "../../pkl/Builtins");
+  const found: string[] = [];
+  for (const e of readdirSync(builtins, { withFileTypes: true })) {
+    if (e.isDirectory() && existsSync(join(builtins, e.name, "assets", name))) found.push(`pkl/Builtins/${e.name}/assets/${name}`);
+  }
+  if (found.length !== 1) throw new Error(`asset ${name}: expected one copy under pkl/Builtins/*/assets, found ${found.length}${found.length ? `: ${found.join(", ")}` : ""}`);
+  return found[0]!;
+}
+
+export const unpin =(text: string): string => text.replace(/@[0-9a-f]{40}\b/g, "@<pin>");
 
 /** The pins are exactly these actions, each a 40 character commit with a version tag. The values move with the pin update workflow, so they are not asserted. */
 export function expectPins(pins: { action: string; sha: string; version: string }[], actions: string[]): void {

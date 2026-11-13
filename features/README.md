@@ -7,22 +7,15 @@ The behaviour of the runner, written as cucumber features. They are black-box: e
 Build a binary, name it in `SCAFFOLD_BIN`, and run the harness. It needs `pkl` and `git` on the PATH, and Rust 1.96.1. The version is named in three places that must agree: `rust-toolchain.toml`, `mise.toml` and the rustup steps in `.github/workflows/ci.yml`. mise cannot lock Rust, so the workflows set `MISE_DISABLE_TOOLS=rust` and `mise install --locked` skips it.
 
 ```bash
-mise x -- bun runner/scripts/build.ts --out dist --targets darwin-arm64
-SCAFFOLD_BIN=dist/pantheon-scaffold-darwin-arm64 cargo test -p scaffold-features
-```
-
-Use the target that matches your machine: `linux-x64`, `linux-arm64` or `darwin-arm64`. CI runs the features on all three after the build job.
-
-### Both builds against every Builtin
-
-`bun runner/scripts/builtin-differential.ts <Rust binary>` renders each `runner/test/fixtures/*/pantheon.pkl` (34 configurations, all built on the Builtins) with both builds into fresh directories and compares the exit code, stdout, stderr, the `contract` output, every file written (path, mode, bytes), the manifest (parsed, keys sorted: only its field order may differ) and a `check` straight after. Last run: 34 fixtures, 262 files per build, 0 differences. CI runs it in the `Features (Rust)` job. It goes when the TypeScript runner is removed (plan task 3.4).
-
-### Against the Rust build
-
-```bash
 cargo build -p scaffold-cli
 SCAFFOLD_BIN=target/debug/pantheon-scaffold cargo test -p scaffold-features
 ```
+
+CI builds the runner and runs the features on `linux-x64`, `linux-arm64` and `darwin-arm64`; a release binary is built by `runner/scripts/build-rust.ts` and checked by `runner/scripts/smoke.ts`.
+
+### The baseline
+
+What a repository renders is checked by `runner/scripts/builtins-baseline/` (55 configurations compared with a frozen snapshot), run by the `baseline` job of `ci.yml`; see its README.
 
 `SCAFFOLD_SKIP_TAGS` is a comma-separated list of tags, without the `@`. Scenarios carrying any of them are not run, and the harness prints the list at the start. It was used while the Rust build was missing commands: the scenarios for each carried its tag (`@detach`, `@freshness`, `@latest`, `@upgrade`), and the tag left the list in CI when the command was ported. All four are ported. The TypeScript job of CI skips the tag `rust-only`: the scenarios for Presets in the manifest and in `check`, which the TypeScript runner will never get because task 3.4 removes it. The tags stay on the scenarios, and the variable stays in the harness, for the next command that is added to one build before the other.
 
@@ -39,7 +32,7 @@ The step definitions are in `crates/scaffold-features/tests/features.rs`. They s
 | `releases.feature` | `latest` (newest stable, pre-releases, known-bad, a tag that is not a version, nothing qualifies, a failed or malformed list), `freshness` (fresh, stale, `--max-age-days`, a malformed record, a record from the future, a failed fetch), and the checks `upgrade` makes before it reaches the network. |
 | `encoding.feature` | An owned file whose line endings became CRLF (a recorded gap, see below), and a file name with an accented letter. |
 
-`--version` is checked against `SCAFFOLD_VERSION` (default `0.0.0`, which is what `runner/scripts/build.ts` builds unless told otherwise). CI sets it to the version it built.
+`--version` is checked against `SCAFFOLD_VERSION` (default `0.0.0`, which is what a build without a version prints). CI sets it to the version it built.
 
 The harness removes `CI` from the environment the binary sees, because the runner judges a stale lock differently on CI. A scenario that needs it says `Given the environment variable "CI" is "true"`.
 
@@ -47,11 +40,11 @@ A scenario that needs a web server starts one with `Given the stub server answer
 
 ## The pkl version
 
-Both runners read pkl through the `pkl` on the PATH. The version is pinned exactly in `mise.toml` (the lock file holds its checksums), so a run of the features against the TypeScript build and one against the Rust build use the same pkl.
+The runner reads pkl through the `pkl` on the PATH. The version is pinned exactly in `mise.toml` (the lock file holds its checksums), so every run of the features uses the same pkl.
 
 ## Behaviour map
 
-What the TypeScript runner does, and where it is specified or will be. A behaviour is a feature when a black-box run shows it, and a Rust unit test (ported one for one from `runner/test`) when only the code shows it.
+What the runner does, and where it is specified. (It was first written as a TypeScript runner, retired in the pull request that added `docs/ts-runner-test-mapping.md`.) A behaviour is a feature when a black-box run shows it, and a Rust unit test (ported one for one from `runner/test`) when only the code shows it.
 
 | Behaviour | Where |
 |---|---|

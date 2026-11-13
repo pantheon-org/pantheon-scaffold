@@ -292,9 +292,7 @@ pub fn run_with_env(
             finish(run_upgrade(version, &flags, env, &mut io), &mut io)
         }
         _ => {
-            io.complain(&format!(
-                "{cmd} is not available in the Rust runner yet, use the TypeScript runner"
-            ));
+            io.complain(&format!("{cmd} is not a pantheon-scaffold command"));
             EXIT_ERROR
         }
     }

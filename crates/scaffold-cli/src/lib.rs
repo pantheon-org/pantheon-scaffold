@@ -2013,6 +2013,34 @@ mod tests {
     }
 
     #[test]
+    fn contract_json_prints_the_contract_and_the_flag_means_nothing_to_other_commands() {
+        let (config, package) = (minimal(), package());
+        let (code, out, err) = go(
+            &[
+                "contract",
+                &config,
+                "--json",
+                "--allow-local-package",
+                &package,
+            ],
+            &checkout(),
+        );
+        assert_eq!((code, err.as_str()), (EXIT_OK, ""));
+        let json: serde_json::Value = serde_json::from_str(out.trim()).expect("one JSON document");
+        assert_eq!(json["schemaVersion"], 1);
+        assert_eq!(json["files"].as_array().map(Vec::len), Some(4));
+        // render with --json still renders: it prints the plan, not the contract.
+        let repo = tempfile::tempdir().unwrap();
+        let (code, out, err) = with_repo("render", &["--json"], repo.path());
+        assert_eq!((code, err.as_str()), (EXIT_OK, ""));
+        assert!(
+            out.starts_with("create    .github/scripts/hello.sh\n"),
+            "{out}"
+        );
+        assert!(repo.path().join("rust-toolchain.toml").exists());
+    }
+
+    #[test]
     fn a_config_that_does_not_exist_is_an_error() {
         let (code, out, err) = go(&["contract", "/no/such/pantheon.pkl"], &checkout());
         assert_eq!((code, out.as_str()), (EXIT_ERROR, ""));

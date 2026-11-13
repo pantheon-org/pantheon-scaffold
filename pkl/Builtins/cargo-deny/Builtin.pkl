@@ -34,7 +34,8 @@ function workflow(opts: Config.Options): Config.Workflow = new {
   }
 }
 
-/// The verbatim file of this builtin that `baseFiles()` renders.
+/// The verbatim files of this builtin that `baseFiles()` renders: the policy `deny.toml` and the script that runs cargo-deny against it.
 function baseFiles(): Mapping<String, Config.GenFile> = new {
+  ["deny.toml"] = new Config.GenFile { content = read("assets/deny.toml").text }
   [".github/scripts/cargo-deny.sh"] = new Config.GenFile { content = read("assets/cargo-deny.sh").text; executable = true }
 }

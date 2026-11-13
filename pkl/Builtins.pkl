@@ -19,7 +19,6 @@ import "Builtins/gitignore/Builtin.pkl" as gitignoreBuiltin
 import "Builtins/pull-request-template/Builtin.pkl" as pullRequestTemplateBuiltin
 import "Builtins/claude-settings/Builtin.pkl" as claudeSettingsBuiltin
 import "Builtins/rumdl/Builtin.pkl" as rumdlBuiltin
-import "Builtins/deny/Builtin.pkl" as denyBuiltin
 import "Builtins/agnix/Builtin.pkl" as agnixBuiltin
 import "Builtins/dependabot/Builtin.pkl" as dependabotBuiltin
 import "Builtins/upgrade/Builtin.pkl" as upgradeBuiltin
@@ -52,7 +51,6 @@ function inlineScripts(): Config.Workflow = inlineScriptsBuiltin.workflow()
 /// The verbatim files the three builtins depend on.
 function baseFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
   ...rustToolchainBuiltin.baseFiles(opts)
-  ...denyBuiltin.baseFiles()
   ...cargoDenyBuiltin.baseFiles()
   ...inlineScriptsBuiltin.baseFiles()
   ...rustCiBuiltin.baseFiles()

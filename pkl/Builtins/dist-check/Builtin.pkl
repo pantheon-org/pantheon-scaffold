@@ -1,0 +1,53 @@
+/// The dist-check builtin. `Builtins.pkl` re-exports it; import `Builtins.pkl`, not this file.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.builtins.DistCheck
+
+import "../../Config.pkl"
+import "../../Tools.pkl"
+import "../Shared.pkl"
+
+/// The drift check of the generated release.yml (`binary`). `dist generate --check` fails when release.yml is not what cargo-dist would write
+/// from dist-workspace.toml, which catches a hand edit and a Dependabot bump of an action inside the generated file (decision 85).
+function workflow(): Config.Workflow = new {
+  header = #"""
+    release.yml is written by `dist generate` from dist-workspace.toml and must not be
+    edited by hand. This check fails when the two disagree, for example after a
+    Dependabot bump of an action inside release.yml: update the commit in
+    dist-workspace.toml too, then run `dist generate`.
+    """#
+  name = "Dist check"
+  on = new Mapping<String, Any?> {
+    ["pull_request"] = new Mapping {
+      ["branches"] = new Listing { "main" }
+      ["paths"] = distPaths
+    }
+    ["push"] = new Mapping {
+      ["branches"] = new Listing { "main" }
+      ["paths"] = distPaths
+    }
+    ["workflow_dispatch"] = new Mapping {}
+  }
+  permissions = Shared.readOnly
+  concurrency = Shared.concurrencyPerRef
+  jobs {
+    ["dist-check"] {
+      name = "Check release.yml against dist-workspace.toml"
+      `timeout-minutes` = 10
+      env = new Mapping { ["DIST_VERSION"] = Tools.dist }
+      steps {
+        ...Shared.miseSetup()
+        new {
+          name = "Compare release.yml with what dist generate writes"
+          run = "mise x \"aqua:axodotdev/cargo-dist@${DIST_VERSION}\" -- dist generate --check"
+        }
+      }
+    }
+  }
+}
+
+local distPaths: Listing<String> = new {
+  "dist-workspace.toml"
+  ".github/workflows/release.yml"
+  "Cargo.toml"
+  ".github/workflows/dist-check.yml"
+}

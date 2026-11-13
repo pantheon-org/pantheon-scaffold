@@ -8,6 +8,15 @@ import "Config.pkl"
 import "Pins.pkl"
 import "Tools.pkl"
 import "Builtins/Shared.pkl"
+import "Builtins/agnix/Builtin.pkl" as agnixBuiltin
+import "Builtins/dependabot/Builtin.pkl" as dependabotBuiltin
+import "Builtins/upgrade/Builtin.pkl" as upgradeBuiltin
+import "Builtins/dist-check/Builtin.pkl" as distCheckBuiltin
+import "Builtins/scaffold-check/Builtin.pkl" as scaffoldCheckBuiltin
+import "Builtins/audit-skill/Builtin.pkl" as auditSkillBuiltin
+import "Builtins/aislop/Builtin.pkl" as aislopBuiltin
+import "Builtins/zizmor/Builtin.pkl" as zizmorBuiltin
+import "Builtins/release-please/Builtin.pkl" as releasePleaseBuiltin
 import "Builtins/commit-types/Builtin.pkl" as commitTypesBuiltin
 import "Builtins/conventional-commits/Builtin.pkl" as conventionalCommitsBuiltin
 import "Builtins/release-automerge/Builtin.pkl" as releaseAutomergeBuiltin
@@ -53,9 +62,7 @@ function baseFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new 
 /// settings. All nine scripts are executable. `sync-labels.sh` is not executable in the four repositories today, and its workflow runs
 /// it with `bash`, so the bit never mattered. It is rendered executable like the other eight.
 function toolingFiles(): Mapping<String, Config.GenFile> = new {
-  [".github/scripts/agnix-assemble-comment.sh"] = new Config.GenFile { content = read("assets/agnix-assemble-comment.sh").text; executable = true }
-  [".github/scripts/agnix-file-issues.sh"] = new Config.GenFile { content = read("assets/agnix-file-issues.sh").text; executable = true }
-  [".github/scripts/agnix-introduced-errors.sh"] = new Config.GenFile { content = read("assets/agnix-introduced-errors.sh").text; executable = true }
+  ...agnixBuiltin.toolingFiles()
   ...prAutoRebaseBuiltin.toolingFiles()
   ...commitTypesBuiltin.toolingFiles()
   ...releaseAutomergeBuiltin.toolingFiles()
@@ -134,411 +141,27 @@ function workflowFiles(): Mapping<String, Config.GenFile> = new {
 
 // BEGIN generated: wave B workflows (tmp/phase-4-generators/workflows-b.ts)
 
-local function bareCheckout(stepName: String): Config.Step = new {
-  name = stepName
-  uses = Pins.checkout
-  `with` = new Mapping { ["persist-credentials"] = false }
-}
-
 /// Keeps one rolling release pull request up to date and tags releases, under the App token so the tag starts the release workflow. With a
 /// binary (`options.binary`) it also tags the crate version itself when it has no tag yet (the script tag-release.sh).
-function releasePlease(opts: Config.Options): Config.Workflow =
-  let (crate = opts.crateName ?? "crate")
-  new {
-    header =
-      if (opts.binary) #"""
-        Keeps one rolling release PR up to date on every push to main (version bump in
-        crates/\#(crate)/Cargo.toml and Cargo.lock, plus CHANGELOG.md, from conventional
-        commits). Once that PR is merged, the same run tags the new version, and the tag
-        starts release.yml (cargo-dist), which builds and publishes the GitHub Release.
-        release-please is told not to create the GitHub Release itself, because cargo-dist
-        creates it and fails if one exists. Ported from pantheon-org/tekhne.
-
-        Uses the pantheon-ai-bot App token because pushes made with GITHUB_TOKEN do not
-        trigger other workflows, so the tag would never start release.yml.
-        Needs the org secret GH_APP_PRIVATE_KEY.
-        """#
-      else #"""
-        Keeps one rolling release PR up to date on every push to main (version bump in
-        both crates and Cargo.lock, plus CHANGELOG.md, from conventional commits). When
-        that PR is merged the same run creates the vX.Y.Z tag and the GitHub Release.
-        Consumers pin pahdk-core and pahdk-install by that tag, so the tag is the release.
-        There is no cargo-dist here, so release-please may create the GitHub Release.
-        Ported from pantheon-org/tekhne.
-
-        Uses the pantheon-ai-bot App token because a tag created with GITHUB_TOKEN does not
-        trigger other workflows. Needs the org secret GH_APP_PRIVATE_KEY.
-        """#
-    name = "Release Please"
-    on = new Mapping<String, Any?> {
-      ["push"] = new Mapping { ["branches"] = new Listing { "main" } }
-      ["workflow_dispatch"] = new Mapping {}
-    }
-    permissions = readOnly
-    concurrency = new Mapping {
-      ["group"] = "release-please"
-      ["cancel-in-progress"] = false
-    }
-    jobs {
-      ["release-please"] {
-        name = "Update release PR and tag releases"
-        `timeout-minutes` = 5
-        steps {
-          mintToken(opts)
-          new {
-            uses = Pins.releasePleaseAction
-            `with` = new Mapping {
-              ["token"] = "${{ steps.app-token.outputs.token }}"
-              ["config-file"] = "release-please-config.json"
-              ["manifest-file"] = ".release-please-manifest.json"
-            }
-          }
-          when (opts.binary) {
-            bareCheckout("Checkout")
-            new {
-              name = "Tag the crate version if it has no tag yet"
-              env = new Mapping {
-                ["GH_TOKEN"] = "${{ steps.app-token.outputs.token }}"
-                ["GH_REPO"] = "${{ github.repository }}"
-              }
-              run = "bash .github/scripts/tag-release.sh"
-            }
-          }
-        }
-      }
-    }
-  }
-
+function releasePlease(opts: Config.Options): Config.Workflow = releasePleaseBuiltin.workflow(opts)
 /// The zizmor security scan of the workflows. It reads .github/zizmor.yml when the repository has a binary (the config silences findings in the
 /// cargo-dist generated release.yml), and also scans action.yml when the repository has its own composite action.
-function zizmor(opts: Config.Options): Config.Workflow =
-  let (inputs = if (opts.compositeAction) ".github action.yml" else ".github")
-  let (cmd = if (opts.binary) "  GH_TOKEN=$(gh auth token) mise exec -- zizmor --min-severity high \\\n    --config .github/zizmor.yml \(inputs)" else "  GH_TOKEN=$(gh auth token) mise exec -- zizmor --min-severity high \(inputs)")
-  let (scope = if (opts.compositeAction) "Scans .github (the workflows and dependabot.yml) and the repository's own\ncomposite action, action.yml. Not the whole repository: the action's default\ninput is \".\", which also reaches the skill fixtures under crates/ and skills/." else "Scans .github only: the workflows and dependabot.yml. The action's default\ninput is the whole repository, which this gate does not need to cover.")
-  new {
-    header = #"""
-      Static analysis for GitHub Actions security problems: credential persistence,
-      template injection, over-broad permissions, unpinned actions. A finding at
-      high severity fails the job.
-
-      This runs beside Plumber rather than replacing it. Plumber reports without
-      blocking; zizmor blocks, and covers credential persistence and template
-      injection, which Plumber does not.
-
-      No path filter, so the check always reports a conclusion: a required check
-      that is skipped blocks the pull request forever. Also runs on push to main as
-      a post-merge safety net.
-
-      \#(scope)
-
-      Run it locally with the same findings (zizmor is pinned in mise.toml):
-      \#(cmd)
-      """#
-    name = "zizmor"
-    on = mainTriggers()
-    permissions = readOnly
-    concurrency = concurrencyPerRef
-    jobs {
-      ["zizmor"] {
-        name = "zizmor"
-        `timeout-minutes` = 10
-        steps {
-          checkout
-          new {
-            uses = Pins.zizmorAction
-            `with` = new Mapping {
-              ["version"] = Tools.zizmor
-              ["min-severity"] = "high"
-              ["inputs"] = inputs
-              when (opts.binary) { ["config"] = ".github/zizmor.yml" }
-              ["advanced-security"] = false
-            }
-          }
-        }
-      }
-    }
-  }
-
+function zizmor(opts: Config.Options): Config.Workflow = zizmorBuiltin.workflow(opts)
 /// Lints the skill (or the agent files) with agnix. The pinned release is downloaded from its public URL and checked against a pinned SHA-256.
 /// A pull request fails only on an error it introduces.
-function agnix(opts: Config.Options): Config.Workflow =
-  let (lead = if (opts.skills) "Lints the bundled skill with agnix (https://github.com/agent-sh/agnix) against" else "Lints agent skills and agent config files with agnix (https://github.com/agent-sh/agnix) against")
-  new {
-    header = #"""
-      \#(lead)
-      Claude Code's documented formats: frontmatter fields and values, allowed-tools
-      names, broken links and leaked tool-call markup. The skill validator and auditor
-      do not check these.
-
-      Runs on every pull request and every push to main. A pull request fails only on
-      an error it introduces, meaning an error whose rule and file are not already an
-      error on the base branch (.github/scripts/agnix-introduced-errors.sh). Errors
-      already on main and warnings show as annotations and never fail. Configuration
-      lives in .agnix.toml. Never runs --fix.
-
-      Ported from pantheon-org/tekhne. Issues: one per error (rule and file) and one per
-      warning rule listing every affected file (.github/scripts/agnix-file-issues.sh). A
-      pull request opens a missing issue but never edits or closes one; the run on main
-      opens missing issues, refreshes warning file lists and closes issues whose finding
-      is gone. One "## agnix" pull request comment shows PASS or FAIL and is updated in
-      place on each run.
-
-      No third-party action for agnix itself: the pinned release is downloaded from its
-      public URL and checked against a pinned SHA-256 before it runs. The digest was
-      taken from a tarball whose GitHub build attestation verified against agnix's
-      release.yml.
-      """#
-    name = "agnix"
-    on = mainTriggers()
-    permissions = new Mapping {
-      ["contents"] = "read"
-      ["issues"] = "write"
-      ["pull-requests"] = "write"
-    }
-    concurrency = new Mapping {
-      ["group"] = "${{ github.workflow }}-${{ github.ref }}"
-      ["cancel-in-progress"] = "${{ github.event_name == 'pull_request' }}"
-    }
-    env = new Mapping {
-      ["AGNIX_VERSION"] = Tools.agnix
-      ["AGNIX_SHA256"] = Tools.agnixSha256
-    }
-    jobs {
-      ["agnix"] {
-        name = "agnix"
-        `if` = "github.event_name == 'push' || github.event.pull_request.head.repo.fork == false"
-        `timeout-minutes` = 10
-        steps {
-          checkout
-          new {
-            name = "Check out the base branch"
-            `if` = "github.event_name == 'pull_request'"
-            uses = Pins.checkout
-            `with` = new Mapping {
-              ["ref"] = "${{ github.event.pull_request.base.sha }}"
-              ["path"] = "base"
-              ["persist-credentials"] = false
-            }
-          }
-          new {
-            name = "Install agnix (pinned digest)"
-            run = #"""
-              set -euo pipefail
-              asset="agnix-x86_64-unknown-linux-gnu.tar.gz"
-              dir="$RUNNER_TEMP/agnix"
-              mkdir -p "$dir"
-              curl -fsSL -o "$dir/$asset" \
-                "https://github.com/agent-sh/agnix/releases/download/v${AGNIX_VERSION}/${asset}"
-              echo "${AGNIX_SHA256}  $dir/$asset" | sha256sum -c -
-              tar -xzf "$dir/$asset" -C "$dir"
-              echo "$dir" >> "$GITHUB_PATH"\#n
-              """#
-          }
-          new {
-            name = "Lint"
-            run = #"""
-              agnix --version
-              agnix -c .agnix.toml --format github . || true
-              agnix -c .agnix.toml --format json . > agnix.json || true\#n
-              """#
-          }
-          new {
-            name = "Lint the base branch"
-            `if` = "github.event_name == 'pull_request'"
-            run = #"""
-              (cd base && agnix -c ../.agnix.toml --format json . > ../agnix-base.json) || true\#n
-              """#
-          }
-          new {
-            name = "File issues for findings"
-            `continue-on-error` = true
-            env = new Mapping {
-              ["GH_TOKEN"] = "${{ github.token }}"
-              ["GITHUB_REPOSITORY"] = "${{ github.repository }}"
-              ["MODE"] = "${{ github.event_name == 'push' && 'main' || 'pr' }}"
-              ["PR_NUMBER"] = "${{ github.event.pull_request.number }}"
-              ["RUN_URL"] = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-              ["TRACKED_FILE"] = "tracked-issues.md"
-            }
-            run = "bash .github/scripts/agnix-file-issues.sh agnix.json"
-          }
-          new {
-            name = "Find errors this pull request introduces"
-            id = "gate"
-            `if` = "github.event_name == 'pull_request'"
-            `continue-on-error` = true
-            env = new Mapping { ["INTRODUCED_FILE"] = "introduced-errors.txt" }
-            run = "bash .github/scripts/agnix-introduced-errors.sh agnix.json agnix-base.json"
-          }
-          new {
-            name = "Assemble comment"
-            `if` = "github.event_name == 'pull_request'"
-            run = "bash .github/scripts/agnix-assemble-comment.sh"
-          }
-          new {
-            name = "Find existing agnix comment"
-            id = "find-comment"
-            `if` = "github.event_name == 'pull_request'"
-            `continue-on-error` = true
-            uses = Pins.findComment
-            `with` = new Mapping {
-              ["issue-number"] = "${{ github.event.pull_request.number }}"
-              ["comment-author"] = "github-actions[bot]"
-              ["body-includes"] = "## agnix"
-            }
-          }
-          new {
-            name = "Post or update agnix comment"
-            `if` = "github.event_name == 'pull_request'"
-            `continue-on-error` = true
-            uses = Pins.createOrUpdateComment
-            `with` = new Mapping {
-              ["comment-id"] = "${{ steps.find-comment.outputs.comment-id }}"
-              ["issue-number"] = "${{ github.event.pull_request.number }}"
-              ["edit-mode"] = "replace"
-              ["body-path"] = "comment.md"
-            }
-          }
-          new {
-            name = "Fail on introduced errors"
-            `if` = "github.event_name == 'pull_request' && steps.gate.outcome == 'failure'"
-            run = #"""
-              echo "::error::This pull request introduces agnix errors; see the agnix comment."
-              exit 1\#n
-              """#
-          }
-        }
-      }
-    }
-  }
-
+function agnix(opts: Config.Options): Config.Workflow = agnixBuiltin.workflow(opts)
 /// The code-quality gate (aislop), scored out of 100. aislop's version is pinned in Tools.pkl, because Dependabot does not read an inline npx
 /// version.
-function aislop(): Config.Workflow = new {
-  header = #"""
-    Code-quality gate (aislop): catches dead imports, duplicate logic, unsafe casts,
-    narrative comments, swallowed errors, oversized functions and similar, scored
-    out of 100. Enforced in CI because local hooks are bypassable (--no-verify,
-    web-UI merges, API commits). Ported from pantheon-org/tekhne.
-    """#
-  name = "aislop"
-  on = mainTriggers()
-  permissions = readOnly
-  concurrency = concurrencyPerRef
-  jobs {
-    ["quality-gate"] {
-      name = "aislop quality gate"
-      `timeout-minutes` = 10
-      steps {
-        checkout
-        new {
-          uses = Pins.setupNode
-          `with` = new Mapping { ["node-version"] = 22 }
-        }
-        new { name = "aislop ci"; run = "npx --yes aislop@\(Tools.aislop) ci ." }
-      }
-    }
-  }
-}
-
-local yamlConfig = new YamlRenderer { omitNullProperties = true }
-
-/// Comment lines for the top of a rendered file, the same as the header of a workflow.
-local function commentBlock(text: String): String =
-  text.split("\n").map((l) -> if (l == "") "#" else "# \(l)").join("\n") + "\n"
-
-local dependabotGroup = (name: String) -> new Dynamic {
-  patterns = new Listing { "*" }
-  `update-types` = new Listing { "minor"; "patch" }
-}
-
-/// Dependabot's configuration. The git dependencies in `options.gitDependencyIgnore` are ignored, because Dependabot cannot resolve a git
-/// dependency pinned by tag and that error fails the whole cargo job. The github-actions ecosystem is not in the consumer file.
-/// Added to the header of dependabot.yml for a repository with a binary (decision 86).
-local distNote: String = "\n\n" + #"""
-  release.yml caveat: release.yml is written by `dist generate` from dist-workspace.toml, which
-  Dependabot cannot edit, so a Dependabot bump of upload-artifact or download-artifact inside
-  it would fail the dist check. They are ignored below: change their commits in
-  dist-workspace.toml and run `dist generate`.
-  """#
-
+function aislop(): Config.Workflow = aislopBuiltin.workflow()
 /// The github-actions entry excludes every workflow file the package renders (`exclude-paths`): the runner owns them, so a Dependabot bump of a
 /// pin in one is drift, and `check` exits 4. Their pins move through Pins.pkl and `upgrade`. Workflows the repository writes itself are still updated.
-function dependabot(opts: Config.Options): Config.GenFile =
-  let (names = opts.gitDependencyIgnore.toList().join(" and "))
-  new Config.GenFile {
-    content =
-      commentBlock((
-        if (opts.gitDependencyIgnore.isEmpty) #"""
-          Keeps Cargo dependencies and the SHA-pinned GitHub Actions current. Minor and
-          patch bumps are grouped into one weekly PR per ecosystem to cut review noise;
-          major bumps are raised individually so breaking changes are reviewed alone.
-          Ported from pantheon-org/tekhne.
-
-          Cargo caveat: the pantheon-agentic-harness-dev-kit crates are git dependencies
-          pinned by tag in Cargo.toml. Dependabot does not reliably move a git tag, so
-          bump that tag by hand when the dev-kit cuts a release.
-          """#
-        else #"""
-          Keeps Cargo dependencies and the SHA-pinned GitHub Actions current. Minor and
-          patch bumps are grouped into one weekly PR per ecosystem to cut review noise;
-          major bumps are raised individually so breaking changes are reviewed alone.
-          Ported from pantheon-org/tekhne.
-
-          Cargo caveat: pahdk-core and pahdk-install are git dependencies pinned by tag in
-          Cargo.toml. Dependabot cannot resolve them (dependency_file_not_resolvable), and
-          that error fails the whole cargo job, so they are ignored below. Bump the tag by
-          hand when pantheon-agentic-harness-dev-kit cuts a release.
-          """#) + (if (opts.binary) distNote else "")
-      ) + yamlConfig.renderValue(new Dynamic {
-        version = 2
-        updates = new Listing {
-          new Dynamic {
-            `package-ecosystem` = "cargo"
-            directory = "/"
-            schedule = new Dynamic { interval = "weekly"; day = "monday" }
-            `open-pull-requests-limit` = 5
-            cooldown = new Dynamic { `default-days` = 7 }
-            when (!opts.gitDependencyIgnore.isEmpty) {
-              ignore = opts.gitDependencyIgnore.toList().map((n) -> new Dynamic { `dependency-name` = n }).toListing()
-            }
-            labels = new Listing { "dependencies"; "rust" }
-            `commit-message` = new Dynamic { prefix = "chore"; `prefix-development` = "chore"; include = "scope" }
-            groups = new Dynamic { `cargo-minor-patch` = dependabotGroup.apply("cargo") }
-          }
-          new Dynamic {
-            `package-ecosystem` = "github-actions"
-            directory = "/"
-            schedule = new Dynamic { interval = "weekly"; day = "monday" }
-            `open-pull-requests-limit` = 5
-            cooldown = new Dynamic { `default-days` = 7 }
-            `exclude-paths` = standardWorkflows(opts).keys.toList().map((k) -> ".github/workflows/\(k).yml").toListing()
-            when (opts.binary) {
-              ignore = new Listing {
-                new Dynamic { `dependency-name` = "actions/upload-artifact" }
-                new Dynamic { `dependency-name` = "actions/download-artifact" }
-              }
-            }
-            labels = new Listing { "dependencies"; "github-actions" }
-            `commit-message` = new Dynamic { prefix = "ci"; include = "scope" }
-            groups = new Dynamic { `actions-minor-patch` = dependabotGroup.apply("actions") }
-          }
-        }
-      })
-  }
-
+function dependabot(opts: Config.Options): Config.GenFile = dependabotBuiltin.file(opts, standardWorkflows(opts).keys.toList())
 /// The config files that go with the wave B builtins: .agnix.toml (the first line depends on whether the repository has a skill), dependabot.yml,
 /// and, for a repository with a binary, .github/zizmor.yml (the variant with the extra entry for action.yml when there is a composite action).
 function analysisFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
-  [".agnix.toml"] = new Config.GenFile {
-    content =
-      if (opts.skills) read("assets/agnix.toml").text
-      else read("assets/agnix.toml").text.replaceFirst("# agnix lints the bundled skill against Claude Code's documented formats:", "# agnix lints agent skills and config files against Claude Code's documented formats:")
-  }
+  ...agnixBuiltin.analysisFiles(opts)
   [".github/dependabot.yml"] = dependabot(opts)
-  when (opts.binary) {
-    [".github/zizmor.yml"] = new Config.GenFile { content = read(if (opts.compositeAction) "assets/zizmor-composite.yml" else "assets/zizmor.yml").text }
-  }
+  ...zizmorBuiltin.analysisFiles(opts)
 }
 
 // END generated: wave B workflows
@@ -548,111 +171,7 @@ function analysisFiles(opts: Config.Options): Mapping<String, Config.GenFile> = 
 /// The consumer upgrade workflow: weekly, checks the freshness record, finds the latest release the known-bad list allows, upgrades, and
 /// opens a pull request under the App token. Removed by `detach`, since it would fail on every run once the repository leaves the scaffold.
 /// The App steps are unverified: pushing a change to workflow files needs `workflows: write` on the App, which is not confirmed (plan P.4).
-function upgradeWorkflow(opts: Config.Options): Config.Workflow = new {
-  header = #"""
-    Weekly: proposes the latest pantheon-scaffold release as a pull request.
-    Fails when the package's freshness record is older than 30 days, so a package
-    whose pins are no longer checked is never proposed. Opens nothing when the
-    repository already runs the latest release.
-
-    Needs the org secret GH_APP_PRIVATE_KEY and the App installed on this repository
-    with contents, pull-requests and workflows write (workflows write is needed
-    because an upgrade can change files under .github/workflows).
-    """#
-  removeOnDetach = true
-  name = "Upgrade pantheon-scaffold"
-  on = new Mapping<String, Any?> {
-    ["schedule"] = new Listing { new Mapping { ["cron"] = "17 5 * * 1" } }
-    ["workflow_dispatch"] = new Mapping {}
-  }
-  permissions = new Mapping {}
-  concurrency = new Mapping {
-    ["group"] = "upgrade-scaffold"
-    ["cancel-in-progress"] = false
-  }
-  jobs {
-    ["upgrade"] {
-      name = "Propose the latest release"
-      `timeout-minutes` = 15
-      permissions = new Mapping { ["contents"] = "read" }
-      steps {
-        new {
-          name = "Mint pantheon-ai-bot token"
-          id = "app-token"
-          uses = Pins.createGithubAppToken
-          `with` = new Mapping {
-            ["client-id"] = opts.appClientId
-            ["private-key"] = "${{ secrets.GH_APP_PRIVATE_KEY }}"
-            ["permission-contents"] = "write"
-            ["permission-pull-requests"] = "write"
-            ["permission-workflows"] = "write"
-          }
-        }
-        new {
-          name = "Checkout"
-          uses = Pins.checkout
-          `with` = new Mapping { ["persist-credentials"] = false }
-        }
-        new {
-          name = "Install the pinned tools"
-          uses = Pins.miseAction
-          `with` = new Mapping { ["install"] = true }
-        }
-        new {
-          name = "Check the freshness record"
-          run = "mise x -- pantheon-scaffold freshness\n"
-        }
-        new {
-          name = "Find the latest release"
-          id = "latest"
-          env = new Mapping { ["GH_TOKEN"] = "${{ steps.app-token.outputs.token }}" }
-          run = #"""
-            latest="$(mise x -- pantheon-scaffold latest)"
-            current="$(mise x -- pantheon-scaffold --version)"
-            echo "latest=${latest}" >> "$GITHUB_OUTPUT"
-            if [ "$latest" = "$current" ]; then
-              echo "Already on ${current}, nothing to propose."
-              echo "needed=false" >> "$GITHUB_OUTPUT"
-            else
-              echo "needed=true" >> "$GITHUB_OUTPUT"
-            fi
-
-            """#
-        }
-        new {
-          name = "Upgrade"
-          `if` = "steps.latest.outputs.needed == 'true'"
-          env = new Mapping {
-            ["GH_TOKEN"] = "${{ steps.app-token.outputs.token }}"
-            ["LATEST"] = "${{ steps.latest.outputs.latest }}"
-          }
-          run = "mise x -- pantheon-scaffold upgrade \"$LATEST\" --config pantheon.pkl\n"
-        }
-        new {
-          name = "Open the pull request"
-          `if` = "steps.latest.outputs.needed == 'true'"
-          env = new Mapping {
-            ["GH_TOKEN"] = "${{ steps.app-token.outputs.token }}"
-            ["LATEST"] = "${{ steps.latest.outputs.latest }}"
-            ["REPO"] = "${{ github.repository }}"
-          }
-          run = #"""
-            branch="chore/upgrade-pantheon-scaffold-${LATEST}"
-            git switch -c "$branch"
-            git add --all
-            git -c user.name="pantheon-ai-bot[bot]" -c user.email="pantheon-ai-bot[bot]@users.noreply.github.com" \
-              commit --message "chore: upgrade pantheon-scaffold to ${LATEST}"
-            git push "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" "$branch"
-            gh pr create --head "$branch" --title "chore: upgrade pantheon-scaffold to ${LATEST}" \
-              --body "Moves the pinned runner and package to ${LATEST}, then renders. Review the diff before merging."
-
-            """#
-        }
-      }
-    }
-  }
-}
-
+function upgradeWorkflow(opts: Config.Options): Config.Workflow = upgradeBuiltin.workflow(opts)
 // Phase 5, wave A: written by hand, byte for byte from pantheon-adr at 1e2fd46.
 
 /// The verbatim files of the `binary` toggle, and `.gitignore` for every repository. `.gitignore` is `target/` (decision 74), the form three
@@ -670,83 +189,9 @@ function verbatimFiles(opts: Config.Options): Mapping<String, Config.GenFile> = 
 // Phase 5, wave B: written by hand from the pinned copies in runner/test/upstream/phase5 (pantheon-adr 1e2fd46, pantheon-journal 05c3d84,
 // pantheon-skill-auditor b9e706e, pantheon-agentic-harness-dev-kit 42f48b4). Run scripts are copied, the names are parameters.
 
-/// The skill auditor action as a pin, built from Tools.pkl and not listed in Pins.pkl, so the pin update workflow cannot move it without its binary.
-local skillAuditorPin: Pins.Pin = new { action = "pantheon-org/pantheon-skill-auditor"; sha = Tools.skillAuditorAction; version = "v\(Tools.skillAuditorVersion)" }
-
 /// Validates and grades the bundled skill (`skills` toggle, option `skillName`). With `compositeAction` the repository is the skill auditor
 /// itself, so it runs its own action with a bootstrap binary instead of the released action.
-function auditSkill(opts: Config.Options): Config.Workflow =
-  let (skill = needSkillName(opts))
-  let (paths = new Listing {
-    "skills/\(skill)/**"
-    when (opts.compositeAction) { "action.yml" }
-    ".github/workflows/audit-skill.yml"
-  })
-  new {
-    header =
-      if (opts.compositeAction)
-        "The embedded skill (skills/\(skill)/) is audited with a released binary through this\nrepository's own action, the way a consuming repository would. Until this\nrepository has its own release, the bootstrap binary is the tekhne v\(Tools.skillAuditorBootstrapVersion) one."
-      else
-        "The bundled skill (skills/\(skill)/) is validated and graded with a released\npantheon-skill-auditor, installed through that repository's own action, the way\nany consuming repository would."
-    name = "Audit skill"
-    on = new Mapping<String, Any?> {
-      ["pull_request"] = new Mapping {
-        ["types"] = new Listing { "opened"; "synchronize"; "reopened" }
-        ["branches"] = new Listing { "main" }
-        ["paths"] = paths
-      }
-      ["push"] = new Mapping {
-        ["branches"] = new Listing { "main" }
-        ["paths"] = paths
-      }
-    }
-    permissions = readOnly
-    jobs {
-      ["audit"] {
-        name = "Audit skill"
-        `timeout-minutes` = 5
-        steps {
-          checkout
-          new {
-            name = "Install pantheon-skill-auditor"
-            uses = if (opts.compositeAction) "./" else skillAuditorPin
-            `with` = new Mapping {
-              ["version"] = if (opts.compositeAction) Tools.skillAuditorBootstrapVersion else Tools.skillAuditorVersion
-              ["sha256"] = if (opts.compositeAction) Tools.skillAuditorBootstrapSha256 else Tools.skillAuditorSha256
-              when (opts.compositeAction) { ["download-url"] = Tools.skillAuditorBootstrapUrl }
-            }
-          }
-          new {
-            name = "Validate structure"
-            run = #"""
-              rc=0
-              pantheon-skill-auditor validate structure --allow-dirs=evals skills/\#(skill) || rc=$?
-              case "$rc" in
-                0) ;;
-                2) echo "::warning::validate structure reported warnings only" ;;
-                *) exit "$rc" ;;
-              esac
-
-              """#
-          }
-          new {
-            name = "Grade the skill"
-            run = #"""
-              grade=$(pantheon-skill-auditor evaluate ./skills/\#(skill) --json | jq -r '.grade // "?"')
-              echo "grade: $grade"
-              case "$grade" in
-                A|A+) ;;
-                B+|B) echo "::warning::skill grade $grade is below A" ;;
-                *) echo "::error::skill grade $grade is below B"; exit 1 ;;
-              esac
-
-              """#
-          }
-        }
-      }
-    }
-  }
-
+function auditSkill(opts: Config.Options): Config.Workflow = auditSkillBuiltin.workflow(opts)
 /// The files of the parameterised group: `.coderabbit.yaml` always (the skill line only with `skills`), `SECURITY.md` seeded once (the binary
 /// text with the crate and skill names, or the library text), and with `binary` the release tagging script.
 function parameterisedFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
@@ -811,88 +256,7 @@ function standardFiles(opts: Config.Options): Mapping<String, Config.GenFile> = 
 
 /// The drift check of the generated release.yml (`binary`). `dist generate --check` fails when release.yml is not what cargo-dist would write
 /// from dist-workspace.toml, which catches a hand edit and a Dependabot bump of an action inside the generated file (decision 85).
-function distCheck(): Config.Workflow = new {
-  header = #"""
-    release.yml is written by `dist generate` from dist-workspace.toml and must not be
-    edited by hand. This check fails when the two disagree, for example after a
-    Dependabot bump of an action inside release.yml: update the commit in
-    dist-workspace.toml too, then run `dist generate`.
-    """#
-  name = "Dist check"
-  on = new Mapping<String, Any?> {
-    ["pull_request"] = new Mapping {
-      ["branches"] = new Listing { "main" }
-      ["paths"] = distPaths
-    }
-    ["push"] = new Mapping {
-      ["branches"] = new Listing { "main" }
-      ["paths"] = distPaths
-    }
-    ["workflow_dispatch"] = new Mapping {}
-  }
-  permissions = readOnly
-  concurrency = concurrencyPerRef
-  jobs {
-    ["dist-check"] {
-      name = "Check release.yml against dist-workspace.toml"
-      `timeout-minutes` = 10
-      env = new Mapping { ["DIST_VERSION"] = Tools.dist }
-      steps {
-        ...miseSetup()
-        new {
-          name = "Compare release.yml with what dist generate writes"
-          run = "mise x \"aqua:axodotdev/cargo-dist@${DIST_VERSION}\" -- dist generate --check"
-        }
-      }
-    }
-  }
-}
-
-local distPaths: Listing<String> = new {
-  "dist-workspace.toml"
-  ".github/workflows/release.yml"
-  "Cargo.toml"
-  ".github/workflows/dist-check.yml"
-}
-
+function distCheck(): Config.Workflow = distCheckBuiltin.workflow()
 /// `check` in consumer CI (every repository): the sample job of docs/check-in-ci.md. It evaluates a pantheon.pkl, so it runs on
 /// `pull_request` only, with no secrets, and reads the tools from the lock file.
-function scaffoldCheck(): Config.Workflow = new {
-  name = "scaffold-check"
-  on = new Mapping<String, Any?> {
-    ["pull_request"] = new Mapping { ["branches"] = new Listing { "main" } }
-  }
-  permissions = new Mapping {}
-  concurrency = new Mapping {
-    ["group"] = "${{ github.workflow }}-${{ github.ref }}"
-    ["cancel-in-progress"] = true
-  }
-  jobs {
-    ["check"] {
-      name = "Scaffold check"
-      `timeout-minutes` = 10
-      permissions = readOnly
-      env = new Mapping { ["GITHUB_TOKEN"] = "${{ github.token }}" }
-      steps {
-        ...miseSetup()
-        new {
-          name = "Install the pinned tools from the lock file"
-          run = "mise install --locked"
-        }
-        new {
-          name = "Keep the package cache so an outage does not block the check"
-          uses = Pins.cache
-          `with` = new Mapping {
-            ["path"] = ".pkl-gen/cache"
-            ["key"] = "pantheon-scaffold-${{ hashFiles('pantheon.pkl') }}"
-            ["restore-keys"] = "pantheon-scaffold-"
-          }
-        }
-        new {
-          name = "Check that the scaffold files match the render"
-          run = "mise x -- pantheon-scaffold check pantheon.pkl --attempts 3"
-        }
-      }
-    }
-  }
-}
+function scaffoldCheck(): Config.Workflow = scaffoldCheckBuiltin.workflow()

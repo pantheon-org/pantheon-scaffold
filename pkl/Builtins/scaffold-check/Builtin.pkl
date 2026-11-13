@@ -1,0 +1,49 @@
+/// The scaffold-check builtin. `Builtins.pkl` re-exports it; import `Builtins.pkl`, not this file.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.builtins.ScaffoldCheck
+
+import "../../Config.pkl"
+import "../../Pins.pkl"
+import "../Shared.pkl"
+
+/// `check` in consumer CI (every repository): the sample job of docs/check-in-ci.md. It evaluates a pantheon.pkl, so it runs on
+/// `pull_request` only, with no secrets, and reads the tools from the lock file.
+function workflow(): Config.Workflow = new {
+  name = "scaffold-check"
+  on = new Mapping<String, Any?> {
+    ["pull_request"] = new Mapping { ["branches"] = new Listing { "main" } }
+  }
+  permissions = new Mapping {}
+  concurrency = new Mapping {
+    ["group"] = "${{ github.workflow }}-${{ github.ref }}"
+    ["cancel-in-progress"] = true
+  }
+  jobs {
+    ["check"] {
+      name = "Scaffold check"
+      `timeout-minutes` = 10
+      permissions = Shared.readOnly
+      env = new Mapping { ["GITHUB_TOKEN"] = "${{ github.token }}" }
+      steps {
+        ...Shared.miseSetup()
+        new {
+          name = "Install the pinned tools from the lock file"
+          run = "mise install --locked"
+        }
+        new {
+          name = "Keep the package cache so an outage does not block the check"
+          uses = Pins.cache
+          `with` = new Mapping {
+            ["path"] = ".pkl-gen/cache"
+            ["key"] = "pantheon-scaffold-${{ hashFiles('pantheon.pkl') }}"
+            ["restore-keys"] = "pantheon-scaffold-"
+          }
+        }
+        new {
+          name = "Check that the scaffold files match the render"
+          run = "mise x -- pantheon-scaffold check pantheon.pkl --attempts 3"
+        }
+      }
+    }
+  }
+}

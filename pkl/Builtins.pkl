@@ -24,7 +24,7 @@ import "Builtins/deny/Builtin.pkl" as denyBuiltin
 import "Builtins/agnix/Builtin.pkl" as agnixBuiltin
 import "Builtins/dependabot/Builtin.pkl" as dependabotBuiltin
 import "Builtins/upgrade/Builtin.pkl" as upgradeBuiltin
-import "Builtins/dist-check/Builtin.pkl" as distCheckBuiltin
+import "Builtins/release/Builtin.pkl" as releaseBuiltin
 import "Builtins/scaffold-check/Builtin.pkl" as scaffoldCheckBuiltin
 import "Builtins/audit-skill/Builtin.pkl" as auditSkillBuiltin
 import "Builtins/aislop/Builtin.pkl" as aislopBuiltin
@@ -149,7 +149,7 @@ function verbatimFiles(opts: Config.Options): Mapping<String, Config.GenFile> = 
   ...gitignoreBuiltin.verbatimFiles()
   when (opts.binary) {
     ...actionlintBuiltin.verbatimFiles()
-    ...distCheckBuiltin.verbatimFiles()
+    ...releaseBuiltin.verbatimFiles()
   }
 }
 
@@ -197,7 +197,7 @@ function standardFiles(opts: Config.Options): Mapping<String, Config.GenFile> = 
 
 /// The drift check of the generated release.yml (`binary`). `dist generate --check` fails when release.yml is not what cargo-dist would write
 /// from dist-workspace.toml, which catches a hand edit and a Dependabot bump of an action inside the generated file (decision 85).
-function distCheck(): Config.Workflow = distCheckBuiltin.workflow()
+function distCheck(): Config.Workflow = releaseBuiltin.workflow()
 
 /// `check` in consumer CI (every repository): the sample job of docs/check-in-ci.md. It evaluates a pantheon.pkl, so it runs on
 /// `pull_request` only, with no secrets, and reads the tools from the lock file.

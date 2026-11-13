@@ -1,6 +1,6 @@
-/// The dist-check builtin. `Builtins.pkl` re-exports it; import `Builtins.pkl`, not this file.
+/// The release builtin: the drift check of the generated release.yml (`dist-check`) and the cargo-dist files it checks. `Builtins.pkl` re-exports it; import `Builtins.pkl`, not this file.
 @ModuleInfo { minPklVersion = "0.32.0" }
-module pantheon.scaffold.builtins.DistCheck
+module pantheon.scaffold.builtins.Release
 
 import "../../Config.pkl"
 import "../../Tools.pkl"

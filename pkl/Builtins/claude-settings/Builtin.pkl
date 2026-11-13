@@ -1,0 +1,10 @@
+/// The claude-settings builtin. `Builtins.pkl` re-exports it; import `Builtins.pkl`, not this file.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.builtins.ClaudeSettings
+
+import "../../Config.pkl"
+
+/// The verbatim file of this builtin that `toolingFiles()` renders.
+function toolingFiles(): Mapping<String, Config.GenFile> = new {
+  [".claude/settings.json"] = new Config.GenFile { content = read("assets/claude-settings.json").text }
+}

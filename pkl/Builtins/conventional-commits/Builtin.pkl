@@ -1,4 +1,7 @@
 /// The conventional-commits builtin. `Builtins.pkl` re-exports it; import `Builtins.pkl`, not this file.
+///
+/// Pair of `commit-types`: the types in the regex below are a copy of `commit-types/assets/commit-types.txt`, and the `commit-types` workflow
+/// checks that the copy has not drifted. The two share only rendered file names, not code.
 @ModuleInfo { minPklVersion = "0.32.0" }
 module pantheon.scaffold.builtins.ConventionalCommits
 

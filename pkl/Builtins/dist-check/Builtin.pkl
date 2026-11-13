@@ -51,3 +51,10 @@ local distPaths: Listing<String> = new {
   "Cargo.toml"
   ".github/workflows/dist-check.yml"
 }
+
+/// The cargo-dist configuration and the generated release workflow that `verbatimFiles()` renders for a repository with a binary. `release.yml` is
+/// external: `dist generate` writes it, and the `dist-check` workflow above verifies it against `dist-workspace.toml`.
+function verbatimFiles(): Mapping<String, Config.GenFile> = new {
+  ["dist-workspace.toml"] = new Config.GenFile { content = read("assets/dist-workspace.toml").text }
+  [".github/workflows/release.yml"] = new Config.GenFile { `class` = "external" }
+}

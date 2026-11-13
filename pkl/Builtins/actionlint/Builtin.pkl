@@ -1,0 +1,10 @@
+/// The actionlint builtin. `Builtins.pkl` re-exports it; import `Builtins.pkl`, not this file.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.builtins.Actionlint
+
+import "../../Config.pkl"
+
+/// The files of this builtin that `verbatimFiles()` renders.
+function verbatimFiles(): Mapping<String, Config.GenFile> = new {
+  [".github/actionlint.yaml"] = new Config.GenFile { content = read("assets/actionlint.yaml").text }
+}

@@ -1,4 +1,7 @@
 /// The commit-types builtin. `Builtins.pkl` re-exports it; import `Builtins.pkl`, not this file.
+///
+/// Pair of `conventional-commits`: that workflow carries a copy of the allowed types from `assets/commit-types.txt`, and this one fails when the
+/// copy drifts, so its trigger paths name `conventional-commits.yml`. The two share only rendered file names, not code.
 @ModuleInfo { minPklVersion = "0.32.0" }
 module pantheon.scaffold.builtins.CommitTypes
 

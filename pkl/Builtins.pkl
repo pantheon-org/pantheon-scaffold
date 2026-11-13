@@ -1,13 +1,26 @@
 /// Reusable builtin workflows and files. A repository's pantheon.pkl calls these with its options,
 /// and may override anything in the result. Pins live in Pins.pkl.
+///
+/// This module is the API and holds no builtin of its own. Each builtin lives in `Builtins/<name>/Builtin.pkl` with the assets it reads in
+/// `Builtins/<name>/assets/`; the functions below call into those modules, and the aggregators (`baseFiles`, `toolingFiles`, `workflowFiles`,
+/// `analysisFiles`, `verbatimFiles`, `parameterisedFiles`, `standardWorkflows`, `standardFiles`) spread each folder's slice in a fixed order.
+/// `Builtins/Shared.pkl` holds the steps several builtins use and is internal.
 @ModuleInfo { minPklVersion = "0.32.0" }
 module pantheon.scaffold.Builtins
 
-import "pkl:reflect"
 import "Config.pkl"
-import "Pins.pkl"
-import "Tools.pkl"
-import "Builtins/Shared.pkl"
+import "Builtins/rust-toolchain/Builtin.pkl" as rustToolchainBuiltin
+import "Builtins/actionlint/Builtin.pkl" as actionlintBuiltin
+import "Builtins/coderabbit/Builtin.pkl" as coderabbitBuiltin
+import "Builtins/security/Builtin.pkl" as securityBuiltin
+import "Builtins/tag-release/Builtin.pkl" as tagReleaseBuiltin
+import "Builtins/hk/Builtin.pkl" as hkBuiltin
+import "Builtins/mise/Builtin.pkl" as miseBuiltin
+import "Builtins/gitignore/Builtin.pkl" as gitignoreBuiltin
+import "Builtins/pull-request-template/Builtin.pkl" as pullRequestTemplateBuiltin
+import "Builtins/claude-settings/Builtin.pkl" as claudeSettingsBuiltin
+import "Builtins/rumdl/Builtin.pkl" as rumdlBuiltin
+import "Builtins/deny/Builtin.pkl" as denyBuiltin
 import "Builtins/agnix/Builtin.pkl" as agnixBuiltin
 import "Builtins/dependabot/Builtin.pkl" as dependabotBuiltin
 import "Builtins/upgrade/Builtin.pkl" as upgradeBuiltin
@@ -27,31 +40,20 @@ import "Builtins/rust-ci/Builtin.pkl" as rustCiBuiltin
 import "Builtins/cargo-deny/Builtin.pkl" as cargoDenyBuiltin
 import "Builtins/plumber/Builtin.pkl" as plumberBuiltin
 
-// Aliases of the shared helpers while builtins still sit in this file. Each goes when its last user moves into a folder.
-local function mainTriggers(): Mapping<String, Any?> = Shared.mainTriggers()
-local concurrencyPerRef: Mapping<String, Any> = Shared.concurrencyPerRef
-local readOnly: Mapping<String, String> = Shared.readOnly
-local checkout: Config.Step = Shared.checkout
-local function installToolchain(toolchain: String, components: String?): Config.Step = Shared.installToolchain(toolchain, components)
-local function mintToken(opts: Config.Options): Config.Step = Shared.mintToken(opts)
-local checkoutScripts: Config.Step = Shared.checkoutScripts
-local function needSkillName(opts: Config.Options): String = Shared.needSkillName(opts)
-local function needCrateName(opts: Config.Options): String = Shared.needCrateName(opts)
-local function miseSetup(): List<Config.Step> = Shared.miseSetup()
-
 /// Checks the dependency tree against deny.toml.
 function cargoDeny(opts: Config.Options): Config.Workflow = cargoDenyBuiltin.workflow(opts)
+
 /// Format, lint, build and test the Rust workspace. With `features = "all"` (the library repository) clippy, the build and the tests run with
 /// `--all-features`, and an extra step builds with the default features.
 function rustCi(opts: Config.Options): Config.Workflow = rustCiBuiltin.workflow(opts)
+
 /// A run block in a workflow or composite action may hold at most 15 lines of code.
 function inlineScripts(): Config.Workflow = inlineScriptsBuiltin.workflow()
+
 /// The verbatim files the three builtins depend on.
 function baseFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
-  ["rust-toolchain.toml"] = new Config.GenFile {
-    content = read("assets/rust-toolchain.toml.tmpl").text.replaceAll("@@TOOLCHAIN@@", opts.toolchain)
-  }
-  ["deny.toml"] = new Config.GenFile { content = read("assets/deny.toml").text }
+  ...rustToolchainBuiltin.baseFiles(opts)
+  ...denyBuiltin.baseFiles()
   ...cargoDenyBuiltin.baseFiles()
   ...inlineScriptsBuiltin.baseFiles()
   ...rustCiBuiltin.baseFiles()
@@ -67,95 +69,66 @@ function toolingFiles(): Mapping<String, Config.GenFile> = new {
   ...commitTypesBuiltin.toolingFiles()
   ...releaseAutomergeBuiltin.toolingFiles()
   ...syncLabelsBuiltin.toolingFiles()
-  [".rumdl.toml"] = new Config.GenFile { content = read("assets/rumdl.toml").text }
-  [".claude/settings.json"] = new Config.GenFile { content = read("assets/claude-settings.json").text }
+  ...rumdlBuiltin.toolingFiles()
+  ...claudeSettingsBuiltin.toolingFiles()
 }
-
-/// The version of the package this module was loaded from, read from its package URI, or null for a package loaded from a folder.
-local packageVersion: String? =
-  let (matches = Regex(#"@([^@#/:]+)(?:::sha256:[0-9a-f]{64})?#"#).findMatchesIn(reflect.Class(Config.Options).enclosingDeclaration.uri))
-    if (matches.isEmpty) null else matches.first.groups[1].value
 
 /// mise.toml, owned by the runner, and the files around it: mise.lock (written by mise, so external) and a per-repository mise config,
 /// seeded once. mise reads both config files, the second adds tools, and for a tool listed in both mise.toml wins (decision 29, checked
 /// against real mise in mise.test.ts). The tool pins come from Tools.pkl and the runner pin from the package version.
-function miseFiles(opts: Config.Options): Mapping<String, Config.GenFile> =
-  let (runner = opts.runnerVersion ?? packageVersion ?? throw("runnerVersion is not set and the package version cannot be read from a package URI: set options.runnerVersion when the package is loaded from a folder"))
-    new {
-      ["mise.toml"] = new Config.GenFile {
-        content =
-          read("assets/mise.toml.tmpl").text
-            .replaceAll("@@TOOLCHAIN@@", opts.toolchain)
-            .replaceAll("@@ACTIONLINT@@", Tools.actionlint)
-            .replaceAll("@@ZIZMOR@@", Tools.zizmor)
-            .replaceAll("@@RUMDL@@", Tools.rumdl)
-            .replaceAll("@@AGNIX@@", Tools.agnix)
-            .replaceAll("@@RUNNER@@", runner)
-            .replaceAll("@@MIN_RELEASE_AGE@@", Tools.minimumReleaseAge)
-            .replaceAll("@@LOCKFILE_PLATFORMS@@", Tools.lockfilePlatforms.map((p) -> "\"\(p)\"").join(", "))
-      }
-      ["mise.lock"] = new Config.GenFile { `class` = "external" }
-      [".mise/conf.d/repo.toml"] = new Config.GenFile { `class` = "seed"; content = read("assets/mise-repo.toml").text }
-    }
+function miseFiles(opts: Config.Options): Mapping<String, Config.GenFile> = miseBuiltin.files(opts)
 
 /// The hook steps the four Rust repositories share (decision 31): `hk.shared.pkl`, owned by the runner, holds the steps, and `hk.pkl` is
 /// seeded once, imports it and holds only the hooks. Each repository adds its own steps in `hk.pkl`. `options.features = "all"` is the
 /// library repository's `--all-features` in the pre-push clippy and test steps. Checked against real hk in hk.test.ts.
-function hkFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
-  ["hk.shared.pkl"] = new Config.GenFile {
-    content =
-      read("assets/hk.shared.pkl.tmpl").text
-        .replaceAll("@@HK_VERSION@@", Tools.hkConfigVersion)
-        .replaceAll("@@FEATURES@@", if (opts.features == "all") "--all-features " else "")
-  }
-  ["hk.pkl"] = new Config.GenFile {
-    `class` = "seed"
-    content = read("assets/hk.pkl.tmpl").text.replaceAll("@@HK_VERSION@@", Tools.hkConfigVersion)
-  }
-}
-
-// BEGIN generated: wave A workflows (tmp/phase-4-generators/workflows-a.ts)
+function hkFiles(opts: Config.Options): Mapping<String, Config.GenFile> = hkBuiltin.files(opts)
 
 /// The CI/CD security scan of the repository's workflows (Plumber). Only a Critical finding blocks a pull request.
 function plumber(): Config.Workflow = plumberBuiltin.workflow()
 
 /// Creates the labels Dependabot applies, from .github/labels.txt.
 function syncLabels(): Config.Workflow = syncLabelsBuiltin.workflow()
+
 /// Rebases open pull request branches that are behind main, under the App token so the required checks run again on the new head.
 function prAutoRebase(opts: Config.Options): Config.Workflow = prAutoRebaseBuiltin.workflow(opts)
+
 /// Mondays: squash-merges the open release-please pull request, under the App token so the push to main starts release-please.
 function releaseAutomerge(opts: Config.Options): Config.Workflow = releaseAutomergeBuiltin.workflow(opts)
+
 /// Fails when the commit types copied into the title gate drift from .github/commit-types.txt.
 function commitTypes(): Config.Workflow = commitTypesBuiltin.workflow()
+
 /// Checks that the pull request title is a conventional commit. The job name is the required status check, so it must not change.
 function conventionalCommits(): Config.Workflow = conventionalCommitsBuiltin.workflow()
+
 /// The verbatim config files the wave A workflows use, from pantheon-adr at 1e2fd46.
 function workflowFiles(): Mapping<String, Config.GenFile> = new {
   ...plumberBuiltin.workflowFiles()
   ...syncLabelsBuiltin.workflowFiles()
   ...commitTypesBuiltin.workflowFiles()
-  [".github/pull_request_template.md"] = new Config.GenFile { content = read("assets/pull_request_template.md").text }
+  ...pullRequestTemplateBuiltin.workflowFiles()
 }
-
-// END generated: wave A workflows
-
-// BEGIN generated: wave B workflows (tmp/phase-4-generators/workflows-b.ts)
 
 /// Keeps one rolling release pull request up to date and tags releases, under the App token so the tag starts the release workflow. With a
 /// binary (`options.binary`) it also tags the crate version itself when it has no tag yet (the script tag-release.sh).
 function releasePlease(opts: Config.Options): Config.Workflow = releasePleaseBuiltin.workflow(opts)
+
 /// The zizmor security scan of the workflows. It reads .github/zizmor.yml when the repository has a binary (the config silences findings in the
 /// cargo-dist generated release.yml), and also scans action.yml when the repository has its own composite action.
 function zizmor(opts: Config.Options): Config.Workflow = zizmorBuiltin.workflow(opts)
+
 /// Lints the skill (or the agent files) with agnix. The pinned release is downloaded from its public URL and checked against a pinned SHA-256.
 /// A pull request fails only on an error it introduces.
 function agnix(opts: Config.Options): Config.Workflow = agnixBuiltin.workflow(opts)
+
 /// The code-quality gate (aislop), scored out of 100. aislop's version is pinned in Tools.pkl, because Dependabot does not read an inline npx
 /// version.
 function aislop(): Config.Workflow = aislopBuiltin.workflow()
+
 /// The github-actions entry excludes every workflow file the package renders (`exclude-paths`): the runner owns them, so a Dependabot bump of a
 /// pin in one is drift, and `check` exits 4. Their pins move through Pins.pkl and `upgrade`. Workflows the repository writes itself are still updated.
 function dependabot(opts: Config.Options): Config.GenFile = dependabotBuiltin.file(opts, standardWorkflows(opts).keys.toList())
+
 /// The config files that go with the wave B builtins: .agnix.toml (the first line depends on whether the repository has a skill), dependabot.yml,
 /// and, for a repository with a binary, .github/zizmor.yml (the variant with the extra entry for action.yml when there is a composite action).
 function analysisFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
@@ -164,63 +137,33 @@ function analysisFiles(opts: Config.Options): Mapping<String, Config.GenFile> = 
   ...zizmorBuiltin.analysisFiles(opts)
 }
 
-// END generated: wave B workflows
-
-// Wave C: written by hand, there is no upstream copy (the generators in tmp/phase-4-generators cover waves A and B only).
-
 /// The consumer upgrade workflow: weekly, checks the freshness record, finds the latest release the known-bad list allows, upgrades, and
 /// opens a pull request under the App token. Removed by `detach`, since it would fail on every run once the repository leaves the scaffold.
 /// The App steps are unverified: pushing a change to workflow files needs `workflows: write` on the App, which is not confirmed (plan P.4).
 function upgradeWorkflow(opts: Config.Options): Config.Workflow = upgradeBuiltin.workflow(opts)
-// Phase 5, wave A: written by hand, byte for byte from pantheon-adr at 1e2fd46.
 
 /// The verbatim files of the `binary` toggle, and `.gitignore` for every repository. `.gitignore` is `target/` (decision 74), the form three
 /// repositories use. `release.yml` is generated by `dist generate`, so it is listed as external: the runner never writes or hashes it, and
 /// the drift check of wave D compares it with what `dist generate` would write.
 function verbatimFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
-  [".gitignore"] = new Config.GenFile { content = read("assets/gitignore").text }
+  ...gitignoreBuiltin.verbatimFiles()
   when (opts.binary) {
-    [".github/actionlint.yaml"] = new Config.GenFile { content = read("assets/actionlint.yaml").text }
-    ["dist-workspace.toml"] = new Config.GenFile { content = read("assets/dist-workspace.toml").text }
-    [".github/workflows/release.yml"] = new Config.GenFile { `class` = "external" }
+    ...actionlintBuiltin.verbatimFiles()
+    ...distCheckBuiltin.verbatimFiles()
   }
 }
-
-// Phase 5, wave B: written by hand from the pinned copies in runner/test/upstream/phase5 (pantheon-adr 1e2fd46, pantheon-journal 05c3d84,
-// pantheon-skill-auditor b9e706e, pantheon-agentic-harness-dev-kit 42f48b4). Run scripts are copied, the names are parameters.
 
 /// Validates and grades the bundled skill (`skills` toggle, option `skillName`). With `compositeAction` the repository is the skill auditor
 /// itself, so it runs its own action with a bootstrap binary instead of the released action.
 function auditSkill(opts: Config.Options): Config.Workflow = auditSkillBuiltin.workflow(opts)
+
 /// The files of the parameterised group: `.coderabbit.yaml` always (the skill line only with `skills`), `SECURITY.md` seeded once (the binary
 /// text with the crate and skill names, or the library text), and with `binary` the release tagging script.
 function parameterisedFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
-  [".coderabbit.yaml"] = new Config.GenFile {
-    content =
-      let (text = read("assets/coderabbit.yaml.tmpl").text)
-      if (opts.skills)
-        text.replaceAll("@@SKILL@@", needSkillName(opts))
-      else
-        text.replaceAll("    # Covered by the Audit Skill workflow; avoid a second opinion on the same diff.\n    - \"!skills/@@SKILL@@/**\"\n", "")
-  }
-  ["SECURITY.md"] = new Config.GenFile {
-    `class` = "seed"
-    content =
-      if (opts.binary)
-        read("assets/security-binary.md.tmpl").text
-          .replaceAll("@@CRATE@@", needCrateName(opts))
-          .replaceAll("@@SKILL_LINE@@\n", if (opts.skills) "- The bundled `\(needSkillName(opts))` skill and its scripts.\n" else "")
-      else read("assets/security-library.md").text
-  }
-  when (opts.binary) {
-    [".github/scripts/tag-release.sh"] = new Config.GenFile {
-      content = read("assets/tag-release.sh.tmpl").text.replaceAll("@@CRATE@@", needCrateName(opts))
-      executable = true
-    }
-  }
+  ...coderabbitBuiltin.parameterisedFiles(opts)
+  ...securityBuiltin.parameterisedFiles(opts)
+  ...tagReleaseBuiltin.parameterisedFiles(opts)
 }
-
-// Phase 5, wave C: the toggles.
 
 /// Every workflow of the workflow layer for a repository with these options: the thirteen that every repository has, and `audit-skill` when
 /// `skills` is on. Turning `skills` off drops the entry, so the runner deletes the file it rendered before.
@@ -252,11 +195,10 @@ function standardFiles(opts: Config.Options): Mapping<String, Config.GenFile> = 
   ...parameterisedFiles(opts)
 }
 
-// Phase 5, wave D.
-
 /// The drift check of the generated release.yml (`binary`). `dist generate --check` fails when release.yml is not what cargo-dist would write
 /// from dist-workspace.toml, which catches a hand edit and a Dependabot bump of an action inside the generated file (decision 85).
 function distCheck(): Config.Workflow = distCheckBuiltin.workflow()
+
 /// `check` in consumer CI (every repository): the sample job of docs/check-in-ci.md. It evaluates a pantheon.pkl, so it runs on
 /// `pull_request` only, with no secrets, and reads the tools from the lock file.
 function scaffoldCheck(): Config.Workflow = scaffoldCheckBuiltin.workflow()

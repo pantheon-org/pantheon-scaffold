@@ -81,7 +81,7 @@ test("a local package cannot be read without --allow-local-package", async () =>
 test("an unknown option is a usage error", async () => expect((await run("render", slice, "--nope")).code).toBe(2));
 test("an option without its value is a usage error", async () => expect((await run("render", slice, "--root")).code).toBe(2));
 
-import { compareWorkflows } from "../src/equality";
+import { compareWorkflows } from "./support/equality";
 
 test("the rendered workflows carry version comments and still equal the pinned upstream copies", async () => {
   const repo = tempRepo();

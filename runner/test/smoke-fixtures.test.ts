@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { join } from "node:path";
-import { evalContractJson } from "../src/pkl";
+import { evalContractJson } from "./support/contract";
 
 // The fixtures the compiled-binary smoke suite (runner/scripts/smoke.ts) renders. Kept honest here, where bun test can see them.
 const root = join(import.meta.dir, "../..");

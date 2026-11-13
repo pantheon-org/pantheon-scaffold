@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { packageVersionOf } from "../src/preflight";
 import { pklProjectVersion } from "../src/release";
-import { evalContractJson } from "../src/pkl";
+import { evalContractJson } from "./support/contract";
 import { cleanupRepos, tempRepo } from "./helpers";
 
 afterEach(cleanupRepos);

@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { join } from "node:path";
 import { parseContract } from "../src/contract";
-import { evalContractJson } from "../src/pkl";
+import { evalContractJson } from "./support/contract";
 import type { Schema } from "../src/schema";
 
 // Properties of the consumer upgrade workflow (wave C). There is no upstream copy to compare with: it is new, so its safety is asserted here.

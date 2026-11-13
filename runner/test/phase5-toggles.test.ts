@@ -1,7 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
 import { writeFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { evalContractJson } from "../src/pkl";
+import { evalContractJson, scaffoldBin } from "./support/contract";
 import { cleanupRepos, commitAll, get, gitRepo, has, put, tempRepo } from "./helpers";
 
 // Phase 5 wave C: the four toggles, each flipped from a base configuration, with the exact set of files it removes and changes, and what
@@ -72,7 +72,7 @@ test("binary on without crateName is a clear error that names the option and the
 
 /** Renders a configuration into a repository with the CLI, the way a consumer would. */
 async function cliRender(repo: string, t: T): Promise<number> {
-  const p = Bun.spawn(["bun", join(root, "runner/src/cli.ts"), "render", config(t), "--root", repo, "--allow-local-package", join(root, "pkl")], { stdout: "pipe", stderr: "pipe" });
+  const p = Bun.spawn([scaffoldBin(), "render", config(t), "--root", repo, "--allow-local-package", join(root, "pkl")], { stdout: "pipe", stderr: "pipe" });
   await p.exited;
   return p.exitCode ?? 1;
 }

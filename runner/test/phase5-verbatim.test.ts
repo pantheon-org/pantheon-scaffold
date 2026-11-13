@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseContract } from "../src/contract";
-import { evalContractJson } from "../src/pkl";
+import { evalContractJson, scaffoldBin } from "./support/contract";
 import type { Schema } from "../src/schema";
 import { cleanupRepos, has, tempRepo } from "./helpers";
 import { afterEach } from "bun:test";
@@ -82,9 +82,9 @@ test("release.yml is external: listed with no content, because dist generate wri
 
 test("an external release.yml is never written, and an existing one is left alone", async () => {
   const dir = tempRepo();
-  const cli = join(root, "runner/src/cli.ts");
+
   const config = join(import.meta.dir, "fixtures/phase5-binary/pantheon.pkl");
-  const run = () => Bun.spawn(["bun", cli, "render", config, "--root", dir, "--allow-local-package", join(root, "pkl")], { stdout: "pipe", stderr: "pipe" });
+  const run = () => Bun.spawn([scaffoldBin(), "render", config, "--root", dir, "--allow-local-package", join(root, "pkl")], { stdout: "pipe", stderr: "pipe" });
   const p = run();
   expect(await p.exited).toBe(0);
   expect(has(dir, ".github/workflows/release.yml")).toBe(false);

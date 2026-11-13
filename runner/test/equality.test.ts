@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { compareWorkflows, findDuplicateKeys } from "../src/equality";
+import { compareWorkflows, findDuplicateKeys } from "./support/equality";
 
 const a = `name: X
 on:
@@ -76,7 +76,7 @@ test("duplicate keys: quoted keys count", () => {
 });
 
 // Comments a tool acts on. P.1 ignores comments, so a render that dropped one would pass P.1 and then fail the tool in the real repository.
-import { compareDirectives, directiveComments } from "../src/equality";
+import { compareDirectives, directiveComments } from "./support/equality";
 
 const withZizmor = `name: x\non: # zizmor: ignore[dangerous-triggers] reads only the PR title\n  pull_request_target:\n    types: [opened]\n`;
 

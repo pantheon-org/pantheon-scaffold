@@ -2,7 +2,7 @@ import { expectPins } from "./helpers";
 import { expect, test } from "bun:test";
 import { join } from "node:path";
 import { parseContract, ContractError } from "../src/contract";
-import { evalContractJson } from "../src/pkl";
+import { evalContractJson } from "./support/contract";
 import type { Schema } from "../src/schema";
 
 const root = join(import.meta.dir, "../..");

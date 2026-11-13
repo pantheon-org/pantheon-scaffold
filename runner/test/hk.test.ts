@@ -2,7 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { parseContract } from "../src/contract";
-import { evalContractJson } from "../src/pkl";
+import { evalContractJson } from "./support/contract";
 import type { Schema } from "../src/schema";
 import { cleanupRepos, git, tempRepo } from "./helpers";
 

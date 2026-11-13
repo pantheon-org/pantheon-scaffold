@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { ContractError, parseContract } from "../src/contract";
 import { SUPPORTED_PLATFORMS } from "../src/lockcheck";
-import { evalContractJson } from "../src/pkl";
+import { evalContractJson } from "./support/contract";
 import type { Schema } from "../src/schema";
 import { cleanupRepos, tempRepo } from "./helpers";
 

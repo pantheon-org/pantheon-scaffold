@@ -7,35 +7,19 @@ import "pkl:reflect"
 import "Config.pkl"
 import "Pins.pkl"
 import "Tools.pkl"
+import "Builtins/Shared.pkl"
 
-local function mainTriggers(): Mapping<String, Any?> = new Mapping<String, Any?> {
-  ["pull_request"] = new Mapping {
-    ["types"] = new Listing { "opened"; "synchronize"; "reopened" }
-    ["branches"] = new Listing { "main" }
-  }
-  ["push"] = new Mapping { ["branches"] = new Listing { "main" } }
-}
-
-local concurrencyPerRef: Mapping<String, Any> = new Mapping {
-  ["group"] = "${{ github.workflow }}-${{ github.ref }}"
-  ["cancel-in-progress"] = true
-}
-
-local readOnly: Mapping<String, String> = new Mapping { ["contents"] = "read" }
-
-local checkout: Config.Step = new {
-  uses = Pins.checkout
-  `with` = new Mapping { ["persist-credentials"] = false }
-}
-
-local function installToolchain(toolchain: String, components: String?): Config.Step = new {
-  name = "Install Rust toolchain"
-  run =
-    if (components == null)
-      "rustup toolchain install \(toolchain) --profile minimal\nrustup default \(toolchain)\n"
-    else
-      "rustup toolchain install \(toolchain) --profile minimal --component \(components)\nrustup default \(toolchain)\n"
-}
+// Aliases of the shared helpers while builtins still sit in this file. Each goes when its last user moves into a folder.
+local function mainTriggers(): Mapping<String, Any?> = Shared.mainTriggers()
+local concurrencyPerRef: Mapping<String, Any> = Shared.concurrencyPerRef
+local readOnly: Mapping<String, String> = Shared.readOnly
+local checkout: Config.Step = Shared.checkout
+local function installToolchain(toolchain: String, components: String?): Config.Step = Shared.installToolchain(toolchain, components)
+local function mintToken(opts: Config.Options): Config.Step = Shared.mintToken(opts)
+local checkoutScripts: Config.Step = Shared.checkoutScripts
+local function needSkillName(opts: Config.Options): String = Shared.needSkillName(opts)
+local function needCrateName(opts: Config.Options): String = Shared.needCrateName(opts)
+local function miseSetup(): List<Config.Step> = Shared.miseSetup()
 
 /// Checks the dependency tree against deny.toml.
 function cargoDeny(opts: Config.Options): Config.Workflow = new {
@@ -193,27 +177,6 @@ function hkFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
 }
 
 // BEGIN generated: wave A workflows (tmp/phase-4-generators/workflows-a.ts)
-
-local function mintToken(opts: Config.Options): Config.Step = new {
-  name = "Mint pantheon-ai-bot token"
-  id = "app-token"
-  uses = Pins.createGithubAppToken
-  `with` = new Mapping {
-    ["client-id"] = opts.appClientId
-    ["private-key"] = "${{ secrets.GH_APP_PRIVATE_KEY }}"
-    ["permission-contents"] = "write"
-    ["permission-pull-requests"] = "write"
-  }
-}
-
-local checkoutScripts: Config.Step = new {
-  name = "Checkout scripts"
-  uses = Pins.checkout
-  `with` = new Mapping {
-    ["persist-credentials"] = false
-    ["sparse-checkout"] = ".github/scripts"
-  }
-}
 
 /// The CI/CD security scan of the repository's workflows (Plumber). Only a Critical finding blocks a pull request.
 function plumber(): Config.Workflow = new {
@@ -1153,12 +1116,6 @@ function parameterisedFiles(opts: Config.Options): Mapping<String, Config.GenFil
 
 // Phase 5, wave C: the toggles.
 
-local function needSkillName(opts: Config.Options): String =
-  opts.skillName ?? throw("options.skillName is required when options.skills is true: it names the folder under skills/ that audit-skill.yml, .coderabbit.yaml and SECURITY.md refer to. Set skillName, or set skills = false.")
-
-local function needCrateName(opts: Config.Options): String =
-  opts.crateName ?? throw("options.crateName is required when options.binary is true: tag-release.sh and SECURITY.md name the crate. Set crateName, or set binary = false.")
-
 /// Every workflow of the workflow layer for a repository with these options: the thirteen that every repository has, and `audit-skill` when
 /// `skills` is on. Turning `skills` off drops the entry, so the runner deletes the file it rendered before.
 function standardWorkflows(opts: Config.Options): Mapping<String, Config.Workflow> = new {
@@ -1190,18 +1147,6 @@ function standardFiles(opts: Config.Options): Mapping<String, Config.GenFile> = 
 }
 
 // Phase 5, wave D.
-
-local function miseSetup(): List<Config.Step> = List(
-  checkout,
-  new Config.Step {
-    uses = Pins.miseAction
-    `with` = new Mapping {
-      ["version"] = Tools.mise
-      ["install"] = false
-      ["cache"] = false
-    }
-  }
-)
 
 /// The drift check of the generated release.yml (`binary`). `dist generate --check` fails when release.yml is not what cargo-dist would write
 /// from dist-workspace.toml, which catches a hand edit and a Dependabot bump of an action inside the generated file (decision 85).

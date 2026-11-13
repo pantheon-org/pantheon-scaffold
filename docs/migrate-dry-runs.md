@@ -57,6 +57,8 @@ No file is a divergence. Counting the cosmetic `/target`, nothing in the four re
 2. **`migrate` and `init` have no `--features` option.** The package has `features = "all"`, and the dev-kit needs it.
 3. **There is no way to accept the package's file for a drifted file.** `migrate --write` refuses while a file drifted, and `--as-presets` keeps the old file. For stale drift, the wanted outcome is to replace the file with the Builtin's and record the difference. That is a mode `migrate` does not have yet.
 
+   *Note, 13-11-2026:* `migrate --accept-builtins` now exists (see [migrate.md](migrate.md#replacing-drifted-files---accept-builtins) and [migrate-accept-builtins-design.md](migrate-accept-builtins-design.md)). The dry runs above were not re-run. The one file that drifts because of a missing option (the dev-kit's `rust-ci.yml`) must wait for `--features`.
+
 ## Repeat it
 
 Run `migrate` (without `--write`) in a copy of the repository with the options in the first table, and `--allow-local-package <package folder>` when working on the package. It is read-only. Each output is the list of files with their class, then a line with the four counts.

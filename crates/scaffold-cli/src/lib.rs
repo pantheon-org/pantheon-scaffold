@@ -30,7 +30,7 @@ pub const USAGE: &str = "usage (exit codes: 0 ok, 1 error, 2 usage, 3 refused, 4
   pantheon-scaffold freshness [--url <url>] [--max-age-days <n>] [--attempts <n>]
   pantheon-scaffold upgrade <version> [--root <dir>] [--config <file>] [--dry-run] [--force] [--no-render]
   pantheon-scaffold init --toolchain <x.y.z> [--package-version <x.y.z>] [--binary --crate-name <name>] [--skills --skill-name <name>] [--composite-action] [--git-dependency-ignore <name>]... [--write] [--root <dir>] [--cache-dir <dir>] [--allow-local-package <dir>] [--attempts <n>]
-  pantheon-scaffold migrate --toolchain <x.y.z> [--package-version <x.y.z>] [--binary --crate-name <name>] [--skills --skill-name <name>] [--composite-action] [--git-dependency-ignore <name>]... [--write] [--as-presets] [--root <dir>] [--cache-dir <dir>] [--allow-local-package <dir>] [--attempts <n>]";
+  pantheon-scaffold migrate --toolchain <x.y.z> [--package-version <x.y.z>] [--binary --crate-name <name>] [--skills --skill-name <name>] [--composite-action] [--git-dependency-ignore <name>]... [--write] [--as-presets | --accept-builtins] [--root <dir>] [--cache-dir <dir>] [--allow-local-package <dir>] [--attempts <n>]";
 
 /// The default age limit of `freshness`, in days.
 pub const MAX_AGE_DAYS: u64 = 30;
@@ -56,6 +56,7 @@ pub struct Flags {
     pub skill_name: Option<String>,
     pub write: bool,
     pub as_presets: bool,
+    pub accept_builtins: bool,
     pub composite_action: bool,
     pub git_dependency_ignore: Vec<String>,
     pub binary: bool,
@@ -107,6 +108,7 @@ pub fn parse_flags(args: &[String], cwd: &Path) -> Result<Flags, String> {
         skill_name: None,
         write: false,
         as_presets: false,
+        accept_builtins: false,
         composite_action: false,
         git_dependency_ignore: Vec::new(),
         binary: false,
@@ -123,6 +125,7 @@ pub fn parse_flags(args: &[String], cwd: &Path) -> Result<Flags, String> {
             "--include-prereleases" => f.include_prereleases = true,
             "--write" => f.write = true,
             "--as-presets" => f.as_presets = true,
+            "--accept-builtins" => f.accept_builtins = true,
             "--composite-action" => f.composite_action = true,
             "--binary" => f.binary = true,
             "--skills" => f.skills = true,
@@ -460,6 +463,16 @@ fn prepare(
         io.complain(&format!("--as-presets belongs to migrate\n{USAGE}"));
         return Ok(Err(EXIT_USAGE));
     }
+    if command == "init" && flags.accept_builtins {
+        io.complain(&format!("--accept-builtins belongs to migrate\n{USAGE}"));
+        return Ok(Err(EXIT_USAGE));
+    }
+    if flags.accept_builtins && flags.as_presets {
+        io.complain(&format!(
+            "--accept-builtins cannot be used with --as-presets: one replaces a drifted file, the other keeps it\n{USAGE}"
+        ));
+        return Ok(Err(EXIT_USAGE));
+    }
     if flags.root.join("pantheon.pkl").exists() {
         io.complain(&format!(
             "pantheon.pkl already exists in {}: {command} writes it once. Use upgrade to move it to another release.",
@@ -600,7 +613,15 @@ fn run_migrate(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
     let (mut text, mut contract) = (text, contract);
     let mut presets = Vec::new();
     let drifted = report.drifted().len();
-    if drifted > 0 {
+    let accepted = if flags.accept_builtins {
+        match accept_drifted(flags, &report, io) {
+            Ok(paths) => paths,
+            Err(code) => return Ok(code),
+        }
+    } else {
+        Vec::new()
+    };
+    if drifted > 0 && !flags.accept_builtins {
         if !flags.as_presets {
             if flags.write {
                 let lines: Vec<String> = report
@@ -609,13 +630,13 @@ fn run_migrate(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
                     .map(|e| format!("  {}", e.path))
                     .collect();
                 io.complain(&format!(
-                    "refused: {drifted} file(s) drifted from the Builtins and would be lost, nothing was written:\n{}\nRun with --as-presets to keep each one as a Preset.",
+                    "refused: {drifted} file(s) drifted from the Builtins and would be lost, nothing was written:\n{}\nRun with --as-presets to keep each one as a Preset.\nOr run with --accept-builtins to replace each with the Builtins' file; git must hold the old one.",
                     lines.join("\n")
                 ));
                 return Ok(EXIT_REFUSED);
             }
             io.say(&format!(
-                "migrate: {counts}. Nothing was written. --write is refused while a file has drifted; --as-presets keeps each one as a Preset."
+                "migrate: {counts}. Nothing was written. --write is refused while a file has drifted; --as-presets keeps each one as a Preset and --accept-builtins replaces each with the Builtins' file."
             ));
             return Ok(EXIT_OK);
         }
@@ -653,7 +674,11 @@ fn run_migrate(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
     let render = |dry_run, presets: std::collections::BTreeMap<String, String>| Options {
         dry_run,
         package_version: package_version.clone(),
-        adopt: report.adopt(),
+        adopt: if flags.accept_builtins {
+            report.adopt_accepting_drifted()
+        } else {
+            report.adopt()
+        },
         presets,
         ..Options::default()
     };
@@ -726,7 +751,51 @@ fn run_migrate(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
     io.say(&format!(
         "migrate: {counts}. Wrote pantheon.pkl{kept} and {written} file(s). Next: run mise lock, then commit."
     ));
+    if !accepted.is_empty() {
+        io.say("replaced by --accept-builtins (the git diff of the adoption commit is the full record):");
+        for path in &accepted {
+            io.say(&format!("  {path}"));
+        }
+    }
     Ok(EXIT_OK)
+}
+
+/// `--accept-builtins`: the drifted files are replaced by the render, so git must hold what they held, because a write that fails
+/// part-way does not restore the files it already replaced. Returns the paths that will be replaced, to be named after a successful
+/// write, or the exit code when `--write` is refused. A dry run reports the check and what it would replace, and writes nothing.
+fn accept_drifted(
+    flags: &Flags,
+    report: &scaffold_core::migrate::Report,
+    io: &mut Io,
+) -> Result<Vec<String>, i32> {
+    let paths = report.drifted_paths();
+    if paths.is_empty() {
+        io.say("no file has drifted, so --accept-builtins replaces nothing");
+        return Ok(Vec::new());
+    }
+    let reasons = scaffold_core::guard::replace_guard(&flags.root, &paths);
+    if flags.write && !reasons.is_empty() {
+        io.complain(&format!(
+            "refused: --accept-builtins needs git to hold what it replaces, nothing was written:\n  {}",
+            reasons.join("\n  ")
+        ));
+        return Err(EXIT_REFUSED);
+    }
+    if !flags.write {
+        io.say(&if reasons.is_empty() {
+            format!(
+                "git guard: ok, {} file(s) to replace are tracked and the tree is clean",
+                paths.len()
+            )
+        } else {
+            format!(
+                "git guard: a write would be refused:\n  {}",
+                reasons.join("\n  ")
+            )
+        });
+        io.say(&format!("would replace {} file(s)", paths.len()));
+    }
+    Ok(paths.into_iter().map(str::to_owned).collect())
 }
 
 /// Writes a file that must not exist yet, so a `pantheon.pkl` made in the meantime is never overwritten.

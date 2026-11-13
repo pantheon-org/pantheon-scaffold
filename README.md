@@ -23,6 +23,7 @@ Dropped for now: repository governance (rulesets, merge settings and drift check
 | Start a new project under the scaffold (`init`) | [docs/init.md](docs/init.md) |
 | See what an existing project would change (`migrate`, not in a release yet) | [docs/migrate.md](docs/migrate.md) |
 | What `migrate` found in the four `pantheon-*` repositories | [docs/migrate-dry-runs.md](docs/migrate-dry-runs.md) |
+| Replace stale drifted files with the package's (`migrate --accept-builtins`), and why it needs git | [docs/migrate.md](docs/migrate.md), the design in [docs/migrate-accept-builtins-design.md](docs/migrate-accept-builtins-design.md) |
 | Cut or promote a release, and the accepted risks | [docs/release-process.md](docs/release-process.md) |
 | Install the runner, and what `upgrade`, `render`, `check` and `detach` do | [docs/runner-install.md](docs/runner-install.md), [docs/runner-upgrade.md](docs/runner-upgrade.md), [docs/runner-lifecycle.md](docs/runner-lifecycle.md), [docs/runner-safety.md](docs/runner-safety.md) |
 | Run `check` in CI | [docs/check-in-ci.md](docs/check-in-ci.md) |

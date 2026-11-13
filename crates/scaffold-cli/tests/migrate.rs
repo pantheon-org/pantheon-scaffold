@@ -201,7 +201,7 @@ fn a_dry_run_with_a_drifted_file_shows_the_difference_and_says_write_is_refused(
     assert!(r.out.contains("line 1 on disk:  x = 2"), "{}", r.out);
     assert!(
         r.out.contains(
-            "migrate: 1 identical, 1 drifted, 1 new, 1 per-repo. Nothing was written. --write is refused while a file has drifted; --as-presets keeps each one as a Preset."
+            "migrate: 1 identical, 1 drifted, 1 new, 1 per-repo. Nothing was written. --write is refused while a file has drifted; --as-presets keeps each one as a Preset and --accept-builtins replaces each with the Builtins' file."
         ),
         "{}",
         r.out
@@ -459,4 +459,160 @@ fn a_refusal_found_by_the_plan_stops_the_run_before_any_preset_is_written() {
     assert_eq!(r.code, 3, "{} {}", r.out, r.err);
     assert!(r.err.contains("new.toml: was edited by hand"), "{}", r.err);
     assert!(!s.exists("presets/a.pkl") && !s.exists("pantheon.pkl"));
+}
+
+impl Setup {
+    /// Makes the repository a git work tree with everything committed.
+    fn commit_all(&self) {
+        let root = self.repo.path().display().to_string();
+        for args in [
+            &["init", "-q", "-b", "main"][..],
+            &["add", "-A"],
+            &["commit", "-q", "-m", "snapshot"],
+        ] {
+            let mut command = Command::new("git");
+            command
+                .args([
+                    "-C",
+                    &root,
+                    "-c",
+                    "user.name=tests",
+                    "-c",
+                    "user.email=tests@example.invalid",
+                ])
+                .args(["-c", "commit.gpgsign=false"])
+                .args(args);
+            for (key, _) in std::env::vars_os() {
+                if key.to_string_lossy().starts_with("GIT_") {
+                    command.env_remove(key);
+                }
+            }
+            let out = command.output().expect("git runs");
+            assert!(
+                out.status.success(),
+                "git {args:?}: {}",
+                String::from_utf8_lossy(&out.stderr)
+            );
+        }
+    }
+}
+
+#[test]
+fn accept_builtins_in_a_dry_run_reports_the_git_check_and_what_it_would_replace_and_writes_nothing()
+{
+    let s = drifted();
+    s.commit_all();
+    let r = s.run(&["--toolchain", "1.96.1", "--accept-builtins"]);
+    assert_eq!(r.code, 0, "{} {}", r.out, r.err);
+    for line in [
+        "drifted    a.toml",
+        "git guard: ok, 1 file(s) to replace are tracked and the tree is clean",
+        "would replace 1 file(s)",
+        "Nothing was written.",
+    ] {
+        assert!(r.out.contains(line), "{line}\n{}", r.out);
+    }
+    assert!(
+        !r.out.contains("replaced by --accept-builtins"),
+        "{}",
+        r.out
+    );
+    assert_eq!(s.get("a.toml"), "x = 2\n");
+    assert!(!s.exists("pantheon.pkl") && !s.exists("new.toml"));
+}
+
+#[test]
+fn accept_builtins_in_a_dry_run_outside_git_says_a_write_would_be_refused() {
+    let s = drifted();
+    let r = s.run(&["--toolchain", "1.96.1", "--accept-builtins"]);
+    assert_eq!(r.code, 0, "{} {}", r.out, r.err);
+    assert!(
+        r.out.contains("git guard: a write would be refused:\n  not a git repository: files cannot be replaced without git"),
+        "{}",
+        r.out
+    );
+    assert!(r.out.contains("would replace 1 file(s)"), "{}", r.out);
+    assert!(!r.out.contains("git guard: ok"), "{}", r.out);
+    assert_eq!(s.get("a.toml"), "x = 2\n");
+}
+
+#[test]
+fn accept_builtins_with_write_replaces_the_drifted_file_and_names_it_last() {
+    let s = drifted();
+    s.commit_all();
+    let r = s.run(&["--toolchain", "1.96.1", "--accept-builtins", "--write"]);
+    assert_eq!(r.code, 0, "{} {}", r.out, r.err);
+    assert_eq!(s.get("a.toml"), "x = 1\n");
+    assert!(s.exists("pantheon.pkl") && s.exists("new.toml") && s.exists(".pkl-gen/manifest.json"));
+    assert!(
+        r.out.ends_with("replaced by --accept-builtins (the git diff of the adoption commit is the full record):\n  a.toml"),
+        "{}",
+        r.out
+    );
+    assert!(!r.out.contains("would replace"), "{}", r.out);
+    assert_eq!(
+        s.get("README.md"),
+        "# mine\n",
+        "the repository's own files are left alone"
+    );
+}
+
+#[test]
+fn accept_builtins_with_write_is_refused_while_a_tracked_file_has_uncommitted_changes() {
+    let s = drifted();
+    s.commit_all();
+    s.put("README.md", "# edited\n");
+    let r = s.run(&["--toolchain", "1.96.1", "--accept-builtins", "--write"]);
+    assert_eq!(r.code, 3, "{} {}", r.out, r.err);
+    assert!(
+        r.err.contains("refused: --accept-builtins needs git to hold what it replaces, nothing was written:\n  the tracked tree is not clean"),
+        "{}",
+        r.err
+    );
+    assert_eq!(s.get("a.toml"), "x = 2\n");
+    assert!(!s.exists("pantheon.pkl") && !s.exists("new.toml"));
+    assert!(
+        !r.out.contains("replaced by --accept-builtins"),
+        "{}",
+        r.out
+    );
+}
+
+#[test]
+fn accept_builtins_with_write_is_refused_outside_git() {
+    let s = drifted();
+    let r = s.run(&["--toolchain", "1.96.1", "--accept-builtins", "--write"]);
+    assert_eq!(r.code, 3, "{} {}", r.out, r.err);
+    assert!(r.err.contains("not a git repository"), "{}", r.err);
+    assert_eq!(s.get("a.toml"), "x = 2\n");
+    assert!(!s.exists("pantheon.pkl"));
+}
+
+#[test]
+fn accept_builtins_with_nothing_drifted_replaces_nothing() {
+    let s = clean();
+    let r = s.run(&["--toolchain", "1.96.1", "--accept-builtins"]);
+    assert_eq!(r.code, 0, "{} {}", r.out, r.err);
+    assert!(
+        r.out
+            .contains("no file has drifted, so --accept-builtins replaces nothing"),
+        "{}",
+        r.out
+    );
+    assert!(!r.out.contains("git guard"), "{}", r.out);
+}
+
+#[test]
+fn accept_builtins_cannot_be_combined_with_as_presets_and_is_refused_before_anything_is_evaluated()
+{
+    let s = drifted();
+    let r = s.run(&["--toolchain", "1.96.1", "--accept-builtins", "--as-presets"]);
+    assert_eq!(r.code, 2, "{} {}", r.out, r.err);
+    assert!(
+        r.err
+            .contains("--accept-builtins cannot be used with --as-presets"),
+        "{}",
+        r.err
+    );
+    assert!(r.out.is_empty(), "{}", r.out);
 }

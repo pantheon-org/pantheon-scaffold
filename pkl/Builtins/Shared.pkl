@@ -123,14 +123,46 @@ class Present {
       !without.contains(name)
 }
 
+/// A hard requirement: `dependent` cannot work without `needs`. Leaving `needs` out while `dependent` is present is an error. Only requirements
+/// that nothing outside the scaffold can meet are listed: `mise` and `hk` are not, because a repository can supply `mise.toml` and `hk.pkl` itself
+/// (docs/workflow-layer.md says what the scripts and workflows expect of them).
+class Requirement {
+  dependent: String
+  needs: String
+  /// What breaks without it, in one sentence; quoted in the error.
+  reason: String
+}
+
+const requirements: List<Requirement> = List(
+  new Requirement {
+    dependent = "commit-types"
+    needs = "conventional-commits"
+    reason = "check-commit-types.sh reads the copy of the commit types inside .github/workflows/conventional-commits.yml"
+  },
+  new Requirement {
+    dependent = "rust-ci"
+    needs = "rust-toolchain"
+    reason = "check-toolchain-version.sh reads the channel from rust-toolchain.toml and fails when there is none"
+  },
+  new Requirement {
+    dependent = "rust-ci"
+    needs = "cargo-deny"
+    reason = "check-toolchain-version.sh also checks the toolchain lines of .github/workflows/cargo-deny.yml and fails when the file is missing"
+  }
+)
+
 /// The `Present` value for these options. Fails, naming the builtins there are, when `options.without` has a name that is not a builtin
-/// (an empty name included) or names one twice.
+/// (an empty name included) or names one twice, and fails, naming both builtins and the way out, when it leaves out a builtin that a builtin
+/// that is still present needs (`requirements`).
 function present(opts: Config.Options): Present =
   let (names = opts.without.toList())
   let (notBuiltins = names.filter((n) -> !builtinNames.contains(n)))
+  let (violations = requirements.filter((r) -> !names.contains(r.dependent) && names.contains(r.needs)))
   if (!notBuiltins.isEmpty)
     throw("options.without names \(notBuiltins.map((n) -> "\"\(n)\"").join(", ")), which \(if (notBuiltins.length == 1) "is" else "are") not a builtin of this package version. Builtins: \(builtinNames.join(", "))")
   else if (names.toSet().length != names.length)
     throw("options.without names a builtin more than once: \(names.filter((n) -> names.count((m) -> m == n) > 1).toSet().toList().join(", "))")
+  else if (!violations.isEmpty)
+    throw(violations.map((r) -> "options.without leaves out \"\(r.needs)\", which \"\(r.dependent)\" needs: \(r.reason). Leave \"\(r.dependent)\" out too (options.without), or keep \"\(r.needs)\".").join("\n"))
   else
     new Present { without = names }

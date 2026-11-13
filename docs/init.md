@@ -20,6 +20,7 @@ mise lock                                            # records the checksums of 
 | `--skills --skill-name <name>` | The repository carries a skill. Both are needed together. |
 | `--composite-action` | The repository is the skill auditor itself: its own action runs the audit, and zizmor also scans `action.yml`. |
 | `--git-dependency-ignore <name>` | A git dependency Dependabot cannot resolve and must leave alone. Repeat it for each one. Names hold letters, digits, dots, dashes and underscores, and are given once. |
+| `--features <default\|all>` | The package's `features` option. `all` makes the Rust CI workflow and the hooks build, lint and test with `--all-features`, and adds a "Build with default features" step to the workflow. `default` is the package's default and writes nothing, so the config is the same as without the flag. The last one given wins. It is not cargo's list of features: `--features foo,bar` is refused. Only `init` and `migrate` read it. |
 | `--write` | Write. Without it `init` is a dry run. |
 | `--root <dir>` | The repository, default the current directory. |
 

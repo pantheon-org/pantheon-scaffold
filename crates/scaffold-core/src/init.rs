@@ -26,6 +26,9 @@ pub struct InitOptions {
     pub composite_action: bool,
     /// Git dependencies Dependabot cannot resolve, which it must leave alone (`gitDependencyIgnore`).
     pub git_dependency_ignore: Vec<String>,
+    /// The package's `features = "all"`: the Rust CI workflow and the hooks build, lint and test with `--all-features`.
+    /// `default` is the package's own default, so it is not written.
+    pub features_all: bool,
 }
 
 /// Which package the config amends.
@@ -216,6 +219,9 @@ pub fn config_text_with(
             names.join("; ")
         ));
     }
+    if opts.features_all {
+        options.push_str("  features = \"all\"\n");
+    }
     Ok(format!(
         "// Written by `pantheon-scaffold init`. From here on `pantheon-scaffold upgrade` edits the amends line and the imports of the package, and everything else is yours.\namends \"{}\"\n\nimport \"{}\"\n{imports}\noptions {{\n{options}}}\n\n{listed}workflows {{ ...Builtins.standardWorkflows(options) }}\n\n{files}",
         join("Config.pkl"),
@@ -358,6 +364,46 @@ mod tests {
         );
         let plain = config_text(&opts(), &local()).unwrap();
         assert!(!plain.contains("compositeAction") && !plain.contains("gitDependencyIgnore"));
+    }
+
+    #[test]
+    fn features_all_is_written_last_after_the_other_options_and_default_writes_nothing() {
+        let o = InitOptions {
+            composite_action: true,
+            git_dependency_ignore: vec!["pahdk-core".into()],
+            features_all: true,
+            ..opts()
+        };
+        let text = config_text(&o, &local()).unwrap();
+        assert!(
+            text.contains(
+                "  compositeAction = true\n  gitDependencyIgnore { \"pahdk-core\" }\n  features = \"all\"\n}\n"
+            ),
+            "{text}"
+        );
+        let plain = config_text(&opts(), &local()).unwrap();
+        assert!(!plain.contains("features"), "{plain}");
+        assert!(
+            plain.contains("  skills = false\n  binary = false\n}\n"),
+            "default adds nothing after the other options: {plain}"
+        );
+    }
+
+    #[test]
+    fn features_all_is_also_written_when_presets_are_listed() {
+        let o = InitOptions {
+            features_all: true,
+            ..opts()
+        };
+        let text = config_text_with(&o, &local(), &["presets/ci.pkl".to_owned()]).unwrap();
+        assert!(
+            text.contains("  binary = false\n  features = \"all\"\n}\n"),
+            "{text}"
+        );
+        assert!(
+            text.contains("presets {\n  \"presets/ci.pkl\"\n}"),
+            "{text}"
+        );
     }
 
     #[test]

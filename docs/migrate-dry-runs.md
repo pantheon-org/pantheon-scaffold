@@ -57,7 +57,9 @@ No file is a divergence. Counting the cosmetic `/target`, nothing in the four re
 2. **`migrate` and `init` have no `--features` option.** The package has `features = "all"`, and the dev-kit needs it.
 3. **There is no way to accept the package's file for a drifted file.** `migrate --write` refuses while a file drifted, and `--as-presets` keeps the old file. For stale drift, the wanted outcome is to replace the file with the Builtin's and record the difference. That is a mode `migrate` does not have yet.
 
-   *Note, 13-11-2026:* `migrate --accept-builtins` now exists (see [migrate.md](migrate.md#replacing-drifted-files---accept-builtins) and [migrate-accept-builtins-design.md](migrate-accept-builtins-design.md)). The dry runs above were not re-run. The one file that drifts because of a missing option (the dev-kit's `rust-ci.yml`) must wait for `--features`.
+   *Note, 13-11-2026:* `migrate --accept-builtins` now exists (see [migrate.md](migrate.md#replacing-drifted-files---accept-builtins) and [migrate-accept-builtins-design.md](migrate-accept-builtins-design.md)). The dry runs above were not re-run. The one file that drifts because of a missing option (the dev-kit's `rust-ci.yml`) needs `--features all`.
+
+   *Note, 13-11-2026 (later):* `init` and `migrate` now take `--features <default|all>` (see [init.md](init.md)), which settles finding 2 and the dev-kit's need for the option in the "first adopter" paragraph above. A dry run of the dev-kit at 42f48b4 with `--toolchain 1.96.1 --features all` reports `rust-ci.yml` as `identical` (it is `drifted` without the flag) and four drifted files: `dependabot.yml`, `plumber.yml`, `.gitignore` and `mise.toml`.
 
 ## Repeat it
 

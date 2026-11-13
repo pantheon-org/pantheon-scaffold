@@ -28,7 +28,7 @@ Written on 13-11-2026 for follow-up 1 of the refocus, before any scenario or cod
 
 ## Limits, recorded and not fixed
 
-- **A missing option is not stale drift.** A file that drifts because `--features`, `--composite-action` or `--git-dependency-ignore` was not given would be replaced with the wrong render. Set every option first. The dev-kit's `rust-ci.yml` is the known case, so the dev-kit waits for `--features`.
+- **A missing option is not stale drift.** A file that drifts because `--features`, `--composite-action` or `--git-dependency-ignore` was not given would be replaced with the wrong render. Set every option first. The dev-kit's `rust-ci.yml` is the known case: give it `--features all` (added on 13-11-2026) before accepting anything.
 - `migrate` cannot tell stale drift from a deliberate change. The owner reads the git diff before committing.
 - A difference in line endings only looks identical in the printed lines. A non-UTF-8 file is printed lossily but replaced byte for byte.
 - The executable bit follows the render, as for any written file.

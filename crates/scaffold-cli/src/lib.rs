@@ -29,8 +29,8 @@ pub const USAGE: &str = "usage (exit codes: 0 ok, 1 error, 2 usage, 3 refused, 4
   pantheon-scaffold latest [--include-prereleases] [--url <url>] [--root <dir>] [--attempts <n>]
   pantheon-scaffold freshness [--url <url>] [--max-age-days <n>] [--attempts <n>]
   pantheon-scaffold upgrade <version> [--root <dir>] [--config <file>] [--dry-run] [--force] [--no-render]
-  pantheon-scaffold init --toolchain <x.y.z> [--package-version <x.y.z>] [--binary --crate-name <name>] [--skills --skill-name <name>] [--composite-action] [--git-dependency-ignore <name>]... [--write] [--root <dir>] [--cache-dir <dir>] [--allow-local-package <dir>] [--attempts <n>]
-  pantheon-scaffold migrate --toolchain <x.y.z> [--package-version <x.y.z>] [--binary --crate-name <name>] [--skills --skill-name <name>] [--composite-action] [--git-dependency-ignore <name>]... [--write] [--as-presets | --accept-builtins] [--root <dir>] [--cache-dir <dir>] [--allow-local-package <dir>] [--attempts <n>]";
+  pantheon-scaffold init --toolchain <x.y.z> [--package-version <x.y.z>] [--binary --crate-name <name>] [--skills --skill-name <name>] [--composite-action] [--git-dependency-ignore <name>]... [--features <default|all>] [--write] [--root <dir>] [--cache-dir <dir>] [--allow-local-package <dir>] [--attempts <n>]
+  pantheon-scaffold migrate --toolchain <x.y.z> [--package-version <x.y.z>] [--binary --crate-name <name>] [--skills --skill-name <name>] [--composite-action] [--git-dependency-ignore <name>]... [--features <default|all>] [--write] [--as-presets | --accept-builtins] [--root <dir>] [--cache-dir <dir>] [--allow-local-package <dir>] [--attempts <n>]";
 
 /// The default age limit of `freshness`, in days.
 pub const MAX_AGE_DAYS: u64 = 30;
@@ -59,6 +59,7 @@ pub struct Flags {
     pub accept_builtins: bool,
     pub composite_action: bool,
     pub git_dependency_ignore: Vec<String>,
+    pub features_all: bool,
     pub binary: bool,
     pub skills: bool,
 }
@@ -78,6 +79,18 @@ fn resolve(cwd: &Path, value: &str) -> PathBuf {
         }
     }
     out
+}
+
+/// The value of `--features`: the package's `features` option, which is `default` or `all`. It is not cargo's list of features,
+/// so `foo,bar` and `All` are errors. Whether it means `all` is returned, so the last flag given wins.
+fn features_is_all(value: &str) -> Result<bool, String> {
+    match value {
+        "all" => Ok(true),
+        "default" => Ok(false),
+        other => Err(format!(
+            "--features must be default or all (the package's features option, not a list of cargo features), not {other:?}"
+        )),
+    }
 }
 
 /// A whole number of at least 1, read the way JavaScript's `Number()` reads it.
@@ -111,6 +124,7 @@ pub fn parse_flags(args: &[String], cwd: &Path) -> Result<Flags, String> {
         accept_builtins: false,
         composite_action: false,
         git_dependency_ignore: Vec::new(),
+        features_all: false,
         binary: false,
         skills: false,
     };
@@ -147,6 +161,7 @@ pub fn parse_flags(args: &[String], cwd: &Path) -> Result<Flags, String> {
             | "--package-version"
             | "--crate-name"
             | "--skill-name"
+            | "--features"
             | "--git-dependency-ignore" => {
                 let value = rest
                     .next()
@@ -161,6 +176,7 @@ pub fn parse_flags(args: &[String], cwd: &Path) -> Result<Flags, String> {
                     "--package-version" => f.package_version = Some(value.clone()),
                     "--crate-name" => f.crate_name = Some(value.clone()),
                     "--skill-name" => f.skill_name = Some(value.clone()),
+                    "--features" => f.features_all = features_is_all(value)?,
                     "--git-dependency-ignore" => f.git_dependency_ignore.push(value.clone()),
                     _ => f.local.push(resolve(cwd, value)),
                 }
@@ -448,6 +464,7 @@ fn prepare(
         skill_name: flags.skill_name.clone(),
         composite_action: flags.composite_action,
         git_dependency_ignore: flags.git_dependency_ignore.clone(),
+        features_all: flags.features_all,
     };
     if let Err(problem) = validate_for(command, &request) {
         io.complain(&format!("{problem}\n{USAGE}"));
@@ -1814,6 +1831,32 @@ mod tests {
             flag_error(&["--git-dependency-ignore"]),
             "--git-dependency-ignore needs a value"
         );
+    }
+
+    #[test]
+    fn features_takes_default_or_all_and_the_last_one_given_wins() {
+        assert!(flags(&["--features", "all"]).features_all);
+        assert!(!flags(&["--features", "default"]).features_all);
+        assert!(!flags(&[]).features_all);
+        assert!(!flags(&["--features", "all", "--features", "default"]).features_all);
+        assert!(flags(&["--features", "default", "--features", "all"]).features_all);
+    }
+
+    #[test]
+    fn features_refuses_anything_else_and_says_it_is_not_cargos_list() {
+        let bad = |value: &str| {
+            format!(
+                "--features must be default or all (the package's features option, not a list of cargo features), not {value:?}"
+            )
+        };
+        assert_eq!(flag_error(&["--features", "foo,bar"]), bad("foo,bar"));
+        assert_eq!(flag_error(&["--features", "All"]), bad("All"));
+        assert_eq!(
+            flag_error(&["--features", "all", "--features", "other"]),
+            bad("other")
+        );
+        assert_eq!(flag_error(&["--features"]), "--features needs a value");
+        assert_eq!(flag_error(&["--features", ""]), "--features needs a value");
     }
 
     #[test]

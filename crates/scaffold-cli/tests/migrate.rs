@@ -616,3 +616,64 @@ fn accept_builtins_cannot_be_combined_with_as_presets_and_is_refused_before_anyt
     );
     assert!(r.out.is_empty(), "{}", r.out);
 }
+
+#[test]
+fn features_all_is_written_to_the_config_by_migrate_and_default_writes_nothing() {
+    let s = setup(&[("a.toml", "owned", "x = 1\n")]);
+    s.put("a.toml", "x = 1\n");
+    let r = s.run(&["--toolchain", "1.96.1", "--features", "all", "--write"]);
+    assert_eq!(r.code, 0, "{} {}", r.out, r.err);
+    assert!(
+        s.get("pantheon.pkl").contains("  features = \"all\"\n}\n"),
+        "{}",
+        s.get("pantheon.pkl")
+    );
+
+    let d = setup(&[("a.toml", "owned", "x = 1\n")]);
+    d.put("a.toml", "x = 1\n");
+    let r = d.run(&[
+        "--toolchain",
+        "1.96.1",
+        "--features",
+        "all",
+        "--features",
+        "default",
+        "--write",
+    ]);
+    assert_eq!(r.code, 0, "{} {}", r.out, r.err);
+    assert!(
+        !d.get("pantheon.pkl").contains("features"),
+        "{}",
+        d.get("pantheon.pkl")
+    );
+}
+
+#[test]
+fn features_all_is_written_to_the_config_when_the_drifted_files_are_kept_as_presets() {
+    let s = drifted();
+    let r = s.run(&[
+        "--toolchain",
+        "1.96.1",
+        "--features",
+        "all",
+        "--write",
+        "--as-presets",
+    ]);
+    assert_eq!(r.code, 0, "{} {}", r.out, r.err);
+    let config = s.get("pantheon.pkl");
+    assert!(config.contains("  features = \"all\"\n}\n"), "{config}");
+    assert!(config.contains("presets {"), "{config}");
+}
+
+#[test]
+fn features_with_a_value_other_than_default_or_all_is_a_usage_error_and_writes_nothing() {
+    let s = drifted();
+    let r = s.run(&["--toolchain", "1.96.1", "--features", "foo,bar", "--write"]);
+    assert_eq!(r.code, 2, "{} {}", r.out, r.err);
+    assert!(
+        r.err.contains("--features must be default or all"),
+        "{}",
+        r.err
+    );
+    assert!(r.out.is_empty() && !s.exists("pantheon.pkl"), "{}", r.out);
+}

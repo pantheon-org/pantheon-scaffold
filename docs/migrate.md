@@ -1,6 +1,6 @@
 # `migrate`: bringing an existing project under the scaffold
 
-Written for the owner of a repository that already has its own workflows and files. `pantheon-scaffold migrate` compares what the standard set would render with what the repository has, and lists the difference. It is in the runner after 0.1.7 and is not in a release yet. `--write` is refused while a file has drifted, unless you add `--as-presets`, which keeps each drifted file as a Preset, or `--accept-builtins`, which replaces each one with the Builtin's file (both below). Turning a difference into a smaller Preset, such as a changed `timeout-minutes`, is task 5.4b and is not built yet.
+Written for the owner of a repository that already has its own workflows and files. `pantheon-scaffold migrate` compares what the standard set would render with what the repository has, and lists the difference. It is in release 0.1.8 and later (not in 0.1.7). `--write` is refused while a file has drifted, unless you add `--as-presets`, which keeps each drifted file as a Preset, or `--accept-builtins`, which replaces each one with the Builtin's file (both below). Turning a difference into a smaller Preset, such as a changed `timeout-minutes`, is task 5.4b and is not built yet.
 
 ```sh
 pantheon-scaffold migrate --toolchain 1.96.1            # lists every file, writes nothing

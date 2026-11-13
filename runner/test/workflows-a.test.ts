@@ -40,6 +40,14 @@ test("wave A renders the six workflows and the four config files they use", () =
   ]);
 });
 
+test("the one per-file ignore in the package's .rumdl.toml is for the pull request template this contract renders", () => {
+  const toml = Bun.TOML.parse(readFileSync(join(root, "pkl/assets/rumdl.toml"), "utf8")) as { "per-file-ignores"?: Record<string, string[]> };
+  const ignored = Object.keys(toml["per-file-ignores"] ?? {});
+  expect(ignored).toHaveLength(1);
+  expect(file(contract, ignored[0])).toBeDefined();
+  expect(ignored[0]).toBe(".github/pull_request_template.md");
+});
+
 for (const name of Object.keys(WORKFLOWS)) {
   test(`${name}.yml equals the pinned pantheon-adr copy under the P.1 rule`, () => {
     expect(compareWorkflows(unpin(upstream(name)), unpin(file(contract, `.github/workflows/${name}.yml`).content!))).toEqual({ equal: true, differences: [], duplicateKeys: [] });

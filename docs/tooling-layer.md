@@ -4,7 +4,9 @@ The files the four Rust repositories share for local tooling, rendered by `Built
 
 ## Wave A: verbatim files
 
-Every file is copied byte for byte from `pantheon-adr` at commit `1e2fd46`, and a test compares the git blob hash of what pkl renders with the pinned upstream blob (`runner/test/upstream/tooling-blobs.json`). All nine files were identical in the four repositories when they were read (baseline SP-0.1, re-checked on 08-11-2026).
+Every file but one is copied byte for byte from `pantheon-adr` at commit `1e2fd46`, and a test compares the git blob hash of what pkl renders with the pinned upstream blob (`runner/test/upstream/tooling-blobs.json`). All nine files were identical in the four repositories when they were read (baseline SP-0.1, re-checked on 08-11-2026).
+
+The exception is `.rumdl.toml`. Since 0.1.9 it ends with one `[per-file-ignores]` table that exempts `.github/pull_request_template.md` from MD041 ("first line should be a level 1 heading"). That template starts with an HTML comment and a level 2 heading, so the rule can never pass for it, and the rendered hook failed the first commit of a new project (found on 13-11-2026, in a check of the real 0.1.7 and 0.1.8 releases). The rule stays on for every other file. The test strips exactly that table from the end of the rendered file, checks that it occurs once, and compares what is left with the pinned blob, so any other difference from `pantheon-adr`'s file still fails.
 
 | File | Mode | Comes from |
 |---|---|---|
@@ -80,7 +82,7 @@ Edit a hook in `hk.pkl`. A module can define `hooks` only once, so a second `hoo
 
 ### Fixers and generated files
 
-No fixer matches a generated file today. The fixers are `rustfmt` (`*.rs`) and `rumdl` (`*.md`), and the render holds no Rust or Markdown. `yamllint`, `shellcheck` and `actionlint` only check. A test runs `hk fix --all` and `hk check --all` over a fresh render and asserts that both pass and that nothing changed. It needs `shellcheck` on the PATH.
+No fixer matches a generated file today. The fixers are `rustfmt` (`*.rs`) and `rumdl` (`*.md`), and the render holds no Rust. Its Markdown files (`.github/pull_request_template.md`, and `SECURITY.md` in a new project) pass `rumdl` with the rendered `.rumdl.toml`. `yamllint`, `shellcheck` and `actionlint` only check. A test runs `hk fix --all` and `hk check --all` over a fresh render and asserts that both pass and that nothing changed. It needs `shellcheck` on the PATH.
 
 ### Migrating an existing `hk.pkl` (one-off, in phase 7)
 
@@ -92,4 +94,4 @@ Each repository already has an `hk.pkl` with the steps inline, so the seed is no
 
 ## Wave D: the four real repositories
 
-A read-only render of everything Phase 3 owns into scratch clones of the four repositories passes for all four, with the verbatim files byte for byte equal, `mise.toml` changed by exactly the named lines, and `hk check --all` giving the same result before and after. The results, the named differences and a finding that is not ours (`rumdl` fails in all four repositories today) are in [real-repo-tooling.md](../archive/proof/docs/real-repo-tooling.md).
+A read-only render of everything Phase 3 owns into scratch clones of the four repositories passes for all four, with the verbatim files byte for byte equal (that was before 0.1.9 added one table to `.rumdl.toml`, see above), `mise.toml` changed by exactly the named lines, and `hk check --all` giving the same result before and after. The results, the named differences and a finding that is not ours (`rumdl` fails in all four repositories today) are in [real-repo-tooling.md](../archive/proof/docs/real-repo-tooling.md).

@@ -4,7 +4,7 @@ amends "pkl:Project"
 package {
   name = "pantheon-scaffold"
   baseUri = "package://github.com/pantheon-org/pantheon-scaffold/releases/download/v\(version)/pantheon-scaffold"
-  version = "0.1.8"
+  version = "0.1.9"
   packageZipUrl = "https://github.com/pantheon-org/pantheon-scaffold/releases/download/v\(version)/pantheon-scaffold@\(version).zip"
   description = "Shared scaffold for the Pantheon Rust repositories, rendered from one pantheon.pkl per repository."
   authors { "thoroc <2297889+thoroc@users.noreply.github.com>" }

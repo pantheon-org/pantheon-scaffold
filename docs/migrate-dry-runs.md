@@ -61,6 +61,8 @@ No file is a divergence. Counting the cosmetic `/target`, nothing in the four re
 
    *Note, 13-11-2026 (later):* `init` and `migrate` now take `--features <default|all>` (see [init.md](init.md)), which settles finding 2 and the dev-kit's need for the option in the "first adopter" paragraph above. A dry run of the dev-kit at 42f48b4 with `--toolchain 1.96.1 --features all` reports `rust-ci.yml` as `identical` (it is `drifted` without the flag) and four drifted files: `dependabot.yml`, `plumber.yml`, `.gitignore` and `mise.toml`.
 
+   *Note, 13-11-2026 (MD041):* from package 0.1.9, `.rumdl.toml` ends with one `[per-file-ignores]` table that exempts `.github/pull_request_template.md` from MD041 (see [tooling-layer.md](tooling-layer.md)). So every repository whose `.rumdl.toml` is `pantheon-adr`'s copy, identical in all four above, shows one more stale drifted file under 0.1.9, and the `drifted` counts in the tables above are one short for them. `migrate --accept-builtins` replaces it. The dry runs were not re-run.
+
 ## Repeat it
 
 Run `migrate` (without `--write`) in a copy of the repository with the options in the first table, and `--allow-local-package <package folder>` when working on the package. It is read-only. Each output is the list of files with their class, then a line with the four counts.

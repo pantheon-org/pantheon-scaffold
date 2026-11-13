@@ -1,6 +1,6 @@
 # The tooling layer
 
-The files the four Rust repositories share for local tooling, rendered by `Builtins.toolingFiles()` and `Builtins.baseFiles()`. Phase 3 of the plan. This page grows wave by wave: wave A (verbatim files) is here, `mise.toml` and the hook steps follow.
+The files the four Rust repositories share for local tooling, rendered by `Builtins.toolingFiles(options)` and `Builtins.baseFiles()`. Phase 3 of the plan. This page grows wave by wave: wave A (verbatim files) is here, `mise.toml` and the hook steps follow.
 
 ## Wave A: verbatim files
 
@@ -10,12 +10,12 @@ The exception is `.rumdl.toml`. Since 0.1.9 it ends with one `[per-file-ignores]
 
 | File | Mode | Comes from |
 |---|---|---|
-| `.github/scripts/agnix-assemble-comment.sh`, `agnix-file-issues.sh`, `agnix-introduced-errors.sh` | 0755 | `toolingFiles()` |
-| `.github/scripts/auto-rebase.sh`, `check-commit-types.sh`, `release-automerge.sh`, `sync-labels.sh` | 0755 | `toolingFiles()` |
+| `.github/scripts/agnix-assemble-comment.sh`, `agnix-file-issues.sh`, `agnix-introduced-errors.sh` | 0755 | `toolingFiles(options)` |
+| `.github/scripts/auto-rebase.sh`, `check-commit-types.sh`, `release-automerge.sh`, `sync-labels.sh` | 0755 | `toolingFiles(options)` |
 | `.github/scripts/cargo-deny.sh`, `check-inline-scripts.sh` | 0755 | `baseFiles()` (phase 2a) |
-| `.rumdl.toml`, `.claude/settings.json` | 0644 | `toolingFiles()` |
+| `.rumdl.toml`, `.claude/settings.json` | 0644 | `toolingFiles(options)` |
 
-Those are the nine shared scripts: seven from `toolingFiles()` and two from `baseFiles()`. `check-toolchain-version.sh` (also from `baseFiles()`) and `tag-release.sh` (which differs between repositories) are not part of the nine.
+Those are the nine shared scripts: seven from `toolingFiles(options)` and two from `baseFiles()`. `check-toolchain-version.sh` (also from `baseFiles()`) and `tag-release.sh` (which differs between repositories) are not part of the nine.
 
 ### One named difference: `sync-labels.sh` is executable
 

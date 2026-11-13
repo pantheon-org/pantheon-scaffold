@@ -13,7 +13,7 @@ function amendWorkflow(
   change: (Config.Workflow) -> Config.Workflow
 ): Mapping<String, Config.Workflow> =
   if (!base.containsKey(key))
-    throw("preset: workflow \"\(key)\" is not a builtin of this package version. Builtins: \(base.keys.toList().sort().join(", "))")
+    throw("preset: workflow \"\(key)\" is not a builtin of this package version. Builtins: \(base.keys.toList().sort().join(", ")). A builtin that options.without leaves out is not in the mapping either.")
   else
     (base) { [key] = change.apply(base[key]) }
 
@@ -35,7 +35,7 @@ function amendFile(
   change: (Config.GenFile) -> Config.GenFile
 ): Mapping<String, Config.GenFile> =
   if (!base.containsKey(path))
-    throw("preset: file \"\(path)\" is not rendered by the builtins of this package version. Files: \(base.keys.toList().sort().join(", "))")
+    throw("preset: file \"\(path)\" is not rendered by the builtins of this package version. Files: \(base.keys.toList().sort().join(", ")). The files of a builtin that options.without leaves out are not rendered either.")
   else
     (base) { [path] = change.apply(base[path]) }
 

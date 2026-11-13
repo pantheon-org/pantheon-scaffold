@@ -11,7 +11,7 @@ options {
 
 files {
   ...Builtins.baseFiles(options)
-  ...Builtins.toolingFiles()
+  ...Builtins.toolingFiles(options)
   ...Builtins.miseFiles(options)
   ...Builtins.hkFiles(options)
 }

@@ -72,6 +72,10 @@ Files in `.tmp/presets-spike/` (untracked working files). Config: `toolchain = "
 | E13 | `amendWorkflow` and `amendJob` helpers | Works on a real key (timeout 30). A missing workflow gives: `preset: workflow "rust-cii" is not a builtin of this package version. Builtins: agnix, aislop, ...`. A missing job gives: `preset: job "build" does not exist in workflow "Rust CI". Jobs: build-test`. |
 | E14 | Two Presets change the same field (20, then 40) | The last wins silently: 40. |
 
+## Leaving a builtin out
+
+E12 filtered a key out of the standard set by hand. The supported way is `options.without` (added in 0.1.10, [adopting.md](adopting.md#leaving-builtins-out-optionswithout)): the aggregators skip a left-out builtin, so a Preset sees a mapping without it, and `amendWorkflow` and `amendFile` say that `options.without` may be the reason when the key is missing. A Preset does not decide what is present; the options do.
+
 ## Open points for the owner (none block 4.1)
 
 1. D3 allows two Presets to change the same field with the last winning. Say so if you would rather have an error.

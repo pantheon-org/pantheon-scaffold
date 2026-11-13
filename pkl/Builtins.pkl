@@ -9,6 +9,7 @@
 module pantheon.scaffold.Builtins
 
 import "Config.pkl"
+import "Builtins/Shared.pkl"
 import "Builtins/rust-toolchain/Builtin.pkl" as rustToolchainBuiltin
 import "Builtins/actionlint/Builtin.pkl" as actionlintBuiltin
 import "Builtins/coderabbit/Builtin.pkl" as coderabbitBuiltin
@@ -49,36 +50,42 @@ function rustCi(opts: Config.Options): Config.Workflow = rustCiBuiltin.workflow(
 function inlineScripts(): Config.Workflow = inlineScriptsBuiltin.workflow()
 
 /// The verbatim files the three builtins depend on.
-function baseFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
-  ...rustToolchainBuiltin.baseFiles(opts)
-  ...cargoDenyBuiltin.baseFiles()
-  ...inlineScriptsBuiltin.baseFiles()
-  ...rustCiBuiltin.baseFiles()
-}
+function baseFiles(opts: Config.Options): Mapping<String, Config.GenFile> =
+  let (p = Shared.present(opts))
+  new {
+    when (p.has("rust-toolchain")) { ...rustToolchainBuiltin.baseFiles(opts) }
+    when (p.has("cargo-deny")) { ...cargoDenyBuiltin.baseFiles() }
+    when (p.has("inline-scripts")) { ...inlineScriptsBuiltin.baseFiles() }
+    when (p.has("rust-ci")) { ...rustCiBuiltin.baseFiles() }
+  }
 
 /// The tooling files the four Rust repositories share, all verbatim: the seven shared scripts that `baseFiles` does not cover (with
 /// `cargo-deny.sh` and `check-inline-scripts.sh` from there they are the nine shared scripts), the rumdl configuration and the Claude Code
 /// settings. All nine scripts are executable. `sync-labels.sh` is not executable in the four repositories today, and its workflow runs
 /// it with `bash`, so the bit never mattered. It is rendered executable like the other eight.
-function toolingFiles(): Mapping<String, Config.GenFile> = new {
-  ...agnixBuiltin.toolingFiles()
-  ...prAutoRebaseBuiltin.toolingFiles()
-  ...commitTypesBuiltin.toolingFiles()
-  ...releaseAutomergeBuiltin.toolingFiles()
-  ...syncLabelsBuiltin.toolingFiles()
-  ...rumdlBuiltin.toolingFiles()
-  ...claudeSettingsBuiltin.toolingFiles()
-}
+function toolingFiles(opts: Config.Options): Mapping<String, Config.GenFile> =
+  let (p = Shared.present(opts))
+  new {
+    when (p.has("agnix")) { ...agnixBuiltin.toolingFiles() }
+    when (p.has("pr-auto-rebase")) { ...prAutoRebaseBuiltin.toolingFiles() }
+    when (p.has("commit-types")) { ...commitTypesBuiltin.toolingFiles() }
+    when (p.has("release-automerge")) { ...releaseAutomergeBuiltin.toolingFiles() }
+    when (p.has("sync-labels")) { ...syncLabelsBuiltin.toolingFiles() }
+    when (p.has("rumdl")) { ...rumdlBuiltin.toolingFiles() }
+    when (p.has("claude-settings")) { ...claudeSettingsBuiltin.toolingFiles() }
+  }
 
 /// mise.toml, owned by the runner, and the files around it: mise.lock (written by mise, so external) and a per-repository mise config,
 /// seeded once. mise reads both config files, the second adds tools, and for a tool listed in both mise.toml wins (decision 29, checked
 /// against real mise in mise.test.ts). The tool pins come from Tools.pkl and the runner pin from the package version.
-function miseFiles(opts: Config.Options): Mapping<String, Config.GenFile> = miseBuiltin.files(opts)
+function miseFiles(opts: Config.Options): Mapping<String, Config.GenFile> =
+  if (Shared.present(opts).has("mise")) miseBuiltin.files(opts) else new Mapping {}
 
 /// The hook steps the four Rust repositories share (decision 31): `hk.shared.pkl`, owned by the runner, holds the steps, and `hk.pkl` is
 /// seeded once, imports it and holds only the hooks. Each repository adds its own steps in `hk.pkl`. `options.features = "all"` is the
 /// library repository's `--all-features` in the pre-push clippy and test steps. Checked against real hk in hk.test.ts.
-function hkFiles(opts: Config.Options): Mapping<String, Config.GenFile> = hkBuiltin.files(opts)
+function hkFiles(opts: Config.Options): Mapping<String, Config.GenFile> =
+  if (Shared.present(opts).has("hk")) hkBuiltin.files(opts) else new Mapping {}
 
 /// The CI/CD security scan of the repository's workflows (Plumber). Only a Critical finding blocks a pull request.
 function plumber(): Config.Workflow = plumberBuiltin.workflow()
@@ -99,12 +106,14 @@ function commitTypes(): Config.Workflow = commitTypesBuiltin.workflow()
 function conventionalCommits(): Config.Workflow = conventionalCommitsBuiltin.workflow()
 
 /// The verbatim config files the wave A workflows use, from pantheon-adr at 1e2fd46.
-function workflowFiles(): Mapping<String, Config.GenFile> = new {
-  ...plumberBuiltin.workflowFiles()
-  ...syncLabelsBuiltin.workflowFiles()
-  ...commitTypesBuiltin.workflowFiles()
-  ...pullRequestTemplateBuiltin.workflowFiles()
-}
+function workflowFiles(opts: Config.Options): Mapping<String, Config.GenFile> =
+  let (p = Shared.present(opts))
+  new {
+    when (p.has("plumber")) { ...plumberBuiltin.workflowFiles() }
+    when (p.has("sync-labels")) { ...syncLabelsBuiltin.workflowFiles() }
+    when (p.has("commit-types")) { ...commitTypesBuiltin.workflowFiles() }
+    when (p.has("pull-request-template")) { ...pullRequestTemplateBuiltin.workflowFiles() }
+  }
 
 /// Keeps one rolling release pull request up to date and tags releases, under the App token so the tag starts the release workflow. With a
 /// binary (`options.binary`) it also tags the crate version itself when it has no tag yet (the script tag-release.sh).
@@ -128,11 +137,13 @@ function dependabot(opts: Config.Options): Config.GenFile = dependabotBuiltin.fi
 
 /// The config files that go with the wave B builtins: .agnix.toml (the first line depends on whether the repository has a skill), dependabot.yml,
 /// and, for a repository with a binary, .github/zizmor.yml (the variant with the extra entry for action.yml when there is a composite action).
-function analysisFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
-  ...agnixBuiltin.analysisFiles(opts)
-  [".github/dependabot.yml"] = dependabot(opts)
-  ...zizmorBuiltin.analysisFiles(opts)
-}
+function analysisFiles(opts: Config.Options): Mapping<String, Config.GenFile> =
+  let (p = Shared.present(opts))
+  new {
+    when (p.has("agnix")) { ...agnixBuiltin.analysisFiles(opts) }
+    when (p.has("dependabot")) { [".github/dependabot.yml"] = dependabot(opts) }
+    when (p.has("zizmor")) { ...zizmorBuiltin.analysisFiles(opts) }
+  }
 
 /// The consumer upgrade workflow: weekly, checks the freshness record, finds the latest release the known-bad list allows, upgrades, and
 /// opens a pull request under the App token. Removed by `detach`, since it would fail on every run once the repository leaves the scaffold.
@@ -142,13 +153,15 @@ function upgradeWorkflow(opts: Config.Options): Config.Workflow = upgradeBuiltin
 /// The verbatim files of the `binary` toggle, and `.gitignore` for every repository. `.gitignore` is `target/` (decision 74), the form three
 /// repositories use. `release.yml` is generated by `dist generate`, so it is listed as external: the runner never writes or hashes it, and
 /// the drift check of wave D compares it with what `dist generate` would write.
-function verbatimFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
-  ...gitignoreBuiltin.verbatimFiles()
-  when (opts.binary) {
-    ...actionlintBuiltin.verbatimFiles()
-    ...releaseBuiltin.verbatimFiles()
+function verbatimFiles(opts: Config.Options): Mapping<String, Config.GenFile> =
+  let (p = Shared.present(opts))
+  new {
+    when (p.has("gitignore")) { ...gitignoreBuiltin.verbatimFiles() }
+    when (opts.binary) {
+      when (p.has("actionlint")) { ...actionlintBuiltin.verbatimFiles() }
+      when (p.has("release")) { ...releaseBuiltin.verbatimFiles() }
+    }
   }
-}
 
 /// Validates and grades the bundled skill (`skills` toggle, option `skillName`). With `compositeAction` the repository is the skill auditor
 /// itself, so it runs its own action with a bootstrap binary instead of the released action.
@@ -156,37 +169,41 @@ function auditSkill(opts: Config.Options): Config.Workflow = auditSkillBuiltin.w
 
 /// The files of the parameterised group: `.coderabbit.yaml` always (the skill line only with `skills`), `SECURITY.md` seeded once (the binary
 /// text with the crate and skill names, or the library text), and with `binary` the release tagging script.
-function parameterisedFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
-  ...coderabbitBuiltin.parameterisedFiles(opts)
-  ...securityBuiltin.parameterisedFiles(opts)
-  ...releasePleaseBuiltin.parameterisedFiles(opts)
-}
+function parameterisedFiles(opts: Config.Options): Mapping<String, Config.GenFile> =
+  let (p = Shared.present(opts))
+  new {
+    when (p.has("coderabbit")) { ...coderabbitBuiltin.parameterisedFiles(opts) }
+    when (p.has("security")) { ...securityBuiltin.parameterisedFiles(opts) }
+    when (p.has("release-please")) { ...releasePleaseBuiltin.parameterisedFiles(opts) }
+  }
 
 /// Every workflow of the workflow layer for a repository with these options: the thirteen that every repository has, and `audit-skill` when
 /// `skills` is on. Turning `skills` off drops the entry, so the runner deletes the file it rendered before.
-function standardWorkflows(opts: Config.Options): Mapping<String, Config.Workflow> = new {
-  ["plumber"] = plumber()
-  ["sync-labels"] = syncLabels()
-  ["pr-auto-rebase"] = prAutoRebase(opts)
-  ["release-automerge"] = releaseAutomerge(opts)
-  ["commit-types"] = commitTypes()
-  ["conventional-commits"] = conventionalCommits()
-  ["release-please"] = releasePlease(opts)
-  ["zizmor"] = zizmor(opts)
-  ["agnix"] = agnix(opts)
-  ["aislop"] = aislop()
-  ["rust-ci"] = rustCi(opts)
-  ["cargo-deny"] = cargoDeny(opts)
-  ["inline-scripts"] = inlineScripts()
-  when (opts.skills) { ["audit-skill"] = auditSkill(opts) }
-  ["scaffold-check"] = scaffoldCheck()
-  when (opts.binary) { ["dist-check"] = distCheck() }
-}
+function standardWorkflows(opts: Config.Options): Mapping<String, Config.Workflow> =
+  let (p = Shared.present(opts))
+  new {
+    when (p.has("plumber")) { ["plumber"] = plumber() }
+    when (p.has("sync-labels")) { ["sync-labels"] = syncLabels() }
+    when (p.has("pr-auto-rebase")) { ["pr-auto-rebase"] = prAutoRebase(opts) }
+    when (p.has("release-automerge")) { ["release-automerge"] = releaseAutomerge(opts) }
+    when (p.has("commit-types")) { ["commit-types"] = commitTypes() }
+    when (p.has("conventional-commits")) { ["conventional-commits"] = conventionalCommits() }
+    when (p.has("release-please")) { ["release-please"] = releasePlease(opts) }
+    when (p.has("zizmor")) { ["zizmor"] = zizmor(opts) }
+    when (p.has("agnix")) { ["agnix"] = agnix(opts) }
+    when (p.has("aislop")) { ["aislop"] = aislop() }
+    when (p.has("rust-ci")) { ["rust-ci"] = rustCi(opts) }
+    when (p.has("cargo-deny")) { ["cargo-deny"] = cargoDeny(opts) }
+    when (p.has("inline-scripts")) { ["inline-scripts"] = inlineScripts() }
+    when (opts.skills && p.has("audit-skill")) { ["audit-skill"] = auditSkill(opts) }
+    when (p.has("scaffold-check")) { ["scaffold-check"] = scaffoldCheck() }
+    when (opts.binary && p.has("release")) { ["dist-check"] = distCheck() }
+  }
 
 /// Every file of the workflow layer for a repository with these options: the config files the workflows read, the verbatim files and the
 /// parameterised ones. Files that belong to `binary` are dropped when it is off.
 function standardFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
-  ...workflowFiles()
+  ...workflowFiles(opts)
   ...analysisFiles(opts)
   ...verbatimFiles(opts)
   ...parameterisedFiles(opts)

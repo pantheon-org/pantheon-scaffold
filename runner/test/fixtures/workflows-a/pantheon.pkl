@@ -14,5 +14,5 @@ workflows {
 }
 
 files {
-  ...Builtins.workflowFiles()
+  ...Builtins.workflowFiles(options)
 }

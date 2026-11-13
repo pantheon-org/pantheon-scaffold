@@ -196,13 +196,13 @@ pub fn config_text_with(
         format!("presets {{\n{paths}}}\n\n")
     };
     let files = if presets.is_empty() {
-        "files {\n  ...Builtins.standardFiles(options)\n  ...Builtins.baseFiles(options)\n  ...Builtins.toolingFiles()\n  ...Builtins.miseFiles(options)\n  ...Builtins.hkFiles(options)\n}\n".to_owned()
+        "files {\n  ...Builtins.standardFiles(options)\n  ...Builtins.baseFiles(options)\n  ...Builtins.toolingFiles(options)\n  ...Builtins.miseFiles(options)\n  ...Builtins.hkFiles(options)\n}\n".to_owned()
     } else {
         let applied = (0..presets.len()).fold("standard".to_owned(), |inner, i| {
             format!("preset{i}.apply({inner})")
         });
         format!(
-            "local standard = new Mapping {{\n  ...Builtins.standardFiles(options)\n  ...Builtins.baseFiles(options)\n  ...Builtins.toolingFiles()\n  ...Builtins.miseFiles(options)\n  ...Builtins.hkFiles(options)\n}}\n\nfiles = {applied}\n"
+            "local standard = new Mapping {{\n  ...Builtins.standardFiles(options)\n  ...Builtins.baseFiles(options)\n  ...Builtins.toolingFiles(options)\n  ...Builtins.miseFiles(options)\n  ...Builtins.hkFiles(options)\n}}\n\nfiles = {applied}\n"
         )
     };
     if opts.composite_action {
@@ -260,7 +260,7 @@ mod tests {
         validate(o).unwrap_err().to_string()
     }
 
-    const COMPOSITION: &str = "workflows { ...Builtins.standardWorkflows(options) }\n\nfiles {\n  ...Builtins.standardFiles(options)\n  ...Builtins.baseFiles(options)\n  ...Builtins.toolingFiles()\n  ...Builtins.miseFiles(options)\n  ...Builtins.hkFiles(options)\n}\n";
+    const COMPOSITION: &str = "workflows { ...Builtins.standardWorkflows(options) }\n\nfiles {\n  ...Builtins.standardFiles(options)\n  ...Builtins.baseFiles(options)\n  ...Builtins.toolingFiles(options)\n  ...Builtins.miseFiles(options)\n  ...Builtins.hkFiles(options)\n}\n";
 
     #[test]
     fn a_release_config_amends_the_release_with_its_checksum_and_imports_the_builtins_from_it() {

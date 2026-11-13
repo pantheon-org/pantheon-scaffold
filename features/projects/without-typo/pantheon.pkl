@@ -1,0 +1,14 @@
+amends "@PACKAGE@/Config.pkl"
+import "@PACKAGE@/Builtins.pkl"
+
+options { toolchain = "1.96.1"; runnerVersion = "0.1.9"; skills = false; binary = false; without { "plumbr" } }
+
+workflows { ...Builtins.standardWorkflows(options) }
+
+files {
+  ...Builtins.standardFiles(options)
+  ...Builtins.baseFiles(options)
+  ...Builtins.toolingFiles(options)
+  ...Builtins.miseFiles(options)
+  ...Builtins.hkFiles(options)
+}

@@ -128,6 +128,13 @@ mod tests {
     }
 
     #[test]
+    fn a_boolean_prints_python_style_so_a_template_spells_out_true_and_false() {
+        let c = ctx(json!({"on": false}));
+        assert_eq!(render("i", "{{ on }}\n", &c).unwrap(), "False\n");
+        assert_eq!(render("i", "{{ 'true' if on else 'false' }}\n", &c).unwrap(), "false\n");
+    }
+
+    #[test]
     fn a_bare_hash_after_a_brace_starts_a_comment_and_is_refused() {
         assert!(render("h.sh", "n=${#var}\n", &ctx(json!({}))).is_err());
     }

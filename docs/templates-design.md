@@ -46,6 +46,7 @@ in pkl and passed in. A template holds no changeable value, and each variable ha
 | `{% endraw %}` at the end of a line | the newline after it is removed by `trim_blocks`: write `{% endraw +%}` to keep it |
 | CRLF in a template | kept as is |
 | Context number `1.90` | rendered `1.9`: pass versions as strings |
+| Context boolean in `{{ }}` | rendered `True` or `False`, as Python does: write `{{ "true" if x else "false" }}` for toml, yaml and json |
 
 ## Whitespace policy
 

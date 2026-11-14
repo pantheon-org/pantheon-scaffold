@@ -106,12 +106,12 @@ pub fn parse_contract(json: &serde_json::Value) -> Result<Contract, ContractErro
     let version = json.get("schemaVersion");
     let supported = f64::from(SUPPORTED_SCHEMA_VERSION);
     match version.and_then(serde_json::Value::as_f64) {
-        Some(v) if v == supported => {}
         Some(v) if v > supported => {
             return Err(ContractError(format!(
                 "contract schemaVersion {v} is newer than this runner supports ({SUPPORTED_SCHEMA_VERSION}): the package needs a newer runner"
             )));
         }
+        Some(v) if v == supported => {}
         _ => {
             let shown = version.map_or_else(|| "undefined".to_owned(), ToString::to_string);
             return Err(ContractError(format!(

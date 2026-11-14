@@ -7,16 +7,20 @@ import "package://github.com/jdx/hk/releases/download/v{{ hkVersion }}/hk@{{ hkV
 
 /// The steps of the pre-commit hook and of `hk check` and `hk fix`: fast, staged files only. `check` verifies, `fix` mutates.
 function preCommit(): Mapping<String, hk.Step> = new Mapping<String, hk.Step> {
+{% if tools["rust"] %}
     ["rustfmt"] {
         glob = List("*.rs")
         check = "cargo fmt --all --check"
         fix = "cargo fmt --all"
     }
+{% endif %}
+{% if present["rumdl"] %}
     ["rumdl"] {
         glob = List("*.md")
         check = "rumdl check --config .rumdl.toml {% raw %}{{files}}{% endraw %}"
         fix = "rumdl check --fix --config .rumdl.toml {% raw %}{{files}}{% endraw %}"
     }
+{% endif %}
     ["yamllint"] {
         glob = List("*.yml", "*.yaml")
         shell = "sh -c"
@@ -27,6 +31,7 @@ function preCommit(): Mapping<String, hk.Step> = new Mapping<String, hk.Step> {
         shell = "sh -c"
         check = "command -v shellcheck >/dev/null 2>&1 && shellcheck {% raw %}{{files}}{% endraw %}"
     }
+{% if present["actionlint"] %}
     // Catches workflow mistakes yamllint cannot: unknown keys, bad expressions,
     // `needs:` references, and shell problems inside `run:` blocks. Scoped to
     // the workflow files so it only runs when one is staged. Reads
@@ -37,10 +42,12 @@ function preCommit(): Mapping<String, hk.Step> = new Mapping<String, hk.Step> {
         shell = "sh -c"
         check = "command -v actionlint >/dev/null 2>&1 && actionlint {% raw %}{{files}}{% endraw %}"
     }
+{% endif %}
 }
 
 /// The steps of the pre-push hook, matching the rust-ci workflow.
 function prePush(): Mapping<String, hk.Step> = new Mapping<String, hk.Step> {
+{% if present["rust-ci"] %}
     ["clippy"] {
         glob = List("*.rs", "Cargo.toml", "Cargo.lock")
         check = "cargo clippy --workspace --all-targets {% if allFeatures %}--all-features {% endif %}--locked -- -D warnings"
@@ -49,4 +56,5 @@ function prePush(): Mapping<String, hk.Step> = new Mapping<String, hk.Step> {
         glob = List("*.rs", "Cargo.toml", "Cargo.lock")
         check = "cargo test --workspace {% if allFeatures %}--all-features {% endif %}--locked"
     }
+{% endif %}
 }

@@ -2,7 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { evalContractJson } from "./support/contract";
-import { cleanupRepos, tempRepo } from "./helpers";
+import { cleanupRepos, git, tempRepo } from "./helpers";
 
 // Presence inside templates: what mise.toml, hk.shared.pkl and the headers say when a builtin is left out (options.without).
 afterEach(cleanupRepos);
@@ -188,3 +188,51 @@ test("real mise reads a reduced mise.toml and lists the tools that are left", as
   const listed = Object.keys(JSON.parse(r.stdout.toString()) as Record<string, unknown>).sort();
   expect(listed).toEqual(["actionlint", "github:pantheon-org/pantheon-scaffold", "jq", "pkl", "rust", "shellcheck", "zizmor"].sort());
 });
+
+// ---- hk.shared.pkl, with real hk ----
+const hkEnv = (): Record<string, string> => ({
+  ...(Object.fromEntries(Object.entries(process.env).filter(([k, v]) => v !== undefined && !k.startsWith("HK_"))) as Record<string, string>),
+  HK_MISE: "0",
+});
+const hk = (dir: string, ...args: string[]) => {
+  const r = Bun.spawnSync(["hk", ...args], { cwd: dir, env: hkEnv(), stdout: "pipe", stderr: "pipe" });
+  return { code: r.exitCode, out: (r.stdout.toString() + r.stderr.toString()).replace(/\x1b\[[0-9;]*m/g, "") };
+};
+/** Writes the rendered files into a git repository, as a repository adopting the scaffold has them. */
+function repoOf(files: Map<string, string>): string {
+  const dir = tempRepo();
+  git(dir, "init", "-q", "-b", "main");
+  for (const [p, content] of files) {
+    mkdirSync(dirname(join(dir, p)), { recursive: true });
+    writeFileSync(join(dir, p), content);
+  }
+  git(dir, "add", "-A");
+  return dir;
+}
+const STEPS = ["rustfmt", "rumdl", "yamllint", "shellcheck", "actionlint", "clippy", "test"];
+const stepsIn = (shared: string): string[] => STEPS.filter((s) => shared.includes(`["${s}"]`));
+
+const HK_CASES: { without: string[]; steps: string[] }[] = [
+  { without: [], steps: STEPS },
+  { without: ["rumdl"], steps: STEPS.filter((s) => s !== "rumdl") },
+  { without: ["actionlint"], steps: STEPS.filter((s) => s !== "actionlint") },
+  { without: ["rust-ci"], steps: STEPS.filter((s) => s !== "clippy" && s !== "test") },
+  { without: ["rust-ci", "rust-toolchain"], steps: STEPS.filter((s) => !["clippy", "test", "rustfmt"].includes(s)) },
+  { without: ["rumdl", "actionlint", "rust-ci", "rust-toolchain"], steps: ["yamllint", "shellcheck"] },
+];
+
+for (const c of HK_CASES) {
+  test(`hk.shared.pkl with ${c.without.join(" and ") || "nothing"} left out has the steps ${c.steps.join(", ")}, and real hk accepts it with the seeded hk.pkl`, async () => {
+    const files = await render(c.without);
+    const shared = text(files, "hk.shared.pkl");
+    expect(stepsIn(shared)).toEqual(c.steps);
+    expect(shared.split("\n").every((l, i, a) => !(l === "" && a[i + 1] === "")), "no two blank lines").toBe(true);
+    const dir = repoOf(files);
+    const v = hk(dir, "validate");
+    expect(v.code, v.out).toBe(0);
+    const plan = hk(dir, "check", "--all", "--plan");
+    expect(plan.code, plan.out).toBe(0);
+    for (const s of c.steps.filter((x) => x !== "clippy" && x !== "test")) expect(plan.out, s).toContain(s);
+    for (const s of STEPS.filter((x) => !c.steps.includes(x) && x !== "clippy" && x !== "test")) expect(plan.out, `no ${s}`).not.toContain(s);
+  }, 120_000);
+}

@@ -255,7 +255,7 @@ jobs:
             --verify-tag \
             --prerelease \
             --title "$TAG (pre-release)" \
-            --notes "Pre-release of the package and the runner, released together. checksums.txt lists every file and carries a build provenance attestation: gh attestation verify checksums.txt --repo $GH_REPO"
+            --notes "Pre-release of the package and the runner, released together. checksums.txt lists every file and carries a build provenance attestation: gh attestation verify checksums.txt --repo $GH_REPO. What breaks when you upgrade, and the order to change it in, is under Upgrading: https://github.com/$GH_REPO/blob/$TAG/docs/adopting.md#upgrading"
 
   verify-release:
     name: Verify the published release on ${{ matrix.os }}

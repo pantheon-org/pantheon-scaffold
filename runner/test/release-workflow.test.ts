@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { stableWording } from "../src/promote";
 
 // Properties of .github/workflows/release.yml that make publishing safe. They are read from the file, so a change that breaks one fails here.
 const path = join(import.meta.dir, "../../.github/workflows/release.yml");
@@ -203,4 +204,18 @@ test("verify-release imports Builtins from the same package URI, with the same c
   const run = wf.jobs["verify-release"].steps.find((s) => s.run?.includes("standardWorkflows"))!.run!;
   expect(run).toContain("#/Config.pkl");
   expect(run).toContain("#/Builtins.pkl");
+});
+
+// The notes of a release are the only text a consumer sees on the release page, so they link the Upgrading section, and promote must keep that
+// sentence: it rewrites only the leading "Pre-release of".
+test("the release notes start with the pre-release wording, link the Upgrading section, and keep the link when promoted", () => {
+  const text = readFileSync(path, "utf8");
+  const notes = text.match(/--notes "([^"]*)"/)![1]!;
+  expect(notes.startsWith("Pre-release of ")).toBe(true);
+  expect(notes).toContain("https://github.com/$GH_REPO/blob/$TAG/docs/adopting.md#upgrading");
+  expect(notes).not.toMatch(/[`]|\$\(|\$\{/);
+  const stable = stableWording({ tagName: "v0.2.0", name: "v0.2.0 (pre-release)", body: notes, isPrerelease: true, isDraft: false, assets: [] });
+  expect(stable.notes.startsWith("Release of ")).toBe(true);
+  expect(stable.notes).toContain("docs/adopting.md#upgrading");
+  expect(stable.title).toBe("v0.2.0");
 });

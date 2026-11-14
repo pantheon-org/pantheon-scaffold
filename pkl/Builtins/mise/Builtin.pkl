@@ -13,16 +13,17 @@ function files(opts: Config.Options): Mapping<String, Config.GenFile> =
   let (runner = opts.runnerVersion ?? packageVersion ?? throw("runnerVersion is not set and the package version cannot be read from a package URI: set options.runnerVersion when the package is loaded from a folder"))
     new {
       ["mise.toml"] = new Config.GenFile {
-        content =
-          read("assets/mise.toml.tmpl").text
-            .replaceAll("@@TOOLCHAIN@@", opts.toolchain)
-            .replaceAll("@@ACTIONLINT@@", Tools.actionlint)
-            .replaceAll("@@ZIZMOR@@", Tools.zizmor)
-            .replaceAll("@@RUMDL@@", Tools.rumdl)
-            .replaceAll("@@AGNIX@@", Tools.agnix)
-            .replaceAll("@@RUNNER@@", runner)
-            .replaceAll("@@MIN_RELEASE_AGE@@", Tools.minimumReleaseAge)
-            .replaceAll("@@LOCKFILE_PLATFORMS@@", Tools.lockfilePlatforms.map((p) -> "\"\(p)\"").join(", "))
+        template = read("assets/mise.toml.j2").text
+        context = new Mapping {
+          ["toolchain"] = opts.toolchain
+          ["actionlint"] = Tools.actionlint
+          ["zizmor"] = Tools.zizmor
+          ["rumdl"] = Tools.rumdl
+          ["agnix"] = Tools.agnix
+          ["runner"] = runner
+          ["minimumReleaseAge"] = Tools.minimumReleaseAge
+          ["lockfilePlatforms"] = Tools.lockfilePlatforms
+        }
       }
       ["mise.lock"] = new Config.GenFile { `class` = "external" }
       [".mise/conf.d/repo.toml"] = new Config.GenFile { `class` = "seed"; content = read("assets/mise-repo.toml").text }

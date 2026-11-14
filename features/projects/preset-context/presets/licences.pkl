@@ -1,0 +1,6 @@
+// Narrows the licences cargo-deny allows, by changing the context of deny.toml.
+import "@PACKAGE@/Config.pkl"
+import "@PACKAGE@/Presets.pkl"
+
+function apply(files: Mapping<String, Config.GenFile>): Mapping<String, Config.GenFile> =
+  Presets.amendContext(files, "deny.toml", new Mapping { ["licences"] = List("MIT", "Apache-2.0") })

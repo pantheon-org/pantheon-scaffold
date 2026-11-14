@@ -4,6 +4,7 @@ module pantheon.scaffold.builtins.CargoDeny
 
 import "../../Config.pkl"
 import "../Shared.pkl"
+import "../../Values.pkl"
 
 /// Checks the dependency tree against deny.toml.
 function workflow(opts: Config.Options): Config.Workflow = new {
@@ -36,6 +37,14 @@ function workflow(opts: Config.Options): Config.Workflow = new {
 
 /// The verbatim files of this builtin that `baseFiles()` renders: the policy `deny.toml` and the script that runs cargo-deny against it.
 function baseFiles(): Mapping<String, Config.GenFile> = new {
-  ["deny.toml"] = new Config.GenFile { content = read("assets/deny.toml").text }
+  ["deny.toml"] = new Config.GenFile {
+    template = read("assets/deny.toml.j2").text
+    context = new Mapping {
+      ["ignoreNote"] = Values.denyIgnoreNote
+      ["ignoreIds"] = Values.denyIgnoreIds
+      ["licences"] = Values.denyLicences
+      ["allowGit"] = Values.denyAllowGit
+    }
+  }
   [".github/scripts/cargo-deny.sh"] = new Config.GenFile { content = read("assets/cargo-deny.sh").text; executable = true }
 }

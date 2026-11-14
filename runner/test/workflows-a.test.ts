@@ -1,4 +1,4 @@
-import { assetPath, expectPins, unpin } from "./helpers";
+import { expectPins, unpin } from "./helpers";
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -40,8 +40,9 @@ test("wave A renders the six workflows and the four config files they use", () =
   ]);
 });
 
-test("the one per-file ignore in the package's .rumdl.toml is for the pull request template this contract renders", () => {
-  const toml = Bun.TOML.parse(readFileSync(join(root, assetPath("rumdl.toml")), "utf8")) as { "per-file-ignores"?: Record<string, string[]> };
+test("the one per-file ignore in the rendered .rumdl.toml is for the pull request template this contract renders", async () => {
+  const tooling = await render("tooling");
+  const toml = Bun.TOML.parse(file(tooling, ".rumdl.toml").content!) as { "per-file-ignores"?: Record<string, string[]> };
   const ignored = Object.keys(toml["per-file-ignores"] ?? {});
   expect(ignored).toHaveLength(1);
   expect(file(contract, ignored[0])).toBeDefined();

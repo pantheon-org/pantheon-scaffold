@@ -1,12 +1,12 @@
-amends "package://github.com/jdx/hk/releases/download/v@@HK_VERSION@@/hk@@@HK_VERSION@@#/Config.pkl"
-import "package://github.com/jdx/hk/releases/download/v@@HK_VERSION@@/hk@@@HK_VERSION@@#/Builtins.pkl"
+amends "package://github.com/jdx/hk/releases/download/v{{ hkVersion }}/hk@{{ hkVersion }}#/Config.pkl"
+import "package://github.com/jdx/hk/releases/download/v{{ hkVersion }}/hk@{{ hkVersion }}#/Builtins.pkl"
 import "hk.shared.pkl" as shared
 
 // This file is seeded once by pantheon-scaffold and is yours to edit. The steps every repository shares are in
 // hk.shared.pkl, which the runner renders and owns: do not edit that file. To add a step of your own, edit a hook below (a module can
 // define `hooks` only once), for example in the check hook
 //
-//   steps { ...shared.preCommit(); ["my-step"] { glob = List("*.txt"); check = "my-check {{files}}" } }
+//   steps { ...shared.preCommit(); ["my-step"] { glob = List("*.txt"); check = "my-check {% raw %}{{files}}{% endraw %}" } }
 //
 // Tools are pinned in mise.toml; HK_MISE=1 runs each hook under `mise x`.
 // `check` is the non-mutating verification (used by `hk check` and CI); `fix`

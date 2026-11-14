@@ -12,9 +12,9 @@
 
 set -euo pipefail
 
-version=$(sed -n 's/^version = "\(.*\)"$/\1/p' crates/@@CRATE@@/Cargo.toml | head -n 1)
+version=$(sed -n 's/^version = "\(.*\)"$/\1/p' crates/{{ crate }}/Cargo.toml | head -n 1)
 if [ -z "$version" ]; then
-  echo "::error::Could not read the crate version from crates/@@CRATE@@/Cargo.toml."
+  echo "::error::Could not read the crate version from crates/{{ crate }}/Cargo.toml."
   exit 1
 fi
 tag="v$version"

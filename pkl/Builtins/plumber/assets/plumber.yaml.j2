@@ -12,24 +12,24 @@ github:
     actionsMustBePinnedByCommitSha:
       enabled: true
       trustedOwners:
-        - actions
-        - github
+{% for o in trustedOwners %}
+        - {{ o }}
+{% endfor %}
     githubActionMustComeFromAuthorizedSources:
       enabled: true
       trustGithubOfficialActions: true
       trustSameOrgActions: true
       minimumStars: 0
       trustedGithubActions:
-        - getplumber/plumber
-        - googleapis/release-please-action # Release automation (release-please.yml)
-        - peter-evans/find-comment # PR comment lookup (agnix.yml)
-        - peter-evans/create-or-update-comment # PR comment upsert (agnix.yml)
-        - zizmorcore/zizmor-action # Workflow security scan (zizmor.yml); published by the zizmor project's own org, pinned by SHA
+{% for a in trustedActions %}
+        - {{ a }}
+{% endfor %}
     pipelineMustNotExecuteUnverifiedScripts:
       enabled: true
       trustedUrls:
-        - https://github.com/axodotdev/cargo-dist/releases/download/*
-        - https://sh.rustup.rs
+{% for u in trustedUrls %}
+        - {{ u }}
+{% endfor %}
     reusableWorkflowsMustNotInheritSecrets:
       enabled: true
     workflowMustNotExportEntireSecretsContext:

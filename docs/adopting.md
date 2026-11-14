@@ -204,6 +204,8 @@ It verifies the new release's attestation first, then rewrites the `amends` line
 
 **From 0.1.10, `Builtins.toolingFiles` and `Builtins.workflowFiles` take `options`.** `upgrade` moves the version, the checksum and the imports, but it does not rewrite the composition in `pantheon.pkl`, so when you go from 0.1.9 or earlier change `...Builtins.toolingFiles()` to `...Builtins.toolingFiles(options)` (and `workflowFiles` the same way, if you call it) by hand. pkl reports a call with a missing argument if you forget. The change makes `options.without` possible: see [Leaving builtins out](#leaving-builtins-out-optionswithout).
 
+**From the release that adds Jinja templates, the contract is version 2.** A runner older than the package refuses it with "the package needs a newer runner": run `upgrade`, which moves the runner pin and the package together, and the first render is then byte for byte what the old one wrote. The toml, yaml and json files a Builtin ships are templates now, rendered by the runner from values the package passes in (`docs/templates-design.md`). To change one value in such a file from a Preset, use `Presets.amendContext` (`docs/presets.md`) instead of editing the rendered text.
+
 Releases before 0.1.5 had two `upgrade` bugs, and they are on the known-bad list. If you are on 0.1.3 or earlier, the old runner moves only the `amends` line: edit the `Builtins.pkl` import to the new version by hand before the first `upgrade`. If you are on 0.1.2, 0.1.3 or 0.1.4, the render at the end of `upgrade` is refused for `mise.toml` (exit 3), because the old runner did not record its pin edit: read the refusal, check that the only difference is the runner pin, and run `render --force`.
 
 ## Rolling back

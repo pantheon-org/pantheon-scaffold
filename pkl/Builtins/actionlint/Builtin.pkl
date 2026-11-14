@@ -3,8 +3,15 @@
 module pantheon.scaffold.builtins.Actionlint
 
 import "../../Config.pkl"
+import "../../Values.pkl"
 
 /// The files of this builtin that `verbatimFiles()` renders.
 function verbatimFiles(): Mapping<String, Config.GenFile> = new {
-  [".github/actionlint.yaml"] = new Config.GenFile { content = read("assets/actionlint.yaml").text }
+  [".github/actionlint.yaml"] = new Config.GenFile {
+    template = read("assets/actionlint.yaml.j2").text
+    context = new Mapping {
+      ["releaseWorkflow"] = Values.releaseWorkflow
+      ["ignores"] = Values.actionlintIgnores
+    }
+  }
 }

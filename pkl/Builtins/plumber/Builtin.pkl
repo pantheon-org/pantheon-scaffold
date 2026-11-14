@@ -6,6 +6,7 @@ module pantheon.scaffold.builtins.Plumber
 import "../../Config.pkl"
 import "../../Pins.pkl"
 import "../Shared.pkl"
+import "../../Values.pkl"
 
 /// The CI/CD security scan of the repository's workflows (Plumber). Only a Critical finding blocks a pull request.
 function workflow(): Config.Workflow = new {
@@ -73,5 +74,12 @@ function workflow(): Config.Workflow = new {
 
 /// The verbatim configuration the workflow reads.
 function workflowFiles(): Mapping<String, Config.GenFile> = new {
-  [".plumber.yaml"] = new Config.GenFile { content = read("assets/plumber.yaml").text }
+  [".plumber.yaml"] = new Config.GenFile {
+    template = read("assets/plumber.yaml.j2").text
+    context = new Mapping {
+      ["trustedOwners"] = Values.plumberTrustedOwners
+      ["trustedActions"] = Values.plumberTrustedActions
+      ["trustedUrls"] = Values.plumberTrustedUrls
+    }
+  }
 }

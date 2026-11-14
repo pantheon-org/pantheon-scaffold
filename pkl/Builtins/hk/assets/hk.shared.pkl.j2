@@ -3,7 +3,7 @@
 // Tools are pinned in mise.toml; HK_MISE=1 runs each hook under `mise x`.
 module pantheon.hk.shared
 
-import "package://github.com/jdx/hk/releases/download/v@@HK_VERSION@@/hk@@@HK_VERSION@@#/Config.pkl" as hk
+import "package://github.com/jdx/hk/releases/download/v{{ hkVersion }}/hk@{{ hkVersion }}#/Config.pkl" as hk
 
 /// The steps of the pre-commit hook and of `hk check` and `hk fix`: fast, staged files only. `check` verifies, `fix` mutates.
 function preCommit(): Mapping<String, hk.Step> = new Mapping<String, hk.Step> {
@@ -14,18 +14,18 @@ function preCommit(): Mapping<String, hk.Step> = new Mapping<String, hk.Step> {
     }
     ["rumdl"] {
         glob = List("*.md")
-        check = "rumdl check --config .rumdl.toml {{files}}"
-        fix = "rumdl check --fix --config .rumdl.toml {{files}}"
+        check = "rumdl check --config .rumdl.toml {% raw %}{{files}}{% endraw %}"
+        fix = "rumdl check --fix --config .rumdl.toml {% raw %}{{files}}{% endraw %}"
     }
     ["yamllint"] {
         glob = List("*.yml", "*.yaml")
         shell = "sh -c"
-        check = "command -v yq >/dev/null 2>&1 && yq eval '.' {{files}} >/dev/null"
+        check = "command -v yq >/dev/null 2>&1 && yq eval '.' {% raw %}{{files}}{% endraw %} >/dev/null"
     }
     ["shellcheck"] {
         glob = List("*.sh")
         shell = "sh -c"
-        check = "command -v shellcheck >/dev/null 2>&1 && shellcheck {{files}}"
+        check = "command -v shellcheck >/dev/null 2>&1 && shellcheck {% raw %}{{files}}{% endraw %}"
     }
     // Catches workflow mistakes yamllint cannot: unknown keys, bad expressions,
     // `needs:` references, and shell problems inside `run:` blocks. Scoped to
@@ -35,7 +35,7 @@ function preCommit(): Mapping<String, hk.Step> = new Mapping<String, hk.Step> {
     ["actionlint"] {
         glob = List(".github/workflows/*.yml", ".github/workflows/*.yaml")
         shell = "sh -c"
-        check = "command -v actionlint >/dev/null 2>&1 && actionlint {{files}}"
+        check = "command -v actionlint >/dev/null 2>&1 && actionlint {% raw %}{{files}}{% endraw %}"
     }
 }
 
@@ -43,10 +43,10 @@ function preCommit(): Mapping<String, hk.Step> = new Mapping<String, hk.Step> {
 function prePush(): Mapping<String, hk.Step> = new Mapping<String, hk.Step> {
     ["clippy"] {
         glob = List("*.rs", "Cargo.toml", "Cargo.lock")
-        check = "cargo clippy --workspace --all-targets @@FEATURES@@--locked -- -D warnings"
+        check = "cargo clippy --workspace --all-targets {% if allFeatures %}--all-features {% endif %}--locked -- -D warnings"
     }
     ["test"] {
         glob = List("*.rs", "Cargo.toml", "Cargo.lock")
-        check = "cargo test --workspace @@FEATURES@@--locked"
+        check = "cargo test --workspace {% if allFeatures %}--all-features {% endif %}--locked"
     }
 }

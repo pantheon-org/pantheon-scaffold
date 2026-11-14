@@ -7,7 +7,7 @@
   "required": ["schemaVersion", "files", "pins", "escapeHatch"],
   "additionalProperties": false,
   "properties": {
-    "schemaVersion": { "const": 1 },
+    "schemaVersion": { "const": 2 },
     "files": {
       "type": "array",
       "items": {
@@ -19,6 +19,8 @@
           "class": { "enum": ["owned", "seed", "external"] },
           "mode": { "enum": ["0644", "0755"] },
           "content": { "type": "string" },
+          "template": { "type": "string" },
+          "context": { "type": "object" },
           "removeOnDetach": { "type": "boolean" }
         }
       }

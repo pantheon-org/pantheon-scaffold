@@ -4,7 +4,7 @@ export type FileClass = "owned" | "seed" | "external";
 export type ContractFile = { path: string; class: FileClass; mode: "0644" | "0755"; content?: string; removeOnDetach?: boolean };
 export type Pin = { action: string; sha: string; version: string };
 export type Contract = {
-  schemaVersion: 1;
+  schemaVersion: 2;
   files: ContractFile[];
   pins: Pin[];
   escapeHatch: { uses: number; constructs: number };
@@ -16,7 +16,7 @@ export type Contract = {
   securityBuiltins?: { name: string; enabled: boolean }[];
 };
 
-export const SUPPORTED_SCHEMA_VERSION = 1;
+export const SUPPORTED_SCHEMA_VERSION = 2;
 
 export class ContractError extends Error {}
 

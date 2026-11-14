@@ -51,7 +51,7 @@ Paths in `presets { }` are relative to the directory of `pantheon.pkl`, and must
 
 ## The helpers
 
-`Presets.pkl` has five helpers. Each one fails, naming what exists, when what you ask for is not there. Plain pkl does not: amending a workflow or job the package no longer has silently creates an empty one, and your change would stop working without a word.
+`Presets.pkl` has six helpers. Each one fails, naming what exists, when what you ask for is not there. Plain pkl does not: amending a workflow or job the package no longer has silently creates an empty one, and your change would stop working without a word.
 
 | Helper | Changes | Fails when |
 |---|---|---|
@@ -60,6 +60,7 @@ Paths in `presets { }` are relative to the directory of `pantheon.pkl`, and must
 | `amendStep(job, name, change)` | the step with that `name` | no step has that name. The message lists the names. |
 | `insertStepsBefore(job, name, steps)` | adds steps before the step with that `name` | no step has that name |
 | `amendFile(files, path, change)` | one file of a mapping | there is no such file. The message lists the files. |
+| `amendContext(files, path, overrides)` | the variables of a template file, each replaced whole | the file is not a template, or the context has no such key. The message lists the keys. |
 
 A step is found by its `name`. A step without one cannot be targeted.
 
@@ -143,6 +144,7 @@ Editing a Preset is how you change what is rendered: edit it and run `render`. I
 |---|---|
 | `preset: workflow "rust-cii" is not a builtin of this package version. Builtins: ...` | A typo, a package that no longer has that workflow, or a builtin that `options.without` leaves out (the message ends by saying so). |
 | `preset: job "build" does not exist in workflow "Rust CI". Jobs: build-test` | The same, for a job. |
+| `preset: context key "licenses" does not exist in the template "deny.toml". Keys: ...` | A misspelt variable, or a package version that renamed it. The message lists the keys. |
 | `preset presets/x.pkl is listed by pantheon.pkl but the file does not exist` | `presets { }` lists a file that is not there. |
 | `pantheon.pkl does not evaluate with 0.1.8, so nothing was changed:` followed by pkl's message | `upgrade` found that the new package breaks the config or a Preset. |
 | `#/presets/0: does not match ...` | A path in `presets { }` is not a `.pkl` file under `presets/`. |

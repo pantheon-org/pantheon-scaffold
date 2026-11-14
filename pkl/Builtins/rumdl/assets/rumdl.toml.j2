@@ -2,7 +2,7 @@
 # Same rules switched off as the tekhne configuration.
 
 [global]
-disable = ["MD060", "MD032", "MD013", "MD022", "MD024", "MD031", "MD037", "MD040", "MD047"]
+disable = [{% for r in disabled %}"{{ r }}"{% if not loop.last %}, {% endif %}{% endfor %}]
 include = ["**/*.md"]
 exclude = ["target/**"]
 
@@ -12,4 +12,4 @@ code-blocks = false
 # The pull request template starts with an HTML comment and a level 2 heading, so MD041 can never pass for it.
 # Every other file is still checked by MD041.
 [per-file-ignores]
-".github/pull_request_template.md" = ["MD041"]
+"{{ prTemplatePath }}" = ["MD041"]

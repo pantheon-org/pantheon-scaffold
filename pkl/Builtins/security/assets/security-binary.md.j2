@@ -34,8 +34,10 @@ repository's stated contact channel rather than a public issue.
 
 In scope:
 
-- The `pantheon-@@CRATE@@` CLI under `crates/@@CRATE@@/`, including `skill install`.
-@@SKILL_LINE@@
+- The `pantheon-{{ crate }}` CLI under `crates/{{ crate }}/`, including `skill install`.
+{% if skills %}
+- The bundled `{{ skill }}` skill and its scripts.
+{% endif %}
 - The release installers and archives built by the release workflow.
 - CI/CD workflows under `.github/workflows/`.
 

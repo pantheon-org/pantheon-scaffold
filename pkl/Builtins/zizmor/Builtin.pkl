@@ -6,6 +6,7 @@ import "../../Config.pkl"
 import "../../Pins.pkl"
 import "../../Tools.pkl"
 import "../Shared.pkl"
+import "../../Values.pkl"
 
 /// The zizmor security scan of the workflows. It reads .github/zizmor.yml when the repository has a binary (the config silences findings in the
 /// cargo-dist generated release.yml), and also scans action.yml when the repository has its own composite action.
@@ -60,6 +61,16 @@ function workflow(opts: Config.Options): Config.Workflow =
 /// The zizmor configuration that `analysisFiles()` renders, for a repository with a binary (the variant with the extra entry for action.yml when there is a composite action).
 function analysisFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
   when (opts.binary) {
-    [".github/zizmor.yml"] = new Config.GenFile { content = read(if (opts.compositeAction) "assets/zizmor-composite.yml" else "assets/zizmor.yml").text }
+    [".github/zizmor.yml"] = new Config.GenFile {
+      template = read("assets/zizmor.yml.j2").text
+      context = new Mapping {
+        ["composite"] = opts.compositeAction
+        ["releaseWorkflow"] = Values.releaseWorkflow
+        ["githubEnv"] = Values.zizmorGithubEnv
+        ["excessivePermissions"] = Values.zizmorExcessivePermissions
+        ["templateInjection"] = Values.zizmorTemplateInjection
+        ["unpinnedImages"] = Values.zizmorUnpinnedImages
+      }
+    }
   }
 }

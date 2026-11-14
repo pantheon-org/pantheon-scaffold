@@ -38,7 +38,7 @@ fn contract_json(files: &[(&str, &str, &str)]) -> String {
         })
         .collect();
     serde_json::json!({
-        "schemaVersion": 1, "files": files, "pins": [],
+        "schemaVersion": 2, "files": files, "pins": [],
         "escapeHatch": {"uses": 0, "constructs": 0}, "packageUri": "@URI@#/Config.pkl"
     })
     .to_string()

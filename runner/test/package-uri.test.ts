@@ -71,7 +71,8 @@ test("a consumer that pins the package with its checksum still gets a packageUri
 for (const pinChecksum of [false, true]) {
   test(`the mise builtin pins the runner at the package version when loaded from a package URI${pinChecksum ? " that carries the pinned checksum" : ""}`, async () => {
     const json = await renderThroughPackage(`import "@@BUILTINS@@"\noptions { toolchain = "1.96.1" }\nfiles { ...Builtins.miseFiles(options) }`, { pinChecksum });
-    const mise = json.files.find((f: { path: string }) => f.path === "mise.toml").content as string;
-    expect(mise).toContain(`"github:pantheon-org/pantheon-scaffold" = "${VERSION}"`);
+    const mise = json.files.find((f: { path: string }) => f.path === "mise.toml");
+    expect(mise.template).toContain(`"github:pantheon-org/pantheon-scaffold" = "{{ runner }}"`);
+    expect(mise.context.runner).toBe(VERSION);
   });
 }

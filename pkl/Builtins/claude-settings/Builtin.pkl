@@ -3,8 +3,15 @@
 module pantheon.scaffold.builtins.ClaudeSettings
 
 import "../../Config.pkl"
+import "../../Values.pkl"
 
-/// The verbatim file of this builtin that `toolingFiles()` renders.
+/// The file of this builtin that `toolingFiles()` renders.
 function toolingFiles(): Mapping<String, Config.GenFile> = new {
-  [".claude/settings.json"] = new Config.GenFile { content = read("assets/claude-settings.json").text }
+  [".claude/settings.json"] = new Config.GenFile {
+    template = read("assets/claude-settings.json.j2").text
+    context = new Mapping {
+      ["schemaUrl"] = Values.claudeSettingsSchemaUrl
+      ["sessionUrl"] = Values.claudeSessionUrl
+    }
+  }
 }

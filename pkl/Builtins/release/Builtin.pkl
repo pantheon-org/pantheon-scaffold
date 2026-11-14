@@ -3,7 +3,9 @@
 module pantheon.scaffold.builtins.Release
 
 import "../../Config.pkl"
+import "../../Pins.pkl"
 import "../../Tools.pkl"
+import "../../Values.pkl"
 import "../Shared.pkl"
 
 /// The drift check of the generated release.yml (`binary`). `dist generate --check` fails when release.yml is not what cargo-dist would write
@@ -55,6 +57,17 @@ local distPaths: Listing<String> = new {
 /// The cargo-dist configuration and the generated release workflow that `verbatimFiles()` renders for a repository with a binary. `release.yml` is
 /// external: `dist generate` writes it, and the `dist-check` workflow above verifies it against `dist-workspace.toml`.
 function verbatimFiles(): Mapping<String, Config.GenFile> = new {
-  ["dist-workspace.toml"] = new Config.GenFile { content = read("assets/dist-workspace.toml").text }
+  ["dist-workspace.toml"] = new Config.GenFile {
+    template = read("assets/dist-workspace.toml.j2").text
+    context = new Mapping {
+      ["dist"] = Tools.dist
+      ["targets"] = Values.distTargets
+      ["linuxRunner"] = Values.linuxRunner
+      ["macosRunner"] = Values.macosRunner
+      ["checkoutSha"] = Pins.checkout.sha
+      ["uploadArtifactSha"] = Values.distUploadArtifactSha
+      ["downloadArtifactSha"] = Values.distDownloadArtifactSha
+    }
+  }
   [".github/workflows/release.yml"] = new Config.GenFile { `class` = "external" }
 }

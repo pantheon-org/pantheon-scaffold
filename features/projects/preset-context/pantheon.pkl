@@ -1,0 +1,9 @@
+amends "@PACKAGE@/Config.pkl"
+import "@PACKAGE@/Builtins.pkl"
+import "presets/licences.pkl" as licences
+
+options { toolchain = "1.96.1"; skills = false; binary = false }
+
+presets { "presets/licences.pkl" }
+
+files = licences.apply(Builtins.baseFiles(options))

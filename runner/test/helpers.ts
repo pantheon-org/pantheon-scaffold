@@ -27,7 +27,7 @@ export const modeOf = (root: string, rel: string): string => (statSync(join(root
 export const owned = (path: string, content: string, mode: "0644" | "0755" = "0644"): ContractFile => ({ path, class: "owned", mode, content });
 export const seed = (path: string, content: string): ContractFile => ({ path, class: "seed", mode: "0644", content });
 export const external = (path: string): ContractFile => ({ path, class: "external", mode: "0644" });
-export const contractOf = (...files: ContractFile[]): Contract => ({ schemaVersion: 1, files, pins: [], escapeHatch: { uses: 0, constructs: 0 } });
+export const contractOf = (...files: ContractFile[]): Contract => ({ schemaVersion: 2, files, pins: [], escapeHatch: { uses: 0, constructs: 0 } });
 
 /** Runs git in a directory with the GIT_* variables removed, so a hook or worktree environment cannot redirect it. */
 export function git(dir: string, ...args: string[]): string {

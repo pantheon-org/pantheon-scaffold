@@ -10,13 +10,15 @@ import "../../Tools.pkl"
 /// library repository's `--all-features` in the pre-push clippy and test steps. Checked against real hk in hk.test.ts.
 function files(opts: Config.Options): Mapping<String, Config.GenFile> = new {
   ["hk.shared.pkl"] = new Config.GenFile {
-    content =
-      read("assets/hk.shared.pkl.tmpl").text
-        .replaceAll("@@HK_VERSION@@", Tools.hkConfigVersion)
-        .replaceAll("@@FEATURES@@", if (opts.features == "all") "--all-features " else "")
+    template = read("assets/hk.shared.pkl.j2").text
+    context = new Mapping {
+      ["hkVersion"] = Tools.hkConfigVersion
+      ["allFeatures"] = opts.features == "all"
+    }
   }
   ["hk.pkl"] = new Config.GenFile {
     `class` = "seed"
-    content = read("assets/hk.pkl.tmpl").text.replaceAll("@@HK_VERSION@@", Tools.hkConfigVersion)
+    template = read("assets/hk.pkl.j2").text
+    context = new Mapping { ["hkVersion"] = Tools.hkConfigVersion }
   }
 }

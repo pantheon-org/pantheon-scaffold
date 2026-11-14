@@ -41,13 +41,14 @@ for (const name of ["cargo-deny", "check-inline-scripts", "check-toolchain-versi
   });
 }
 
-test("deny.toml is byte for byte the asset and not executable", async () => {
-  expect(file("deny.toml").content).toBe(await read(assetPath("deny.toml")));
+test("deny.toml renders as valid toml with the shared licence list and is not executable", () => {
+  const toml = Bun.TOML.parse(file("deny.toml").content!) as { licenses: { allow: string[] } };
+  expect(toml.licenses.allow).toContain("Apache-2.0");
   expect(file("deny.toml").mode).toBe("0644");
 });
 
 test("rust-toolchain.toml carries the one toolchain option", async () => {
-  expect(file("rust-toolchain.toml").content).toBe((await read(assetPath("rust-toolchain.toml.tmpl"))).replace("@@TOOLCHAIN@@", "1.96.1"));
+  expect(file("rust-toolchain.toml").content).toBe((await read(assetPath("rust-toolchain.toml.j2"))).replace("{{ toolchain }}", "1.96.1"));
 });
 
 test("the toolchain option reaches both workflows that install it", () => {

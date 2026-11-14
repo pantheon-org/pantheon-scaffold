@@ -28,6 +28,7 @@ pub mod preflight;
 pub mod presets;
 pub mod render;
 pub mod semver;
+pub mod template;
 #[cfg(test)]
 mod testutil;
 pub mod upgrade;

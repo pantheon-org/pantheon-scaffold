@@ -5,14 +5,13 @@ module pantheon.scaffold.builtins.Coderabbit
 import "../../Config.pkl"
 import "../Shared.pkl"
 
-/// The files of this builtin that `parameterisedFiles()` renders.
+/// The files of this builtin that `parameterisedFiles()` renders. The path filter for the bundled skill is in the file only when `skills` is on.
 function parameterisedFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
   [".coderabbit.yaml"] = new Config.GenFile {
-    content =
-      let (text = read("assets/coderabbit.yaml.tmpl").text)
-      if (opts.skills)
-        text.replaceAll("@@SKILL@@", Shared.needSkillName(opts))
-      else
-        text.replaceAll("    # Covered by the Audit Skill workflow; avoid a second opinion on the same diff.\n    - \"!skills/@@SKILL@@/**\"\n", "")
+    template = read("assets/coderabbit.yaml.j2").text
+    context = new Mapping {
+      ["skills"] = opts.skills
+      ["skill"] = if (opts.skills) Shared.needSkillName(opts) else ""
+    }
   }
 }

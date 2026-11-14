@@ -86,7 +86,8 @@ local function bareCheckout(stepName: String): Config.Step = new {
 function parameterisedFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
   when (opts.binary) {
     [".github/scripts/tag-release.sh"] = new Config.GenFile {
-      content = read("assets/tag-release.sh.tmpl").text.replaceAll("@@CRATE@@", Shared.needCrateName(opts))
+      template = read("assets/tag-release.sh.j2").text
+      context = new Mapping { ["crate"] = Shared.needCrateName(opts) }
       executable = true
     }
   }

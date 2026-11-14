@@ -68,3 +68,21 @@ function insertStepsBefore(
     let (all = j.steps.toList())
     let (index = all.findIndex((s) -> s.name == name))
       (j) { steps = (all.take(index) + added + all.drop(index)).toListing() }
+
+/// Replaces the context keys `overrides` names in the template file at `path`, and returns the whole mapping. A key is replaced whole, never
+/// merged. Fails, naming the keys there are, when the file has no template or the context has no such key, so a misspelt key cannot do nothing.
+function amendContext(
+  base: Mapping<String, Config.GenFile>,
+  path: String,
+  overrides: Mapping<String, Any>
+): Mapping<String, Config.GenFile> =
+  amendFile(base, path, (f) ->
+    if (f.template == null)
+      throw("preset: file \"\(path)\" is not a template, so it has no context. Change its content with amendFile, or replace the file.")
+    else
+      let (keys = f.context?.keys?.toList() ?? List())
+      let (absent = overrides.keys.toList().filter((k) -> !keys.contains(k)))
+        if (!absent.isEmpty)
+          throw("preset: context key \"\(absent.first)\" does not exist in the template \"\(path)\". Keys: \(keys.sort().join(", "))")
+        else
+          (f) { context = (f.context) { ...overrides } })

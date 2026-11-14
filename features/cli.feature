@@ -32,5 +32,5 @@ Feature: command line
   Scenario: contract --json prints the contract
     When I run "contract <fixture:minimal> --json --allow-local-package <package>"
     Then the exit code is 0
-    And the output contains '"schemaVersion":1'
+    And the output contains '"schemaVersion":2'
     And the output contains '"path":"rust-toolchain.toml"'

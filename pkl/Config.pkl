@@ -8,7 +8,7 @@ import "pkl:reflect"
 import "Pins.pkl"
 
 /// Version of the JSON document. The runner rejects any other value.
-const schemaVersion: Int = 1
+const schemaVersion: Int = 2
 
 /// The oldest runner that can render this package. Raise it by hand in the release that needs a newer runner.
 const requiresRunner: String = "0.0.0"
@@ -96,8 +96,12 @@ class GenFile {
   /// owned: rewritten by the runner and refused if hand-edited. seed: written once.
   /// external: listed but never written, hashed or deleted (for example mise.lock).
   `class`: FileClass = "owned"
-  /// Absent for an external file.
+  /// Absent for an external file, and for a file that has a `template`.
   content: String?
+  /// Jinja source the runner renders with `context` (minijinja, strict undefined). Set this or `content`, not both.
+  template: String?
+  /// The values `template` reads: strings, booleans, integers, lists and mappings. Every variable the template reads must be here.
+  context: Mapping<String, Any>?
   executable: Boolean = false
   /// The runner deletes this owned file on `detach`, for a file that would fail on every run once detached (the consumer upgrade workflow).
   removeOnDetach: Boolean = false
@@ -203,7 +207,11 @@ contract: Dynamic = new Dynamic {
         path = filePath
         `class` = f.`class`
         mode = if (f.executable) "0755" else "0644"
-        when (f.`class` != "external") { content = f.content }
+        when (f.`class` != "external" && f.template == null) { content = f.content }
+        when (f.template != null) {
+          template = f.template
+          when (f.context != null) { context = f.context }
+        }
         when (f.removeOnDetach) { removeOnDetach = true }
       }
   ).toListing()

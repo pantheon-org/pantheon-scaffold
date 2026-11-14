@@ -2027,7 +2027,7 @@ mod tests {
         );
         assert_eq!((code, err.as_str()), (EXIT_OK, ""));
         let json: serde_json::Value = serde_json::from_str(out.trim()).expect("one JSON document");
-        assert_eq!(json["schemaVersion"], 1);
+        assert_eq!(json["schemaVersion"], 2);
         assert_eq!(json["files"].as_array().map(Vec::len), Some(4));
         // render with --json still renders: it prints the plan, not the contract.
         let repo = tempfile::tempdir().unwrap();

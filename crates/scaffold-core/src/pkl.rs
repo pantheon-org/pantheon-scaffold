@@ -281,7 +281,7 @@ mod tests {
     fn the_minimal_fixture_evaluates_to_a_contract() {
         let fixture = root().join("runner/test/fixtures/minimal/pantheon.pkl");
         let json = eval_contract_json(&fixture, &root(), &EvalOptions::default()).unwrap();
-        assert_eq!(json["schemaVersion"], 1);
+        assert_eq!(json["schemaVersion"], 2);
         assert!(json["files"].as_array().unwrap().len() >= 4);
     }
 

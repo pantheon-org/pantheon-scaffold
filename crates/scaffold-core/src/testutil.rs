@@ -55,6 +55,8 @@ pub fn owned(path: &str, content: &str, mode: Mode) -> ContractFile {
         class: FileClass::Owned,
         mode,
         content: Some(content.into()),
+        template: None,
+        context: None,
         remove_on_detach: None,
     }
 }
@@ -65,6 +67,8 @@ pub fn seed(path: &str, content: &str) -> ContractFile {
         class: FileClass::Seed,
         mode: Mode::Regular,
         content: Some(content.into()),
+        template: None,
+        context: None,
         remove_on_detach: None,
     }
 }
@@ -75,13 +79,15 @@ pub fn external(path: &str) -> ContractFile {
         class: FileClass::External,
         mode: Mode::Regular,
         content: None,
+        template: None,
+        context: None,
         remove_on_detach: None,
     }
 }
 
 pub fn contract_of(files: Vec<ContractFile>) -> Contract {
     Contract {
-        schema_version: 1,
+        schema_version: 2,
         files,
         pins: Vec::new(),
         escape_hatch: EscapeHatch {

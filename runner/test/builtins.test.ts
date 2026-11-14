@@ -9,7 +9,7 @@ import type { Schema } from "../src/schema";
 const root = join(import.meta.dir, "../..");
 const read = (p: string) => Bun.file(join(root, p)).text();
 const schema = (await Bun.file(join(root, "contract.schema.json")).json()) as Schema;
-const contract = parseContract(await evalContractJson(join(import.meta.dir, "fixtures/slice/pantheon.pkl"), root, { allowFilesUnder: [join(root, "pkl")] }), schema);
+const contract = parseContract(await evalContractJson(join(import.meta.dir, "fixtures/slice/scaffold.pkl"), root, { allowFilesUnder: [join(root, "pkl")] }), schema);
 const file = (path: string) => contract.files.find((f) => f.path === path)!;
 
 test("the slice renders the three workflows, five verbatim files and no external file", () => {

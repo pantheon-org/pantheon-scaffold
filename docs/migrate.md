@@ -4,7 +4,7 @@ Written for the owner of a repository that already has its own workflows and fil
 
 ```sh
 pantheon-scaffold migrate --toolchain 1.96.1            # lists every file, writes nothing
-pantheon-scaffold migrate --toolchain 1.96.1 --write    # writes pantheon.pkl and the new files
+pantheon-scaffold migrate --toolchain 1.96.1 --write    # writes scaffold.pkl and the new files
 mise lock                                               # then commit
 ```
 
@@ -29,12 +29,12 @@ The last line gives the four counts: `migrate: 2 identical, 1 drifted, 38 new, 3
 
 ```sh
 pantheon-scaffold migrate --toolchain 1.96.1 --as-presets           # lists the Presets it would write
-pantheon-scaffold migrate --toolchain 1.96.1 --write --as-presets   # writes them, pantheon.pkl and the new files
+pantheon-scaffold migrate --toolchain 1.96.1 --write --as-presets   # writes them, scaffold.pkl and the new files
 ```
 
-Each drifted file becomes one Preset under `presets/`, named after the file (`presets/aislop.pkl` for `.github/workflows/aislop.yml`; a name already taken gets `-2`, `-3`). The Preset holds the whole file as it was and replaces the Builtin's file with it. Its header lists what differed when it was written. `pantheon.pkl` imports it, lists it under `presets { }` and applies it, as in [presets.md](presets.md), so `check` lists it, the manifest records its hash, `upgrade` moves its package import, and `detach` leaves it alone.
+Each drifted file becomes one Preset under `presets/`, named after the file (`presets/aislop.pkl` for `.github/workflows/aislop.yml`; a name already taken gets `-2`, `-3`). The Preset holds the whole file as it was and replaces the Builtin's file with it. Its header lists what differed when it was written. `scaffold.pkl` imports it, lists it under `presets { }` and applies it, as in [presets.md](presets.md), so `check` lists it, the manifest records its hash, `upgrade` moves its package import, and `detach` leaves it alone.
 
-A Preset made this way is a **fork**: the file no longer follows the Builtin when the package changes. That is the price of keeping it as it was. To follow the Builtin again, delete the Preset, take it out of `pantheon.pkl` and render.
+A Preset made this way is a **fork**: the file no longer follows the Builtin when the package changes. That is the price of keeping it as it was. To follow the Builtin again, delete the Preset, take it out of `scaffold.pkl` and render.
 
 Before it writes anything, `migrate` evaluates the new config with the Presets and compares again. If any file still differs it stops with exit 1 and writes nothing. A file that is not UTF-8 text cannot be kept this way and stops the run. It never overwrites a file under `presets/`.
 
@@ -44,7 +44,7 @@ Use it when the drift is only age: the repository has an older `dependabot.yml`,
 
 ```sh
 pantheon-scaffold migrate --toolchain 1.96.1 --accept-builtins           # lists the drift, checks git, writes nothing
-pantheon-scaffold migrate --toolchain 1.96.1 --accept-builtins --write   # replaces every drifted file, writes pantheon.pkl and the new files
+pantheon-scaffold migrate --toolchain 1.96.1 --accept-builtins --write   # replaces every drifted file, writes scaffold.pkl and the new files
 git diff                                                                  # read what was replaced, then commit
 ```
 
@@ -64,14 +64,14 @@ It is for first adoption. It does not change files a manifest already records, a
 |---|---|
 | 0 | A report was produced (even with drift), or `--write` finished. |
 | 2 | `--toolchain` is missing or an option does not fit (for example `--binary` without `--crate-name`, or `--accept-builtins` with `--as-presets`). |
-| 3 | `pantheon.pkl` already exists, or `--write` was asked while a file has drifted (and neither `--as-presets` nor `--accept-builtins`), or `--accept-builtins --write` found that git cannot hold what it would replace, or the render would be refused. Nothing is written. |
+| 3 | `scaffold.pkl` already exists, or `--write` was asked while a file has drifted (and neither `--as-presets` nor `--accept-builtins`), or `--accept-builtins --write` found that git cannot hold what it would replace, or the render would be refused. Nothing is written. |
 | 1 | An error: the release could not be verified, a file could not be read, or the Presets would not reproduce a file. |
 
 ## What it never does
 
 - It never deletes a file.
 - It never overwrites a file that has drifted, unless you add `--accept-builtins` and `--write` in a clean git tree (with `--as-presets` the file is kept by a Preset and is not changed). It overwrites an identical YAML file only to replace it with the same content in the render's text.
-- A failure after `pantheon.pkl` is written takes it back, as `init` does.
+- A failure after `scaffold.pkl` is written takes it back, as `init` does.
 
 ## Checks
 

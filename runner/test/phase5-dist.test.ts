@@ -13,7 +13,7 @@ import { expectPins, unpin } from "./helpers";
 const root = join(import.meta.dir, "../..");
 const schema = (await Bun.file(join(root, "contract.schema.json")).json()) as Schema;
 const render = async (fixture: string) =>
-  parseContract(await evalContractJson(join(import.meta.dir, "fixtures", fixture, "pantheon.pkl"), root, { allowFilesUnder: [join(root, "pkl")] }), schema);
+  parseContract(await evalContractJson(join(import.meta.dir, "fixtures", fixture, "scaffold.pkl"), root, { allowFilesUnder: [join(root, "pkl")] }), schema);
 const adr = await render("real-workflows-pantheon-adr");
 const kit = await render("real-workflows-pantheon-agentic-harness-dev-kit");
 const file = (c: typeof adr, p: string) => c.files.find((f) => f.path === p);

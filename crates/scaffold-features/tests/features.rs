@@ -83,7 +83,7 @@ impl ScaffoldWorld {
                 .checkout
                 .join("runner/test/fixtures")
                 .join(name)
-                .join("pantheon.pkl")
+                .join("scaffold.pkl")
                 .display()
                 .to_string();
         }
@@ -345,7 +345,7 @@ fn copy_project(from: &Path, to: &Path, package: &str) {
     }
 }
 
-/// A small repository from `features/projects/NAME`: a `pantheon.pkl` and the `presets/` it uses.
+/// A small repository from `features/projects/NAME`: a `scaffold.pkl` and the `presets/` it uses.
 #[given(expr = "the project {string}")]
 fn the_project(world: &mut ScaffoldWorld, name: String) {
     let package = world.checkout.join("pkl").display().to_string();

@@ -115,7 +115,7 @@ Feature: which release to use, and whether the pins are fresh
 
   @upgrade
   Scenario: upgrade refuses a version that is not a version
-    Given I write 'amends "package://github.com/pantheon-org/pantheon-scaffold/releases/download/v0.1.0/pantheon-scaffold@0.1.0#/Config.pkl"\n' to the file "pantheon.pkl"
+    Given I write 'amends "package://github.com/pantheon-org/pantheon-scaffold/releases/download/v0.1.0/pantheon-scaffold@0.1.0#/Config.pkl"\n' to the file "scaffold.pkl"
     And I write '[tools]\n"github:pantheon-org/pantheon-scaffold" = "0.1.0"\n' to the file "mise.toml"
     When I run "upgrade banana --root <repo>"
     Then the exit code is 1
@@ -123,7 +123,7 @@ Feature: which release to use, and whether the pins are fresh
 
   @upgrade
   Scenario: upgrade to the version already pinned is an error
-    Given I write 'amends "package://github.com/pantheon-org/pantheon-scaffold/releases/download/v0.1.0/pantheon-scaffold@0.1.0#/Config.pkl"\n' to the file "pantheon.pkl"
+    Given I write 'amends "package://github.com/pantheon-org/pantheon-scaffold/releases/download/v0.1.0/pantheon-scaffold@0.1.0#/Config.pkl"\n' to the file "scaffold.pkl"
     And I write '[tools]\n"github:pantheon-org/pantheon-scaffold" = "0.1.0"\n' to the file "mise.toml"
     When I run "upgrade 0.1.0 --root <repo>"
     Then the exit code is 1
@@ -131,7 +131,7 @@ Feature: which release to use, and whether the pins are fresh
 
   @upgrade
   Scenario: upgrade to an older version needs --force
-    Given I write 'amends "package://github.com/pantheon-org/pantheon-scaffold/releases/download/v0.1.0/pantheon-scaffold@0.1.0#/Config.pkl"\n' to the file "pantheon.pkl"
+    Given I write 'amends "package://github.com/pantheon-org/pantheon-scaffold/releases/download/v0.1.0/pantheon-scaffold@0.1.0#/Config.pkl"\n' to the file "scaffold.pkl"
     And I write '[tools]\n"github:pantheon-org/pantheon-scaffold" = "0.1.0"\n' to the file "mise.toml"
     When I run "upgrade 0.0.9 --root <repo>"
     Then the exit code is 1

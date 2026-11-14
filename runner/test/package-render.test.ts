@@ -11,7 +11,7 @@ const root = join(import.meta.dir, "../..");
 
 test("the rendered workflows carry version comments and still equal the pinned upstream copies", async () => {
   const repo = tempRepo();
-  const r = await runScaffold(["render", join(root, "runner/test/fixtures/slice/pantheon.pkl"), "--root", repo, "--allow-local-package", join(root, "pkl")], root);
+  const r = await runScaffold(["render", join(root, "runner/test/fixtures/slice/scaffold.pkl"), "--root", repo, "--allow-local-package", join(root, "pkl")], root);
   expect(r.code).toBe(0);
   for (const name of ["cargo-deny", "inline-scripts", "rust-ci"]) {
     const text = get(repo, `.github/workflows/${name}.yml`);

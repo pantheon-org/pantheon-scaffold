@@ -6,7 +6,7 @@ How to put one Rust repository under the scaffold, keep it there, and take it ou
 
 ## What you get
 
-A `pantheon.pkl` in your repository says which options you use. The runner renders a set of shared files from the package into your repository and keeps them in step.
+A `scaffold.pkl` in your repository says which options you use. The runner renders a set of shared files from the package into your repository and keeps them in step.
 
 | Kind | Meaning | Examples |
 |---|---|---|
@@ -70,7 +70,7 @@ gh attestation verify checksums.txt --repo pantheon-org/pantheon-scaffold
 grep ' pantheon-scaffold@VERSION$' checksums.txt      # the checksum to use below
 ```
 
-### 3. Write `pantheon.pkl`
+### 3. Write `scaffold.pkl`
 
 Replace `SUM` with the checksum from the last command. This example is the one used for the Rust tools with a binary and a skill; the options are explained in the next section.
 
@@ -99,15 +99,15 @@ files {
 ### 4. Look before you write, then render
 
 ```sh
-mise x -- pantheon-scaffold render pantheon.pkl --dry-run
+mise x -- pantheon-scaffold render scaffold.pkl --dry-run
 ```
 
 The first render refuses every file that already exists and differs from the package's (exit 3), and lists them. That is the safe default. Look at each. When you accept the package's version of them, render with `--force`:
 
 ```sh
-mise x -- pantheon-scaffold render pantheon.pkl --force
-mise x -- pantheon-scaffold check pantheon.pkl      # exit 0: every owned file matches
-mise x -- pantheon-scaffold render pantheon.pkl     # writes 0 files
+mise x -- pantheon-scaffold render scaffold.pkl --force
+mise x -- pantheon-scaffold check scaffold.pkl      # exit 0: every owned file matches
+mise x -- pantheon-scaffold render scaffold.pkl     # writes 0 files
 ```
 
 Commit the result, including `.pkl-gen/manifest.json` (what the runner knows it wrote) and `mise.lock`. Do **not** commit `.pkl-gen/cache/`: the rendered `.gitignore` already ignores it.
@@ -186,8 +186,8 @@ Work on a branch cut from an up-to-date main, with nothing uncommitted. The runn
 
 | Command | What it does | Exit |
 |---|---|---|
-| `check pantheon.pkl` | renders in memory, compares with the files on disk, writes nothing | 0 match, 4 drift |
-| `render pantheon.pkl` | writes what changed, refuses a hand edit | 3 refused |
+| `check scaffold.pkl` | renders in memory, compares with the files on disk, writes nothing | 0 match, 4 drift |
+| `render scaffold.pkl` | writes what changed, refuses a hand edit | 3 refused |
 | `upgrade VERSION` | moves the pins, installs and locks the new runner, renders | see below |
 | `detach` | ends management, keeps every file | 0 |
 
@@ -212,8 +212,8 @@ Releases before 0.1.5 had two `upgrade` bugs, and they are on the known-bad list
 
 ```sh
 mise x -- pantheon-scaffold upgrade OLDVERSION --force   # moves the pins; its render is refused, exit 3
-mise x -- pantheon-scaffold render pantheon.pkl --force  # renders the older package
-mise x -- pantheon-scaffold check pantheon.pkl
+mise x -- pantheon-scaffold render scaffold.pkl --force  # renders the older package
+mise x -- pantheon-scaffold check scaffold.pkl
 ```
 
 Rolling back is two steps on purpose: the runner refuses to render an older package than the one that last rendered, and `upgrade` does not pass `--force` on, because that would also overwrite hand edits. A release that turns out to be bad is superseded by the next patch version and listed in `known-bad.json`. It is never deleted or re-published.
@@ -264,7 +264,7 @@ A claim in this guide, and the test or the proof line that shows it. A path is a
 | Each option adds and removes exactly the files listed | `runner/test/phase5-toggles.test.ts`, [feature-toggles.md](feature-toggles.md); Report, wave A (the four repositories cover the variants) |
 | A toggle that needs a name stops with an error naming the option | `runner/test/phase5-toggles.test.ts` |
 | The render changes a real repository only in the ways listed | Report, wave A (every difference categorised, none uncategorised) and the sample check ([sample-check-0.1.5.md](../archive/proof/docs/sample-check-0.1.5.md), 19 of 19 confirmed) |
-| The first-time setup works as written: install, checksum, `pantheon.pkl`, dry run, render, `check`, a second render that writes 0 files, and the rendered tree builds and passes its tests | Report, Phase 8 wave E (every step of this guide run on a scratch clone of `pantheon-adr`: 188 tests passed, 0 failed), `archive/proof/scripts/proof-adoption.ts` |
+| The first-time setup works as written: install, checksum, `scaffold.pkl`, dry run, render, `check`, a second render that writes 0 files, and the rendered tree builds and passes its tests | Report, Phase 8 wave E (every step of this guide run on a scratch clone of `pantheon-adr`: 188 tests passed, 0 failed), `archive/proof/scripts/proof-adoption.ts` |
 | `mise.toml` changes by about ten lines added and four removed | `archive/proof/scripts/proof-categories.ts` (the rule), Report, wave A |
 | The `hk.pkl` migration keeps the hook results | `runner/test/hk.test.ts`, `runner/test/tooling.test.ts`; Report, wave A (`hk check --all` the same before and after) |
 | `rumdl` findings exist before and after, unchanged by the render (except MD041 on the pull request template, from 0.1.9) | Report, wave A (findings per repository) |

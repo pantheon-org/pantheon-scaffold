@@ -10,7 +10,7 @@ Presets need package **0.1.7 or later** (released on 12-11-2026) and the Rust ru
 
 The Rust CI workflow gives its job 15 minutes. Yours needs 30.
 
-1. **Write the Preset**, `presets/ci.pkl`. In the examples `PKG` stands for `package://github.com/pantheon-org/pantheon-scaffold/releases/download/vVERSION/pantheon-scaffold@VERSION::sha256:SUM`, the same address as in your `pantheon.pkl`.
+1. **Write the Preset**, `presets/ci.pkl`. In the examples `PKG` stands for `package://github.com/pantheon-org/pantheon-scaffold/releases/download/vVERSION/pantheon-scaffold@VERSION::sha256:SUM`, the same address as in your `scaffold.pkl`.
 
    ```pkl
    import "PKG#/Config.pkl"
@@ -21,7 +21,7 @@ The Rust CI workflow gives its job 15 minutes. Yours needs 30.
        Presets.amendJob(w, "build-test", (j) -> (j) { `timeout-minutes` = 30 }))
    ```
 
-2. **Apply it in `pantheon.pkl`**: import it, list it in `presets`, and pass the Builtins through it.
+2. **Apply it in `scaffold.pkl`**: import it, list it in `presets`, and pass the Builtins through it.
 
    ```pkl
    amends "PKG#/Config.pkl"
@@ -45,9 +45,9 @@ The Rust CI workflow gives its job 15 minutes. Yours needs 30.
    check ok: 14 owned file(s) match the render
    ```
 
-5. **Commit** `pantheon.pkl`, `presets/` and the rendered files, including `.pkl-gen/manifest.json`, which now records a hash of every Preset.
+5. **Commit** `scaffold.pkl`, `presets/` and the rendered files, including `.pkl-gen/manifest.json`, which now records a hash of every Preset.
 
-Paths in `presets { }` are relative to the directory of `pantheon.pkl`, and must be a `.pkl` file under `presets/`.
+Paths in `presets { }` are relative to the directory of `scaffold.pkl`, and must be a `.pkl` file under `presets/`.
 
 ## The helpers
 
@@ -99,7 +99,7 @@ function nightly(): Config.Workflow = new {
 ```
 
 ```pkl
-// pantheon.pkl
+// scaffold.pkl
 workflows = (Builtins.standardWorkflows(options)) { ["nightly"] = extra.nightly() }
 ```
 
@@ -115,7 +115,7 @@ Presets.amendFile(files, ".gitignore", (f) -> (f) { content = f.content + "\nmy-
 Presets.amendFile(files, ".github/dependabot.yml", (f) -> (f) { content = f.content.replaceFirst("  exclude-paths:\n", "  exclude-paths:\n  - .github/workflows/nightly.yml\n") })
 ```
 
-Workflows you write by hand, outside `pantheon.pkl`, are not owned and Dependabot still updates them.
+Workflows you write by hand, outside `scaffold.pkl`, are not owned and Dependabot still updates them.
 
 **Keep your own version of a rendered file, or drop a Builtin.** Filter it out of the mapping, and the runner renders nothing for it:
 
@@ -130,7 +130,7 @@ files.toMap().filter((path, _) -> path != "deny.toml").toMapping()
 | Command | What it does |
 |---|---|
 | `render` | Records `presets` in `.pkl-gen/manifest.json` (path and hash of each listed Preset). Never writes or deletes a Preset. A listed file that is missing is an error, before anything is written. |
-| `check` | Prints `preset <path>` for each Preset in order. Warns, without changing the exit code, about a file under `presets/` that your config does not list (`presets/x.pkl is not applied by pantheon.pkl`) and about a Preset that changed since the last render (`presets/x.pkl changed since the last render`). Drift in a rendered file is still exit 4. |
+| `check` | Prints `preset <path>` for each Preset in order. Warns, without changing the exit code, about a file under `presets/` that your config does not list (`presets/x.pkl is not applied by scaffold.pkl`) and about a Preset that changed since the last render (`presets/x.pkl changed since the last render`). Drift in a rendered file is still exit 4. |
 | `upgrade` | Moves the package imports in `presets/` with the config, then evaluates the config as it now reads, before `mise` runs. If a Preset no longer fits (a workflow or job it names was renamed or removed), it stops with exit 1 and puts every file back. `--dry-run` lists the Presets it would move and does not evaluate. |
 | `detach` | Leaves `presets/` alone, like any file that is yours. |
 
@@ -145,21 +145,21 @@ Editing a Preset is how you change what is rendered: edit it and run `render`. I
 | `preset: workflow "rust-cii" is not a builtin of this package version. Builtins: ...` | A typo, a package that no longer has that workflow, or a builtin that `options.without` leaves out (the message ends by saying so). |
 | `preset: job "build" does not exist in workflow "Rust CI". Jobs: build-test` | The same, for a job. |
 | `preset: context key "licenses" does not exist in the template "deny.toml". Keys: ...` | A misspelt variable, or a package version that renamed it. The message lists the keys. |
-| `preset presets/x.pkl is listed by pantheon.pkl but the file does not exist` | `presets { }` lists a file that is not there. |
-| `pantheon.pkl does not evaluate with 0.1.8, so nothing was changed:` followed by pkl's message | `upgrade` found that the new package breaks the config or a Preset. |
+| `preset presets/x.pkl is listed by scaffold.pkl but the file does not exist` | `presets { }` lists a file that is not there. |
+| `scaffold.pkl does not evaluate with 0.1.8, so nothing was changed:` followed by pkl's message | `upgrade` found that the new package breaks the config or a Preset. |
 | `#/presets/0: does not match ...` | A path in `presets { }` is not a `.pkl` file under `presets/`. |
 
 ## Rules and limits
 
-- **Order is precedence.** The Builtins come first, then your Presets in the order your config applies them. If two Presets change the same field, the later one wins, silently. The order is in `pantheon.pkl`, and `check` prints it.
+- **Order is precedence.** The Builtins come first, then your Presets in the order your config applies them. If two Presets change the same field, the later one wins, silently. The order is in `scaffold.pkl`, and `check` prints it.
 - **Presets are inputs, not outputs.** They are yours. Only owned files that the runner writes are protected from hand edits.
 - **A Preset cannot remove a builtin.** Leave it out with `options.without` ([adopting.md](adopting.md#leaving-builtins-out-optionswithout)). A Preset that amends a builtin that is left out fails, because the builtin is not in the mapping.
 - **The escape hatch still counts.** A Preset that uses `raw` counts in the quality gate like any other use.
-- **`upgrade` moves the package imports in your Presets.** Every `.pkl` file under `presets/` next to your config that imports the package gets the new version and checksum, as `pantheon.pkl` does, because a Preset left at the old version makes pkl stop with `Module version conflict`. Files outside `presets/` are not moved, so a helper module that imports the package from elsewhere must be updated by hand.
+- **`upgrade` moves the package imports in your Presets.** Every `.pkl` file under `presets/` next to your config that imports the package gets the new version and checksum, as `scaffold.pkl` does, because a Preset left at the old version makes pkl stop with `Module version conflict`. Files outside `presets/` are not moved, so a helper module that imports the package from elsewhere must be updated by hand.
 
 ## This repository's own Presets
 
-`pantheon-scaffold` is rendered by its own scaffold: `pantheon.pkl` at the root, with four Presets in `presets/`. They import the package in this checkout by a relative path, so `upgrade` has nothing to move in them.
+`pantheon-scaffold` is rendered by its own scaffold: `scaffold.pkl` at the root, with four Presets in `presets/`. They import the package in this checkout by a relative path, so `upgrade` has nothing to move in them.
 
 | Preset | What it does |
 |---|---|

@@ -185,7 +185,7 @@ fn a_dry_run_lists_every_file_with_its_class_and_writes_nothing() {
     ] {
         assert!(r.out.contains(line), "{line}\n{}", r.out);
     }
-    assert!(!s.exists("pantheon.pkl"));
+    assert!(!s.exists("scaffold.pkl"));
     assert!(!s.exists("new.toml"));
     assert!(!s.exists(".pkl-gen/manifest.json"));
     assert!(s.get(".github/workflows/ci.yml").starts_with("# mine"));
@@ -206,7 +206,7 @@ fn a_dry_run_with_a_drifted_file_shows_the_difference_and_says_write_is_refused(
         "{}",
         r.out
     );
-    assert!(!s.exists("pantheon.pkl") && !s.exists("new.toml"));
+    assert!(!s.exists("scaffold.pkl") && !s.exists("new.toml"));
 }
 
 #[test]
@@ -222,7 +222,7 @@ fn write_is_refused_while_a_file_has_drifted_and_nothing_is_written() {
     );
     assert_eq!(s.get("a.toml"), "x = 2\n");
     assert!(
-        !s.exists("pantheon.pkl") && !s.exists("new.toml") && !s.exists(".pkl-gen/manifest.json")
+        !s.exists("scaffold.pkl") && !s.exists("new.toml") && !s.exists(".pkl-gen/manifest.json")
     );
 }
 
@@ -233,7 +233,7 @@ fn write_creates_the_new_files_and_adopts_the_yaml_text_and_leaves_the_repositor
     assert_eq!(r.code, 0, "{} {}", r.out, r.err);
     assert!(
         r.out
-            .contains("Wrote pantheon.pkl and 2 file(s). Next: run mise lock, then commit."),
+            .contains("Wrote scaffold.pkl and 2 file(s). Next: run mise lock, then commit."),
         "{}",
         r.out
     );
@@ -241,7 +241,7 @@ fn write_creates_the_new_files_and_adopts_the_yaml_text_and_leaves_the_repositor
     assert_eq!(s.get(".github/workflows/ci.yml"), WORKFLOW);
     assert_eq!(s.get("README.md"), "# mine\n");
     assert!(
-        s.get("pantheon.pkl")
+        s.get("scaffold.pkl")
             .contains("v0.2.0/pantheon-scaffold@0.2.0")
     );
     assert!(
@@ -273,19 +273,19 @@ fn a_render_that_would_be_refused_for_another_reason_stops_before_anything_is_wr
         let r = s.run(args);
         assert_eq!(r.code, 3, "{} {}", r.out, r.err);
         assert!(r.err.contains("a.toml: was edited by hand"), "{}", r.err);
-        assert!(!s.exists("pantheon.pkl") && !s.exists("new.toml"));
+        assert!(!s.exists("scaffold.pkl") && !s.exists("new.toml"));
     }
 }
 
 #[test]
-fn an_existing_pantheon_pkl_is_refused_and_left_alone() {
+fn an_existing_scaffold_pkl_is_refused_and_left_alone() {
     let s = clean();
-    s.put("pantheon.pkl", "mine\n");
+    s.put("scaffold.pkl", "mine\n");
     let r = s.run(&["--toolchain", "1.96.1", "--write"]);
     assert_eq!(r.code, 3, "{} {}", r.out, r.err);
-    assert!(r.err.contains("pantheon.pkl already exists"), "{}", r.err);
+    assert!(r.err.contains("scaffold.pkl already exists"), "{}", r.err);
     assert!(r.err.contains("migrate writes it once"), "{}", r.err);
-    assert_eq!(s.get("pantheon.pkl"), "mine\n");
+    assert_eq!(s.get("scaffold.pkl"), "mine\n");
 }
 
 #[test]
@@ -352,11 +352,11 @@ fn as_presets_in_a_dry_run_lists_the_preset_and_writes_nothing() {
         r.out
     );
     assert!(
-        r.out.contains("migrate: 0 identical, 1 drifted, 1 new, 1 per-repo. Nothing was written. Run again with --write to write pantheon.pkl, 1 Preset(s) and the new files."),
+        r.out.contains("migrate: 0 identical, 1 drifted, 1 new, 1 per-repo. Nothing was written. Run again with --write to write scaffold.pkl, 1 Preset(s) and the new files."),
         "{}",
         r.out
     );
-    assert!(!s.exists("presets/a.pkl") && !s.exists("pantheon.pkl") && !s.exists("new.toml"));
+    assert!(!s.exists("presets/a.pkl") && !s.exists("scaffold.pkl") && !s.exists("new.toml"));
 }
 
 #[test]
@@ -366,7 +366,7 @@ fn as_presets_with_write_keeps_the_file_in_a_preset_and_records_it() {
     assert_eq!(r.code, 0, "{} {}", r.out, r.err);
     assert!(
         r.out.contains(
-            "Wrote pantheon.pkl, 1 Preset(s) and 1 file(s). Next: run mise lock, then commit."
+            "Wrote scaffold.pkl, 1 Preset(s) and 1 file(s). Next: run mise lock, then commit."
         ),
         "{}",
         r.out
@@ -378,7 +378,7 @@ fn as_presets_with_write_keeps_the_file_in_a_preset_and_records_it() {
         preset.contains("content = #\"\"\"\nx = 2\n\n\"\"\"#"),
         "{preset}"
     );
-    let config = s.get("pantheon.pkl");
+    let config = s.get("scaffold.pkl");
     assert!(
         config.contains("presets {\n  \"presets/a.pkl\"\n}"),
         "{config}"
@@ -414,7 +414,7 @@ fn when_the_presets_do_not_reproduce_a_file_nothing_is_written() {
         "{}",
         r.err
     );
-    assert!(!s.exists("presets/a.pkl") && !s.exists("pantheon.pkl"));
+    assert!(!s.exists("presets/a.pkl") && !s.exists("scaffold.pkl"));
     assert_eq!(s.get("a.toml"), "x = 2\n");
 }
 
@@ -429,7 +429,7 @@ fn a_drifted_file_that_is_not_text_stops_the_run_and_writes_nothing() {
         "{}",
         r.err
     );
-    assert!(!s.exists("pantheon.pkl") && !s.exists("presets"));
+    assert!(!s.exists("scaffold.pkl") && !s.exists("presets"));
 }
 
 #[test]
@@ -440,7 +440,7 @@ fn a_preset_does_not_take_the_name_of_a_file_already_under_presets() {
     assert_eq!(r.code, 0, "{} {}", r.out, r.err);
     assert_eq!(s.get("presets/a.pkl"), "mine\n");
     assert!(s.exists("presets/a-2.pkl"));
-    assert!(s.get("pantheon.pkl").contains("\"presets/a-2.pkl\""));
+    assert!(s.get("scaffold.pkl").contains("\"presets/a-2.pkl\""));
 }
 
 #[test]
@@ -458,7 +458,7 @@ fn a_refusal_found_by_the_plan_stops_the_run_before_any_preset_is_written() {
     let r = s.run(&["--toolchain", "1.96.1", "--write", "--as-presets"]);
     assert_eq!(r.code, 3, "{} {}", r.out, r.err);
     assert!(r.err.contains("new.toml: was edited by hand"), "{}", r.err);
-    assert!(!s.exists("presets/a.pkl") && !s.exists("pantheon.pkl"));
+    assert!(!s.exists("presets/a.pkl") && !s.exists("scaffold.pkl"));
 }
 
 impl Setup {
@@ -518,7 +518,7 @@ fn accept_builtins_in_a_dry_run_reports_the_git_check_and_what_it_would_replace_
         r.out
     );
     assert_eq!(s.get("a.toml"), "x = 2\n");
-    assert!(!s.exists("pantheon.pkl") && !s.exists("new.toml"));
+    assert!(!s.exists("scaffold.pkl") && !s.exists("new.toml"));
 }
 
 #[test]
@@ -543,7 +543,7 @@ fn accept_builtins_with_write_replaces_the_drifted_file_and_names_it_last() {
     let r = s.run(&["--toolchain", "1.96.1", "--accept-builtins", "--write"]);
     assert_eq!(r.code, 0, "{} {}", r.out, r.err);
     assert_eq!(s.get("a.toml"), "x = 1\n");
-    assert!(s.exists("pantheon.pkl") && s.exists("new.toml") && s.exists(".pkl-gen/manifest.json"));
+    assert!(s.exists("scaffold.pkl") && s.exists("new.toml") && s.exists(".pkl-gen/manifest.json"));
     assert!(
         r.out.ends_with("replaced by --accept-builtins (the git diff of the adoption commit is the full record):\n  a.toml"),
         "{}",
@@ -570,7 +570,7 @@ fn accept_builtins_with_write_is_refused_while_a_tracked_file_has_uncommitted_ch
         r.err
     );
     assert_eq!(s.get("a.toml"), "x = 2\n");
-    assert!(!s.exists("pantheon.pkl") && !s.exists("new.toml"));
+    assert!(!s.exists("scaffold.pkl") && !s.exists("new.toml"));
     assert!(
         !r.out.contains("replaced by --accept-builtins"),
         "{}",
@@ -585,7 +585,7 @@ fn accept_builtins_with_write_is_refused_outside_git() {
     assert_eq!(r.code, 3, "{} {}", r.out, r.err);
     assert!(r.err.contains("not a git repository"), "{}", r.err);
     assert_eq!(s.get("a.toml"), "x = 2\n");
-    assert!(!s.exists("pantheon.pkl"));
+    assert!(!s.exists("scaffold.pkl"));
 }
 
 #[test]
@@ -624,9 +624,9 @@ fn features_all_is_written_to_the_config_by_migrate_and_default_writes_nothing()
     let r = s.run(&["--toolchain", "1.96.1", "--features", "all", "--write"]);
     assert_eq!(r.code, 0, "{} {}", r.out, r.err);
     assert!(
-        s.get("pantheon.pkl").contains("  features = \"all\"\n}\n"),
+        s.get("scaffold.pkl").contains("  features = \"all\"\n}\n"),
         "{}",
-        s.get("pantheon.pkl")
+        s.get("scaffold.pkl")
     );
 
     let d = setup(&[("a.toml", "owned", "x = 1\n")]);
@@ -642,9 +642,9 @@ fn features_all_is_written_to_the_config_by_migrate_and_default_writes_nothing()
     ]);
     assert_eq!(r.code, 0, "{} {}", r.out, r.err);
     assert!(
-        !d.get("pantheon.pkl").contains("features"),
+        !d.get("scaffold.pkl").contains("features"),
         "{}",
-        d.get("pantheon.pkl")
+        d.get("scaffold.pkl")
     );
 }
 
@@ -660,7 +660,7 @@ fn features_all_is_written_to_the_config_when_the_drifted_files_are_kept_as_pres
         "--as-presets",
     ]);
     assert_eq!(r.code, 0, "{} {}", r.out, r.err);
-    let config = s.get("pantheon.pkl");
+    let config = s.get("scaffold.pkl");
     assert!(config.contains("  features = \"all\"\n}\n"), "{config}");
     assert!(config.contains("presets {"), "{config}");
 }
@@ -675,5 +675,5 @@ fn features_with_a_value_other_than_default_or_all_is_a_usage_error_and_writes_n
         "{}",
         r.err
     );
-    assert!(r.out.is_empty() && !s.exists("pantheon.pkl"), "{}", r.out);
+    assert!(r.out.is_empty() && !s.exists("scaffold.pkl"), "{}", r.out);
 }

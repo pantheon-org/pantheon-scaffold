@@ -81,7 +81,7 @@ fn setup(checksums: Option<String>) -> Setup {
         }
     });
     let repo = tempfile::tempdir().unwrap();
-    std::fs::write(repo.path().join("pantheon.pkl"), amends("0.1.0", &h('a'))).unwrap();
+    std::fs::write(repo.path().join("scaffold.pkl"), amends("0.1.0", &h('a'))).unwrap();
     std::fs::write(repo.path().join("mise.toml"), mise_toml("0.1.0")).unwrap();
     Setup { bin, repo, base }
 }
@@ -153,7 +153,7 @@ fn upgrade_verifies_the_release_rewrites_the_pins_refreshes_mise_and_re_renders(
     assert_eq!(r.code, 0, "{}", r.err);
     assert!(r.out.contains("0.1.0 -> 0.2.0"), "{}", r.out);
     assert!(r.out.ends_with("upgraded 0.1.0 -> 0.2.0"), "{}", r.out);
-    assert_eq!(s.get("pantheon.pkl"), amends("0.2.0", &h('c')));
+    assert_eq!(s.get("scaffold.pkl"), amends("0.2.0", &h('c')));
     assert_eq!(s.get("mise.toml"), mise_toml("0.2.0"));
     let calls = s.calls();
     assert!(
@@ -164,7 +164,7 @@ fn upgrade_verifies_the_release_rewrites_the_pins_refreshes_mise_and_re_renders(
     );
     // The moved config is evaluated before the first thing mise does.
     assert!(
-        calls[1].starts_with("pkl ") && calls[1].ends_with("/pantheon.pkl"),
+        calls[1].starts_with("pkl ") && calls[1].ends_with("/scaffold.pkl"),
         "{}",
         calls[1]
     );
@@ -174,7 +174,7 @@ fn upgrade_verifies_the_release_rewrites_the_pins_refreshes_mise_and_re_renders(
             "mise install",
             "mise lock",
             &format!(
-                "mise x -- pantheon-scaffold render pantheon.pkl --root {}",
+                "mise x -- pantheon-scaffold render scaffold.pkl --root {}",
                 s.root()
             )
         ]
@@ -193,12 +193,12 @@ fn a_config_that_the_new_package_cannot_evaluate_stops_the_upgrade_before_anythi
     assert_eq!(r.code, 1, "{}", r.out);
     assert!(
         r.err
-            .starts_with("pantheon.pkl does not evaluate with 0.2.0, so nothing was changed:\n"),
+            .starts_with("scaffold.pkl does not evaluate with 0.2.0, so nothing was changed:\n"),
         "{}",
         r.err
     );
     assert!(r.err.contains(message), "{}", r.err);
-    assert_eq!(s.get("pantheon.pkl"), amends("0.1.0", &h('a')));
+    assert_eq!(s.get("scaffold.pkl"), amends("0.1.0", &h('a')));
     assert_eq!(s.get("mise.toml"), mise_toml("0.1.0"));
     assert!(
         s.calls()
@@ -299,7 +299,7 @@ fn a_preset_that_no_longer_fits_is_put_back_with_the_config_and_nothing_is_chang
     assert_eq!(r.code, 1);
     assert!(r.err.contains(message), "{}", r.err);
     assert_eq!(s.get("presets/ci.pkl"), preset);
-    assert_eq!(s.get("pantheon.pkl"), amends("0.1.0", &h('a')));
+    assert_eq!(s.get("scaffold.pkl"), amends("0.1.0", &h('a')));
     assert_eq!(s.get("mise.toml"), mise_toml("0.1.0"));
     assert!(
         s.calls()
@@ -313,7 +313,7 @@ fn a_preset_that_no_longer_fits_is_put_back_with_the_config_and_nothing_is_chang
 #[test]
 fn a_failed_attestation_stops_with_exit_1_a_clean_message_and_no_file_touched_and_mise_never_run() {
     let s = setup(default_checksums());
-    let before = s.get("pantheon.pkl");
+    let before = s.get("scaffold.pkl");
     let r = s.run(
         &["upgrade", "0.2.0", "--root", &s.root()],
         &[("GH_FAIL", "1")],
@@ -322,7 +322,7 @@ fn a_failed_attestation_stops_with_exit_1_a_clean_message_and_no_file_touched_an
     assert!(r.err.contains("attestation check failed"), "{}", r.err);
     assert!(r.err.contains("no valid attestation"), "{}", r.err);
     assert!(!r.err.contains("panicked"), "{}", r.err);
-    assert_eq!(s.get("pantheon.pkl"), before);
+    assert_eq!(s.get("scaffold.pkl"), before);
     assert!(s.calls().iter().all(|c| !c.starts_with("mise")));
 }
 
@@ -347,7 +347,7 @@ fn dry_run_verifies_and_lists_the_change_and_writes_and_runs_nothing_else() {
     let r = s.run(&["upgrade", "0.2.0", "--root", &s.root(), "--dry-run"], &[]);
     assert_eq!(r.code, 0, "{}", r.err);
     assert!(
-        r.out.contains("would change  pantheon.pkl: 0.1.0 -> 0.2.0"),
+        r.out.contains("would change  scaffold.pkl: 0.1.0 -> 0.2.0"),
         "{}",
         r.out
     );

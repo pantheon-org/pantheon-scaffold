@@ -20,7 +20,7 @@ files {
 }`;
 
 let n = 0;
-/** Writes a pantheon.pkl with the full composition, the given options (skills and binary on unless set) and an optional composition, and returns its path. */
+/** Writes a scaffold.pkl with the full composition, the given options (skills and binary on unless set) and an optional composition, and returns its path. */
 function config(without: string[], extra = "", composition = COMPOSITION, imports = ""): string {
   const list = without.map((w) => `"${w}"`).join("; ");
   const f = join(tempRepo(), `pantheon-${n++}.pkl`);

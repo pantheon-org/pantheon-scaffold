@@ -25,7 +25,7 @@ Feature: command line
   Scenario: a config that reads a local package is refused without --allow-local-package
     Given a new empty repository
     And the project "without-none"
-    When I run "contract <repo>/pantheon.pkl"
+    When I run "contract <repo>/scaffold.pkl"
     Then the exit code is 1
     And the error contains "Refusing to read"
 

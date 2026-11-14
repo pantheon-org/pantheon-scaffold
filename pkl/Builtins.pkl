@@ -1,4 +1,4 @@
-/// Reusable builtin workflows and files. A repository's pantheon.pkl calls these with its options,
+/// Reusable builtin workflows and files. A repository's scaffold.pkl calls these with its options,
 /// and may override anything in the result. Pins live in Pins.pkl.
 ///
 /// This module is the API and holds no builtin of its own. Each builtin lives in `Builtins/<name>/Builtin.pkl` with the assets it reads in
@@ -213,6 +213,6 @@ function standardFiles(opts: Config.Options): Mapping<String, Config.GenFile> = 
 /// from dist-workspace.toml, which catches a hand edit and a Dependabot bump of an action inside the generated file (decision 85).
 function distCheck(): Config.Workflow = releaseBuiltin.workflow()
 
-/// `check` in consumer CI (every repository): the sample job of docs/check-in-ci.md. It evaluates a pantheon.pkl, so it runs on
+/// `check` in consumer CI (every repository): the sample job of docs/check-in-ci.md. It evaluates a scaffold.pkl, so it runs on
 /// `pull_request` only, with no secrets, and reads the tools from the lock file.
 function scaffoldCheck(): Config.Workflow = scaffoldCheckBuiltin.workflow()

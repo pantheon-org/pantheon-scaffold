@@ -27,10 +27,10 @@ async function renderThroughPackage(consumerBody: string, opts: { pinChecksum?: 
     const uri = opts.pinChecksum ? URI.replace("#/Config.pkl", `::sha256:${metaSha}#/Config.pkl`) : URI;
     // @@BUILTINS@@ in a consumer body is the package's own Builtins module, loaded from the same package URI.
     const body = consumerBody.replaceAll("@@BUILTINS@@", uri.replace("#/Config.pkl", "#/Builtins.pkl"));
-    writeFileSync(join(work, "consumer/pantheon.pkl"), `amends "${uri}"\n${body}\n`);
+    writeFileSync(join(work, "consumer/scaffold.pkl"), `amends "${uri}"\n${body}\n`);
     // Async on purpose: a blocking spawn would stop this process from answering pkl's download request.
     const p = Bun.spawn(
-      ["pkl", "eval", "-f", "json", "--cache-dir", join(work, "cache"), "--http-rewrite", `https://github.com/=http://localhost:${server.port}/`, "--allowed-resources", "package:,https:,http:", join(work, "consumer/pantheon.pkl")],
+      ["pkl", "eval", "-f", "json", "--cache-dir", join(work, "cache"), "--http-rewrite", `https://github.com/=http://localhost:${server.port}/`, "--allowed-resources", "package:,https:,http:", join(work, "consumer/scaffold.pkl")],
       { stdout: "pipe", stderr: "pipe" },
     );
     const [out2, err, code] = await Promise.all([new Response(p.stdout).text(), new Response(p.stderr).text(), p.exited]);
@@ -49,7 +49,7 @@ test("a package loaded from a package URI reports that URI, and the runner reads
 });
 
 test("a package loaded from a local folder has no packageUri", async () => {
-  const json = (await evalContractJson(join(import.meta.dir, "fixtures/minimal/pantheon.pkl"), root)) as Record<string, unknown>;
+  const json = (await evalContractJson(join(import.meta.dir, "fixtures/minimal/scaffold.pkl"), root)) as Record<string, unknown>;
   expect(json.packageUri).toBeUndefined();
   expect(json.requires).toEqual({ runner: "0.0.0" });
 });

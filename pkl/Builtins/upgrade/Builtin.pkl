@@ -86,7 +86,7 @@ function workflow(opts: Config.Options): Config.Workflow = new {
             ["GH_TOKEN"] = "${{ steps.app-token.outputs.token }}"
             ["LATEST"] = "${{ steps.latest.outputs.latest }}"
           }
-          run = "mise x -- pantheon-scaffold upgrade \"$LATEST\" --config pantheon.pkl\n"
+          run = "mise x -- pantheon-scaffold upgrade \"$LATEST\" --config scaffold.pkl\n"
         }
         new {
           name = "Open the pull request"

@@ -78,7 +78,7 @@ Edit a hook in `hk.pkl`. A module can define `hooks` only once, so a second `hoo
 
 ### The `features` option
 
-`options.features = "all"` renders `--all-features` in the pre-push clippy and test steps, which is the only difference between the library repository's `hk.pkl` and the other three (apart from one comment). The choice lives in `pantheon.pkl` and the owned file, not in the seeded `hk.pkl`, so changing it updates the shared file. A test checks that the `all` render is byte for byte the library repository's pre-push steps. The pre-commit steps differ from the library repository's by one comment about `.github/actionlint.yaml`, which the other three repositories have and the library repository does not.
+`options.features = "all"` renders `--all-features` in the pre-push clippy and test steps, which is the only difference between the library repository's `hk.pkl` and the other three (apart from one comment). The choice lives in `scaffold.pkl` and the owned file, not in the seeded `hk.pkl`, so changing it updates the shared file. A test checks that the `all` render is byte for byte the library repository's pre-push steps. The pre-commit steps differ from the library repository's by one comment about `.github/actionlint.yaml`, which the other three repositories have and the library repository does not.
 
 ### Fixers and generated files
 

@@ -1,10 +1,10 @@
 # `init`: putting a new project under the scaffold
 
-Written for the owner of a new Rust repository. `pantheon-scaffold init` writes `pantheon.pkl` once and renders the standard set into the repository. For a project that already has its own workflows and files, use [`migrate`](migrate.md) (it lists the differences and does not write over a file that differs, and is in release 0.1.8 and later); `init` refuses to overwrite anything. It needs the runner of release 0.1.7 or later.
+Written for the owner of a new Rust repository. `pantheon-scaffold init` writes `scaffold.pkl` once and renders the standard set into the repository. For a project that already has its own workflows and files, use [`migrate`](migrate.md) (it lists the differences and does not write over a file that differs, and is in release 0.1.8 and later); `init` refuses to overwrite anything. It needs the runner of release 0.1.7 or later.
 
 ```sh
 pantheon-scaffold init --toolchain 1.96.1            # shows what it would do, writes nothing
-pantheon-scaffold init --toolchain 1.96.1 --write    # writes pantheon.pkl and the files
+pantheon-scaffold init --toolchain 1.96.1 --write    # writes scaffold.pkl and the files
 mise lock                                            # records the checksums of the tools, then commit
 ```
 
@@ -24,18 +24,18 @@ mise lock                                            # records the checksums of 
 | `--write` | Write. Without it `init` is a dry run. |
 | `--root <dir>` | The repository, default the current directory. |
 
-Both toggles are written out in `pantheon.pkl` (`skills = false`, `binary = false` unless you turn them on), because the package turns them on by default.
+Both toggles are written out in `scaffold.pkl` (`skills = false`, `binary = false` unless you turn them on), because the package turns them on by default.
 
 ## What it does
 
 1. Picks the release and verifies it, as above. Any failure stops here with exit 1 and nothing is written.
-2. Builds the text of `pantheon.pkl` and evaluates it against the package, in a scratch folder, so the package itself says what it would render.
-3. Dry run: prints the config and the list of files the render would write, then `dry run: init would write pantheon.pkl and 41 file(s). Run again with --write to write them.`
-4. With `--write`: writes `pantheon.pkl` (never over an existing one), then renders. A failure after that removes `pantheon.pkl` again.
+2. Builds the text of `scaffold.pkl` and evaluates it against the package, in a scratch folder, so the package itself says what it would render.
+3. Dry run: prints the config and the list of files the render would write, then `dry run: init would write scaffold.pkl and 41 file(s). Run again with --write to write them.`
+4. With `--write`: writes `scaffold.pkl` (never over an existing one), then renders. A failure after that removes `scaffold.pkl` again.
 
 A dry run may leave pkl's download cache in `.pkl-gen/cache/`, as `render --dry-run` does. It is ignored by the `.gitignore` the render writes.
 
-## What `pantheon.pkl` holds
+## What `scaffold.pkl` holds
 
 ```pkl
 amends "package://.../pantheon-scaffold@0.1.6::sha256:<checksum>#/Config.pkl"
@@ -61,12 +61,12 @@ That is the whole standard set. From here on only `upgrade` edits the amends lin
 
 | Message | Why |
 |---|---|
-| `pantheon.pkl already exists in <dir>: init writes it once. Use upgrade to move it to another release.` | Nothing is overwritten. |
-| `refused N file(s), nothing was written:` followed by the files | The render would overwrite a file that is there and differs, such as a `.gitignore` or `deny.toml` you wrote. Nothing is written, not even `pantheon.pkl`. These are the files `migrate` is for. |
+| `scaffold.pkl already exists in <dir>: init writes it once. Use upgrade to move it to another release.` | Nothing is overwritten. |
+| `refused N file(s), nothing was written:` followed by the files | The render would overwrite a file that is there and differs, such as a `.gitignore` or `deny.toml` you wrote. Nothing is written, not even `scaffold.pkl`. These are the files `migrate` is for. |
 | the known-bad message of `render` | The release you named is on the known-bad list. |
 
 A usage mistake (no `--toolchain`, `--binary` without `--crate-name`, and so on) exits 2 with the usage text.
 
 ## For working on the package itself
 
-`--allow-local-package <dir>` makes `init` amend that folder instead of a release, and skips the release and the attestation. It writes the folder's absolute path into `pantheon.pkl` and pins the runner version of this binary, so it is for testing the package, never for a repository you will commit.
+`--allow-local-package <dir>` makes `init` amend that folder instead of a release, and skips the release and the attestation. It writes the folder's absolute path into `scaffold.pkl` and pins the runner version of this binary, so it is for testing the package, never for a repository you will commit.

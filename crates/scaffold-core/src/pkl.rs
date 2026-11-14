@@ -1,4 +1,4 @@
-//! Evaluates the consumer's `pantheon.pkl` through the pinned `pkl` binary, ported from `runner/src/pkl.ts`.
+//! Evaluates the consumer's `scaffold.pkl` through the pinned `pkl` binary, ported from `runner/src/pkl.ts`.
 
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
@@ -6,10 +6,10 @@ use std::time::Duration;
 
 use crate::contract::ContractError;
 
-/// Flags that restrict what the consumer's pantheon.pkl may load or read.
+/// Flags that restrict what the consumer's scaffold.pkl may load or read.
 pub const ALLOWED_MODULES: &str = "pkl:,file:,package:,projectpackage:";
 // package: lets a package module read its own assets, https: lets pkl download the package.
-// There is no file: here, so a pantheon.pkl cannot read arbitrary files.
+// There is no file: here, so a scaffold.pkl cannot read arbitrary files.
 pub const ALLOWED_RESOURCES: &str = "package:,projectpackage:,https:";
 
 pub struct EvalOptions {
@@ -279,7 +279,7 @@ mod tests {
 
     #[test]
     fn the_minimal_fixture_evaluates_to_a_contract() {
-        let fixture = root().join("runner/test/fixtures/minimal/pantheon.pkl");
+        let fixture = root().join("runner/test/fixtures/minimal/scaffold.pkl");
         let json = eval_contract_json(&fixture, &root(), &EvalOptions::default()).unwrap();
         assert_eq!(json["schemaVersion"], 2);
         assert!(json["files"].as_array().unwrap().len() >= 4);

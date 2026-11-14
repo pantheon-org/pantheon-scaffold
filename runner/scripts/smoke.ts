@@ -20,7 +20,7 @@ const flag = (name: string, fallback?: string): string => {
 const binary = resolve(argv[0] ?? flag("--binary"));
 const expectedVersion = flag("--version", "0.0.0");
 const repoRoot = resolve(flag("--repo", join(import.meta.dir, "../..")));
-const fixture = (name: string) => join(repoRoot, "runner/test/fixtures", name, "pantheon.pkl");
+const fixture = (name: string) => join(repoRoot, "runner/test/fixtures", name, "scaffold.pkl");
 const pkg = join(repoRoot, "pkl");
 
 const base = mkdtempSync(join(tmpdir(), "scaffold-smoke-"));

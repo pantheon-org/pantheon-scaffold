@@ -1,4 +1,4 @@
-//! Reading and writing the pins `upgrade` moves: the package version and checksum in `pantheon.pkl`, and the runner version
+//! Reading and writing the pins `upgrade` moves: the package version and checksum in `scaffold.pkl`, and the runner version
 //! in `mise.toml`. Ported from `runner/src/pins.ts`.
 //!
 //! The TypeScript matches the section form of the runner's `mise.toml` entry with a look-ahead pattern, which the `regex`
@@ -292,17 +292,17 @@ mod tests {
 
     fn repo(v: &str, sum: Option<&str>) -> tempfile::TempDir {
         let dir = tempfile::tempdir().unwrap();
-        put(dir.path(), "pantheon.pkl", &pkl(v, sum));
+        put(dir.path(), "scaffold.pkl", &pkl(v, sum));
         put(dir.path(), "mise.toml", &mise(v));
         dir
     }
 
     fn pins(root: &Path) -> Pins {
-        read_pins(root, "pantheon.pkl").unwrap()
+        read_pins(root, "scaffold.pkl").unwrap()
     }
 
     fn write(root: &Path, version: &str, checksum: &str) -> Result<(), PinError> {
-        write_pins(root, "pantheon.pkl", &NewPins { version, checksum })
+        write_pins(root, "scaffold.pkl", &NewPins { version, checksum })
     }
 
     fn error(result: Result<Pins, PinError>) -> String {
@@ -332,7 +332,7 @@ mod tests {
      {
         let dir = repo("0.1.0", Some(&h('a')));
         write(dir.path(), "0.2.0", &h('c')).unwrap();
-        assert_eq!(get(dir.path(), "pantheon.pkl"), pkl("0.2.0", Some(&h('c'))));
+        assert_eq!(get(dir.path(), "scaffold.pkl"), pkl("0.2.0", Some(&h('c'))));
         assert_eq!(get(dir.path(), "mise.toml"), mise("0.2.0"));
     }
 
@@ -340,7 +340,7 @@ mod tests {
     fn a_checksum_is_added_when_there_was_none() {
         let dir = repo("0.1.0", None);
         write(dir.path(), "0.2.0", &h('c')).unwrap();
-        assert!(get(dir.path(), "pantheon.pkl").contains(&format!(
+        assert!(get(dir.path(), "scaffold.pkl").contains(&format!(
             "pantheon-scaffold@0.2.0::sha256:{}#/Config.pkl",
             h('c')
         )));
@@ -373,26 +373,26 @@ mod tests {
     }
 
     #[test]
-    fn a_pantheon_pkl_with_no_amends_line_for_the_package_or_two_is_an_error_that_names_the_file() {
+    fn a_scaffold_pkl_with_no_amends_line_for_the_package_or_two_is_an_error_that_names_the_file() {
         let none = repo("0.1.0", None);
         put(
             none.path(),
-            "pantheon.pkl",
+            "scaffold.pkl",
             "amends \"../local/Config.pkl\"\n",
         );
         assert_eq!(
-            error(read_pins(none.path(), "pantheon.pkl")),
-            "pantheon.pkl: no amends line for the pantheon-scaffold package"
+            error(read_pins(none.path(), "scaffold.pkl")),
+            "scaffold.pkl: no amends line for the pantheon-scaffold package"
         );
         let two = repo("0.1.0", None);
         put(
             two.path(),
-            "pantheon.pkl",
+            "scaffold.pkl",
             &format!("{}\n{}\n", amends("0.1.0", None), amends("0.1.0", None)),
         );
         assert_eq!(
-            error(read_pins(two.path(), "pantheon.pkl")),
-            "pantheon.pkl: more than one amends line for the pantheon-scaffold package, the runner will not guess which to change"
+            error(read_pins(two.path(), "scaffold.pkl")),
+            "scaffold.pkl: more than one amends line for the pantheon-scaffold package, the runner will not guess which to change"
         );
     }
 
@@ -401,7 +401,7 @@ mod tests {
         let none = repo("0.1.0", None);
         put(none.path(), "mise.toml", "[tools]\nbun = \"1.4.2\"\n");
         assert_eq!(
-            error(read_pins(none.path(), "pantheon.pkl")),
+            error(read_pins(none.path(), "scaffold.pkl")),
             format!("mise.toml: no {RUNNER_TOOL} entry with a version")
         );
         let two = repo("0.1.0", None);
@@ -411,7 +411,7 @@ mod tests {
             &format!("{}\"{RUNNER_TOOL}\" = \"0.1.0\"\n", mise("0.1.0")),
         );
         assert_eq!(
-            error(read_pins(two.path(), "pantheon.pkl")),
+            error(read_pins(two.path(), "scaffold.pkl")),
             format!(
                 "mise.toml: more than one {RUNNER_TOOL} entry, the runner will not guess which to change"
             )
@@ -421,15 +421,15 @@ mod tests {
     #[test]
     fn a_missing_file_is_an_error_not_a_crash() {
         let dir = tempfile::tempdir().unwrap();
-        let message = error(read_pins(dir.path(), "pantheon.pkl"));
+        let message = error(read_pins(dir.path(), "scaffold.pkl"));
         assert_eq!(
             message,
-            format!("pantheon.pkl not found in {}", dir.path().display())
+            format!("scaffold.pkl not found in {}", dir.path().display())
         );
         let only_pkl = tempfile::tempdir().unwrap();
-        put(only_pkl.path(), "pantheon.pkl", &pkl("0.1.0", None));
+        put(only_pkl.path(), "scaffold.pkl", &pkl("0.1.0", None));
         assert_eq!(
-            error(read_pins(only_pkl.path(), "pantheon.pkl")),
+            error(read_pins(only_pkl.path(), "scaffold.pkl")),
             format!("mise.toml not found in {}", only_pkl.path().display())
         );
     }
@@ -438,16 +438,16 @@ mod tests {
     fn nothing_is_written_when_one_of_the_two_files_cannot_be_rewritten() {
         let dir = repo("0.1.0", Some(&h('a')));
         put(dir.path(), "mise.toml", "[tools]\nbun = \"1.4.2\"\n");
-        let before = get(dir.path(), "pantheon.pkl");
+        let before = get(dir.path(), "scaffold.pkl");
         assert!(write(dir.path(), "0.2.0", &h('c')).is_err());
-        assert_eq!(get(dir.path(), "pantheon.pkl"), before);
+        assert_eq!(get(dir.path(), "scaffold.pkl"), before);
     }
 
     #[test]
     fn a_version_or_checksum_that_is_not_valid_is_refused_before_anything_is_written() {
         let dir = repo("0.1.0", Some(&h('a')));
         let before = (
-            get(dir.path(), "pantheon.pkl"),
+            get(dir.path(), "scaffold.pkl"),
             get(dir.path(), "mise.toml"),
         );
         assert_eq!(
@@ -468,7 +468,7 @@ mod tests {
         );
         assert_eq!(
             (
-                get(dir.path(), "pantheon.pkl"),
+                get(dir.path(), "scaffold.pkl"),
                 get(dir.path(), "mise.toml")
             ),
             before
@@ -573,7 +573,7 @@ mod tests {
             &format!("[tools.\"{RUNNER_TOOL}\"]\nversion = \"\"\n"),
         );
         assert!(
-            error(read_pins(dir.path(), "pantheon.pkl")).contains(&format!("no {RUNNER_TOOL}"))
+            error(read_pins(dir.path(), "scaffold.pkl")).contains(&format!("no {RUNNER_TOOL}"))
         );
     }
 
@@ -588,7 +588,7 @@ mod tests {
             ),
         );
         assert!(
-            error(read_pins(none.path(), "pantheon.pkl")).contains(&format!("no {RUNNER_TOOL}"))
+            error(read_pins(none.path(), "scaffold.pkl")).contains(&format!("no {RUNNER_TOOL}"))
         );
         let two = repo("0.1.0", None);
         put(
@@ -599,7 +599,7 @@ mod tests {
                 section("0.1.0", "")
             ),
         );
-        assert!(error(read_pins(two.path(), "pantheon.pkl")).contains("more than one"));
+        assert!(error(read_pins(two.path(), "scaffold.pkl")).contains("more than one"));
     }
 
     #[test]
@@ -607,7 +607,7 @@ mod tests {
         let dir = repo("0.1.0", None);
         let one = format!("[tools.\"{RUNNER_TOOL}\"]\nversion = \"0.1.0\"\n");
         put(dir.path(), "mise.toml", &format!("{one}\n{one}"));
-        assert!(error(read_pins(dir.path(), "pantheon.pkl")).contains("more than one"));
+        assert!(error(read_pins(dir.path(), "scaffold.pkl")).contains("more than one"));
     }
 
     #[test]
@@ -619,7 +619,7 @@ mod tests {
             "[tools.\"github:other/tool\"]\nversion = \"1.0.0\"\n",
         );
         assert!(
-            error(read_pins(dir.path(), "pantheon.pkl")).contains(&format!("no {RUNNER_TOOL}"))
+            error(read_pins(dir.path(), "scaffold.pkl")).contains(&format!("no {RUNNER_TOOL}"))
         );
     }
 
@@ -650,17 +650,17 @@ mod tests {
         ];
         put(
             dir.path(),
-            "pantheon.pkl",
+            "scaffold.pkl",
             &with_imports("0.1.0", Some(&h('a')), &before),
         );
-        assert_eq!(count_package_imports(dir.path(), "pantheon.pkl"), Ok(2));
+        assert_eq!(count_package_imports(dir.path(), "scaffold.pkl"), Ok(2));
         write(dir.path(), "0.2.0", &h('c')).unwrap();
         let after = [
             imp("Builtins.pkl", "0.2.0", Some(&h('c')), "import"),
             imp("Tools.pkl", "0.2.0", Some(&h('c')), "import"),
         ];
         assert_eq!(
-            get(dir.path(), "pantheon.pkl"),
+            get(dir.path(), "scaffold.pkl"),
             with_imports("0.2.0", Some(&h('c')), &after)
         );
     }
@@ -674,7 +674,7 @@ mod tests {
         ];
         put(
             dir.path(),
-            "pantheon.pkl",
+            "scaffold.pkl",
             &with_imports("0.1.0", Some(&h('a')), &before),
         );
         write(dir.path(), "0.2.0", &h('c')).unwrap();
@@ -683,7 +683,7 @@ mod tests {
             imp("Pins.pkl", "0.2.0", Some(&h('c')), "import*"),
         ];
         assert_eq!(
-            get(dir.path(), "pantheon.pkl"),
+            get(dir.path(), "scaffold.pkl"),
             with_imports("0.2.0", Some(&h('c')), &after)
         );
     }
@@ -693,7 +693,7 @@ mod tests {
         let dir = repo("0.1.0", Some(&h('a')));
         put(
             dir.path(),
-            "pantheon.pkl",
+            "scaffold.pkl",
             &with_imports(
                 "0.2.0",
                 Some(&h('c')),
@@ -702,7 +702,7 @@ mod tests {
         );
         write(dir.path(), "0.3.0", &h('d')).unwrap();
         assert_eq!(
-            get(dir.path(), "pantheon.pkl"),
+            get(dir.path(), "scaffold.pkl"),
             with_imports(
                 "0.3.0",
                 Some(&h('d')),
@@ -723,15 +723,15 @@ mod tests {
         before.push(imp("Builtins.pkl", "0.1.0", Some(&h('a')), "import"));
         put(
             dir.path(),
-            "pantheon.pkl",
+            "scaffold.pkl",
             &with_imports("0.1.0", Some(&h('a')), &before),
         );
-        assert_eq!(count_package_imports(dir.path(), "pantheon.pkl"), Ok(1));
+        assert_eq!(count_package_imports(dir.path(), "scaffold.pkl"), Ok(1));
         write(dir.path(), "0.2.0", &h('c')).unwrap();
         let mut after = others.to_vec();
         after.push(imp("Builtins.pkl", "0.2.0", Some(&h('c')), "import"));
         assert_eq!(
-            get(dir.path(), "pantheon.pkl"),
+            get(dir.path(), "scaffold.pkl"),
             with_imports("0.2.0", Some(&h('c')), &after)
         );
     }
@@ -739,11 +739,11 @@ mod tests {
     #[test]
     fn a_config_with_no_imports_counts_none() {
         assert_eq!(
-            count_package_imports(repo("0.1.0", None).path(), "pantheon.pkl"),
+            count_package_imports(repo("0.1.0", None).path(), "scaffold.pkl"),
             Ok(0)
         );
         assert!(
-            count_package_imports(tempfile::tempdir().unwrap().path(), "pantheon.pkl").is_err()
+            count_package_imports(tempfile::tempdir().unwrap().path(), "scaffold.pkl").is_err()
         );
     }
     fn import(v: &str, module: &str, sum: Option<&str>) -> String {

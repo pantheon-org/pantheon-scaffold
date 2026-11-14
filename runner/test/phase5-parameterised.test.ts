@@ -13,7 +13,7 @@ const schema = (await Bun.file(join(root, "contract.schema.json")).json()) as Sc
 const REPOS = ["pantheon-adr", "pantheon-journal", "pantheon-skill-auditor", "pantheon-agentic-harness-dev-kit"] as const;
 type Repo = (typeof REPOS)[number];
 const rendered = Object.fromEntries(
-  await Promise.all(REPOS.map(async (r) => [r, parseContract(await evalContractJson(join(import.meta.dir, "fixtures", `real-workflows-${r}`, "pantheon.pkl"), root, { allowFilesUnder: [join(root, "pkl")] }), schema)] as const)),
+  await Promise.all(REPOS.map(async (r) => [r, parseContract(await evalContractJson(join(import.meta.dir, "fixtures", `real-workflows-${r}`, "scaffold.pkl"), root, { allowFilesUnder: [join(root, "pkl")] }), schema)] as const)),
 ) as Record<Repo, ReturnType<typeof parseContract>>;
 const file = (r: Repo, p: string) => rendered[r].files.find((f) => f.path === p);
 const upstream = (r: Repo, p: string) => readFileSync(join(import.meta.dir, "upstream/phase5", r, p), "utf8");

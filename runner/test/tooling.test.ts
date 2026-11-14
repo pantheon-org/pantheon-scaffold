@@ -6,7 +6,7 @@ import type { Schema } from "../src/schema";
 
 const root = join(import.meta.dir, "../..");
 const schema = (await Bun.file(join(root, "contract.schema.json")).json()) as Schema;
-const contract = parseContract(await evalContractJson(join(import.meta.dir, "fixtures/tooling/pantheon.pkl"), root, { allowFilesUnder: [join(root, "pkl")] }), schema);
+const contract = parseContract(await evalContractJson(join(import.meta.dir, "fixtures/tooling/scaffold.pkl"), root, { allowFilesUnder: [join(root, "pkl")] }), schema);
 const file = (path: string) => contract.files.find((f) => f.path === path)!;
 const gitBlobSha = (text: string): string => {
   const body = new TextEncoder().encode(text);

@@ -7,7 +7,7 @@ import type { Schema } from "../src/schema";
 
 const root = join(import.meta.dir, "../..");
 const schema = (await Bun.file(join(root, "contract.schema.json")).json()) as Schema;
-const fixture = (name: string) => join(import.meta.dir, "fixtures", name, "pantheon.pkl");
+const fixture = (name: string) => join(import.meta.dir, "fixtures", name, "scaffold.pkl");
 
 const base = () => ({
   schemaVersion: 2,
@@ -41,7 +41,7 @@ test("rejects a bad pin sha", () => rejects((c) => c.pins.push({ action: "a/b", 
 test("rejects an unexpected top-level key", () => rejects((c) => (c.extra = 1), /#: unexpected extra/));
 test("the ContractError type is exported", () => expect(new ContractError("x")).toBeInstanceOf(Error));
 
-test("a pantheon.pkl cannot read arbitrary files (restricted resources)", async () => {
+test("a scaffold.pkl cannot read arbitrary files (restricted resources)", async () => {
   await expect(evalContractJson(fixture("read-file"), root)).rejects.toThrow(/Refusing to read resource/);
 });
 

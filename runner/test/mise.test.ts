@@ -13,7 +13,7 @@ const root = join(import.meta.dir, "../..");
 const SUPPORTED_PLATFORMS = [...readFileSync(join(root, "crates/scaffold-core/src/lockcheck.rs"), "utf8").match(/SUPPORTED_PLATFORMS: [^=]*= \[([^\]]*)\]/)![1]!.matchAll(/\(\s*"([^"]+)"/g)].map((m) => m[1]!);
 const schema = (await Bun.file(join(root, "contract.schema.json")).json()) as Schema;
 const render = async (fixture: string) =>
-  parseContract(await evalContractJson(join(import.meta.dir, "fixtures", fixture, "pantheon.pkl"), root, { allowFilesUnder: [join(root, "pkl")] }), schema);
+  parseContract(await evalContractJson(join(import.meta.dir, "fixtures", fixture, "scaffold.pkl"), root, { allowFilesUnder: [join(root, "pkl")] }), schema);
 const contract = await render("mise");
 const file = (path: string) => contract.files.find((f) => f.path === path)!;
 const upstream = await Bun.file(join(import.meta.dir, "upstream/mise.toml")).text();

@@ -17,4 +17,4 @@ function apply(workflows: Mapping<String, Config.Workflow>): Mapping<String, Con
         })
       ),
       checkStep,
-      (s) -> (s) { run = "mise x -- cargo run -q -p scaffold-cli --locked -- check pantheon.pkl --allow-local-package pkl" })))
+      (s) -> (s) { run = "mise x -- cargo run -q -p scaffold-cli --locked -- check scaffold.pkl --allow-local-package pkl" })))

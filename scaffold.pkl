@@ -1,6 +1,6 @@
 // This repository, rendered by its own scaffold. It amends the package in this checkout, not a published release, so a change to a Builtin
 // is seen here in the same pull request. CI runs `check` on it. Run it with:
-//   cargo run -p scaffold-cli -- render pantheon.pkl --allow-local-package pkl
+//   cargo run -p scaffold-cli -- render scaffold.pkl --allow-local-package pkl
 amends "pkl/Config.pkl"
 
 import "pkl/Builtins.pkl"

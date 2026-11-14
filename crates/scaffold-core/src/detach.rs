@@ -1,6 +1,6 @@
 //! `detach`: removes the manifest and the rendered files the package marked `removeOnDetach` (the consumer upgrade
 //! workflow, which would fail on every run once detached), and leaves every other file as a plain file. It needs no
-//! pantheon.pkl and no network. Deleting the flagged files goes through the same delete guard as a render. Ported from
+//! scaffold.pkl and no network. Deleting the flagged files goes through the same delete guard as a render. Ported from
 //! `runner/src/detach.ts`.
 
 use std::path::Path;
@@ -161,7 +161,7 @@ mod tests {
         contract_of(vec![
             upgrade_workflow(),
             owned("deny.toml", "# deny\n", Mode::Regular),
-            seed("pantheon.pkl", "# mine\n"),
+            seed("scaffold.pkl", "# mine\n"),
             external("mise.lock"),
         ])
     }
@@ -198,7 +198,7 @@ mod tests {
         let repo = managed();
         let before = (
             get(&repo.root, "deny.toml"),
-            get(&repo.root, "pantheon.pkl"),
+            get(&repo.root, "scaffold.pkl"),
             get(&repo.root, "mise.lock"),
         );
         let r = go(&repo.root);
@@ -215,7 +215,7 @@ mod tests {
         assert_eq!(
             (
                 get(&repo.root, "deny.toml"),
-                get(&repo.root, "pantheon.pkl"),
+                get(&repo.root, "scaffold.pkl"),
                 get(&repo.root, "mise.lock")
             ),
             before

@@ -27,7 +27,7 @@ Feature: migrate
     And the output contains "per-repo   .github/workflows/ci.yml"
     And the output contains "2 identical, 1 drifted, "
     And the output contains "Nothing was written."
-    And the file "pantheon.pkl" does not exist
+    And the file "scaffold.pkl" does not exist
     And the file "mise.toml" does not exist
     And the file ".pkl-gen/manifest.json" does not exist
 
@@ -72,13 +72,13 @@ Feature: migrate
     And the output contains "new        mise.toml"
     And the output contains "0 identical, 0 drifted, "
 
-  Scenario: an existing pantheon.pkl is refused and nothing is written
+  Scenario: an existing scaffold.pkl is refused and nothing is written
     Given a new empty repository
-    And I write "mine\n" to the file "pantheon.pkl"
+    And I write "mine\n" to the file "scaffold.pkl"
     When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1"
     Then the exit code is 3
-    And the error contains "pantheon.pkl already exists"
-    And the file "pantheon.pkl" has the content "mine\n"
+    And the error contains "scaffold.pkl already exists"
+    And the file "scaffold.pkl" has the content "mine\n"
 
   Scenario: migrate needs a toolchain
     Given a new empty repository
@@ -99,33 +99,33 @@ Feature: migrate
     Then the exit code is 3
     And the error contains "drifted"
     And the error contains ".github/workflows/aislop.yml"
-    And the file "pantheon.pkl" does not exist
+    And the file "scaffold.pkl" does not exist
     And the file "mise.toml" does not exist
 
   Scenario: after a migrate with --write, detach leaves every file in place and removes the manifest
     Given a new empty repository
     When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --write"
     Then the exit code is 0
-    And the file "pantheon.pkl" exists
+    And the file "scaffold.pkl" exists
     And the file ".pkl-gen/manifest.json" exists
     When I run "detach --root <repo>"
     Then the exit code is 0
     And the file ".pkl-gen/manifest.json" does not exist
-    And the file "pantheon.pkl" exists
+    And the file "scaffold.pkl" exists
     And the file "mise.toml" exists
 
   Scenario: --write adopts an identical YAML file with the render's text, and leaves the repository's own files alone
     Given the project "migrate-adopt"
     When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --write"
     Then the exit code is 0
-    And the output contains "Wrote pantheon.pkl and "
+    And the output contains "Wrote scaffold.pkl and "
     And the output contains "Next: run mise lock, then commit."
-    And the file "pantheon.pkl" exists
+    And the file "scaffold.pkl" exists
     And the file ".github/workflows/sync-labels.yml" contains "# Creates the labels Dependabot applies"
     And the file "README.md" has the content "# Example\n"
-    When I run "check <repo>/pantheon.pkl --root <repo> --allow-local-package <package>"
+    When I run "check <repo>/scaffold.pkl --root <repo> --allow-local-package <package>"
     Then the exit code is 0
-    When I run "render <repo>/pantheon.pkl --root <repo> --allow-local-package <package>"
+    When I run "render <repo>/scaffold.pkl --root <repo> --allow-local-package <package>"
     Then the output contains "written 0 file(s), deleted 0"
 
   Scenario: --as-presets in a dry run lists the Preset each drifted file would become, and writes nothing
@@ -133,25 +133,25 @@ Feature: migrate
     When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --as-presets"
     Then the exit code is 0
     And the output contains "preset     presets/aislop.pkl  keeps .github/workflows/aislop.yml"
-    And the output contains "Nothing was written. Run again with --write to write pantheon.pkl, 1 Preset(s) and the new files."
+    And the output contains "Nothing was written. Run again with --write to write scaffold.pkl, 1 Preset(s) and the new files."
     And the file "presets/aislop.pkl" does not exist
-    And the file "pantheon.pkl" does not exist
+    And the file "scaffold.pkl" does not exist
 
   Scenario: a drifted workflow is kept as a Preset, and check, render and detach then behave as for any Preset
     Given the project "migrate-mixed"
     When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --write --as-presets"
     Then the exit code is 0
-    And the output contains "Wrote pantheon.pkl, 1 Preset(s) and "
-    And the file "pantheon.pkl" contains 'presets/aislop.pkl'
+    And the output contains "Wrote scaffold.pkl, 1 Preset(s) and "
+    And the file "scaffold.pkl" contains 'presets/aislop.pkl'
     And the file "presets/aislop.pkl" contains "// What differed when this was written:"
     And the file "presets/aislop.pkl" contains "timeout-minutes: 20"
     And the file ".github/workflows/aislop.yml" contains "timeout-minutes: 20"
     And the file ".github/workflows/sync-labels.yml" contains "# Creates the labels Dependabot applies"
     And the file "README.md" has the content "# Example\n"
-    When I run "check <repo>/pantheon.pkl --root <repo> --allow-local-package <package>"
+    When I run "check <repo>/scaffold.pkl --root <repo> --allow-local-package <package>"
     Then the exit code is 0
     And the output contains "preset presets/aislop.pkl"
-    When I run "render <repo>/pantheon.pkl --root <repo> --allow-local-package <package>"
+    When I run "render <repo>/scaffold.pkl --root <repo> --allow-local-package <package>"
     Then the output contains "written 0 file(s), deleted 0"
     When I run "detach --root <repo>"
     Then the exit code is 0
@@ -166,7 +166,7 @@ Feature: migrate
     Then the exit code is 0
     And the file "rust-toolchain.toml" has the content '[toolchain]\nchannel   = "1.96.1"'
     And the file "presets/rust-toolchain.pkl" exists
-    When I run "check <repo>/pantheon.pkl --root <repo> --allow-local-package <package>"
+    When I run "check <repo>/scaffold.pkl --root <repo> --allow-local-package <package>"
     Then the exit code is 0
 
   Scenario: a Preset never takes the name of a file already under presets/
@@ -176,14 +176,14 @@ Feature: migrate
     Then the exit code is 0
     And the file "presets/aislop.pkl" has the content "mine\n"
     And the file "presets/aislop-2.pkl" exists
-    And the file "pantheon.pkl" contains 'presets/aislop-2.pkl'
+    And the file "scaffold.pkl" contains 'presets/aislop-2.pkl'
 
   Scenario: --as-presets with no drift writes no Preset
     Given the project "migrate-adopt"
     When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --write --as-presets"
     Then the exit code is 0
     And the output does not contain "Preset"
-    And the file "pantheon.pkl" does not contain "presets"
+    And the file "scaffold.pkl" does not contain "presets"
 
   Scenario: the plain --write refusal names --as-presets
     Given the project "migrate-mixed"
@@ -201,7 +201,7 @@ Feature: migrate
     Given a new empty repository
     When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --composite-action --git-dependency-ignore pahdk-core --write"
     Then the exit code is 0
-    And the file "pantheon.pkl" contains "compositeAction = true"
+    And the file "scaffold.pkl" contains "compositeAction = true"
     And the file ".github/dependabot.yml" contains "dependency-name: pahdk-core"
 
   # --accept-builtins (follow-up 1, docs/migrate-accept-builtins-design.md). It replaces every drifted file with the render, and
@@ -217,7 +217,7 @@ Feature: migrate
     And the output contains "git guard: ok, 1 file(s) to replace are tracked and the tree is clean"
     And the output contains "would replace 1 file(s)"
     And the output contains "Nothing was written."
-    And the file "pantheon.pkl" does not exist
+    And the file "scaffold.pkl" does not exist
     And the file "mise.toml" does not exist
 
   Scenario: --accept-builtins in a dry run outside git says a write would be refused
@@ -226,7 +226,7 @@ Feature: migrate
     Then the exit code is 0
     And the output contains "git guard: a write would be refused"
     And the output contains "not a git repository"
-    And the file "pantheon.pkl" does not exist
+    And the file "scaffold.pkl" does not exist
 
   Scenario: --accept-builtins --write replaces the drifted file in a clean git tree, and the repository is then in sync
     Given the project "migrate-mixed"
@@ -236,11 +236,11 @@ Feature: migrate
     Then the exit code is 0
     And the output contains "replaced by --accept-builtins (the git diff of the adoption commit is the full record):"
     And the output contains "  .github/workflows/aislop.yml"
-    And the file "pantheon.pkl" exists
+    And the file "scaffold.pkl" exists
     And the file ".pkl-gen/manifest.json" exists
-    When I run "check <repo>/pantheon.pkl --root <repo> --allow-local-package <package>"
+    When I run "check <repo>/scaffold.pkl --root <repo> --allow-local-package <package>"
     Then the exit code is 0
-    When I run "render <repo>/pantheon.pkl --root <repo> --allow-local-package <package>"
+    When I run "render <repo>/scaffold.pkl --root <repo> --allow-local-package <package>"
     Then the output contains "written 0 file(s), deleted 0"
 
   Scenario: a second migrate on an adopted repository is still refused
@@ -250,7 +250,7 @@ Feature: migrate
     And I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --accept-builtins --write"
     When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --accept-builtins --write"
     Then the exit code is 3
-    And the error contains "pantheon.pkl already exists"
+    And the error contains "scaffold.pkl already exists"
 
   Scenario: --accept-builtins --write is refused while the tracked tree has uncommitted changes, and nothing is written
     Given the project "migrate-mixed"
@@ -260,7 +260,7 @@ Feature: migrate
     When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --accept-builtins --write"
     Then the exit code is 3
     And the error contains "not clean"
-    And the file "pantheon.pkl" does not exist
+    And the file "scaffold.pkl" does not exist
     And the file "mise.toml" does not exist
     And the file ".pkl-gen/manifest.json" does not exist
 
@@ -270,14 +270,14 @@ Feature: migrate
     When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --accept-builtins --write"
     Then the exit code is 3
     And the error contains ".github/workflows/aislop.yml: not tracked by git"
-    And the file "pantheon.pkl" does not exist
+    And the file "scaffold.pkl" does not exist
 
   Scenario: --accept-builtins --write is refused outside a git repository, and nothing is written
     Given the project "migrate-mixed"
     When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --accept-builtins --write"
     Then the exit code is 3
     And the error contains "not a git repository"
-    And the file "pantheon.pkl" does not exist
+    And the file "scaffold.pkl" does not exist
     And the file "mise.toml" does not exist
 
   Scenario: --accept-builtins cannot be combined with --as-presets
@@ -311,7 +311,7 @@ Feature: migrate
     Given a new empty repository
     When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --features all --write"
     Then the exit code is 0
-    And the file "pantheon.pkl" contains 'features = "all"'
+    And the file "scaffold.pkl" contains 'features = "all"'
     And the file ".github/workflows/rust-ci.yml" contains "--all-features"
 
   Scenario: migrate refuses a --features value other than default or all, and writes nothing
@@ -319,4 +319,4 @@ Feature: migrate
     When I run "migrate --root <repo> --allow-local-package <package> --toolchain 1.96.1 --features other --write"
     Then the exit code is 2
     And the error contains "--features must be default or all"
-    And the file "pantheon.pkl" does not exist
+    And the file "scaffold.pkl" does not exist

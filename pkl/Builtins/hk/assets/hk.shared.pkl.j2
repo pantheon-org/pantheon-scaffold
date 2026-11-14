@@ -1,6 +1,8 @@
 // Rendered by pantheon-scaffold from scaffold.pkl. Do not edit: the runner owns this file and refuses to overwrite a hand edit.
 // The steps of the shared hooks. hk.pkl imports this file and adds the repository's own steps.
+{% if present["mise"] %}
 // Tools are pinned in mise.toml; HK_MISE=1 runs each hook under `mise x`.
+{% endif %}
 module pantheon.hk.shared
 
 import "package://github.com/jdx/hk/releases/download/v{{ hkVersion }}/hk@{{ hkVersion }}#/Config.pkl" as hk
@@ -45,7 +47,11 @@ function preCommit(): Mapping<String, hk.Step> = new Mapping<String, hk.Step> {
 {% endif %}
 }
 
+{% if present["rust-ci"] %}
 /// The steps of the pre-push hook, matching the rust-ci workflow.
+{% else %}
+/// The steps of the pre-push hook.
+{% endif %}
 function prePush(): Mapping<String, hk.Step> = new Mapping<String, hk.Step> {
 {% if present["rust-ci"] %}
     ["clippy"] {

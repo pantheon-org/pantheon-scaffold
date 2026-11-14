@@ -24,6 +24,9 @@ function files(opts: Config.Options): Mapping<String, Config.GenFile> =
     ["hk.pkl"] = new Config.GenFile {
       `class` = "seed"
       template = read("assets/hk.pkl.j2").text
-      context = new Mapping { ["hkVersion"] = Tools.hkConfigVersion }
+      context = new Mapping {
+        ["hkVersion"] = Tools.hkConfigVersion
+        ["present"] = Shared.presentFlags(p)
+      }
     }
   }

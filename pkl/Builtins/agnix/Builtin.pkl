@@ -3,6 +3,7 @@
 module pantheon.scaffold.builtins.Agnix
 
 import "../../Config.pkl"
+import "../../Values.pkl"
 import "../../Pins.pkl"
 import "../../Tools.pkl"
 import "../Shared.pkl"
@@ -170,8 +171,12 @@ function toolingFiles(): Mapping<String, Config.GenFile> = new {
 /// The `.agnix.toml` that `analysisFiles()` renders; the first line depends on whether the repository has a skill.
 function analysisFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
   [".agnix.toml"] = new Config.GenFile {
-    content =
-      if (opts.skills) read("assets/agnix.toml").text
-      else read("assets/agnix.toml").text.replaceFirst("# agnix lints the bundled skill against Claude Code's documented formats:", "# agnix lints agent skills and config files against Claude Code's documented formats:")
+    template = read("assets/agnix.toml.j2").text
+    context = new Mapping {
+      ["skills"] = opts.skills
+      ["target"] = Values.agnixTarget
+      ["exclude"] = Values.agnixExclude
+      ["disabledRuleLines"] = Values.agnixDisabledRuleLines
+    }
   }
 }

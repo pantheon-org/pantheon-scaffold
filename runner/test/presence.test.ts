@@ -93,14 +93,17 @@ test("every builtin has an entry in the table of what leaving it out removes", (
   expect(Object.keys(EXPECTED).sort()).toEqual(folders);
 });
 
-test("leaving a builtin out removes what it owns, changes only dependabot.yml, and adds nothing", async () => {
+// mise.toml, hk.shared.pkl and .rumdl.toml read which builtins are present and change too; test/presence-templates.test.ts asserts exactly how.
+const READ_PRESENCE = ["mise.toml", "hk.shared.pkl", ".rumdl.toml"];
+
+test("leaving a builtin out removes what it owns, changes only dependabot.yml and the files that read presence, and adds nothing", async () => {
   const full = await render([]);
   expect(full.size).toBe(49);
   for (const name of folders) {
     const { also = [], removed, dependabot } = EXPECTED[name]!;
     const r = await render([name, ...also]);
     const gone = [...full.keys()].filter((p) => !r.has(p)).sort();
-    const changed = [...full.keys()].filter((p) => r.has(p) && r.get(p) !== full.get(p)).sort();
+    const changed = [...full.keys()].filter((p) => r.has(p) && r.get(p) !== full.get(p) && !READ_PRESENCE.includes(p)).sort();
     const added = [...r.keys()].filter((p) => !full.has(p));
     expect({ name, gone }).toEqual({ name, gone: [...removed].sort() });
     expect({ name, changed }).toEqual({ name, changed: dependabot ? [DEPENDABOT] : [] });

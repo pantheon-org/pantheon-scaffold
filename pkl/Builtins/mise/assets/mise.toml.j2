@@ -1,22 +1,48 @@
 [tools]
+{% if tools["rust"] %}
+{% if present["rust-ci"] %}
 # Same toolchain as rust-toolchain.toml; .github/scripts/check-toolchain-version.sh
 # fails CI if they differ.
+{% else %}
+# Same toolchain as rust-toolchain.toml.
+{% endif %}
 rust = { version = "{{ toolchain }}", components = "rustfmt,clippy" }
+{% endif %}
+{% if tools["actionlint"] %}
 # Workflow linter (expressions, `needs:`, shell in `run:` blocks). Pinned exactly,
+{% if tools["zizmor"] %}
 # like zizmor, so a new release cannot fail a commit that did not touch a rule.
+{% else %}
+# so a new release cannot fail a commit that did not touch a rule.
+{% endif %}
 actionlint = "{{ actionlint }}"
+{% endif %}
+{% if tools["zizmor"] %}
 # Workflow security linter. Pinned in the scaffold package (Tools.pkl).
 zizmor = "{{ zizmor }}"
+{% endif %}
+{% if tools["hk"] %}
 hk = "latest"
+{% endif %}
 pkl = "latest"
+{% if tools["yq"] %}
 yq = "latest"
+{% endif %}
+{% if tools["jq"] %}
 jq = "latest"
+{% endif %}
+{% if tools["shellcheck"] %}
 shellcheck = "latest"
+{% endif %}
+{% if tools["rumdl"] %}
 # rumdl is pre-1.0, so a minor bump can add rules and change what the lint gate
 # reports. Pinned exactly (unlike the other linters), bumped on purpose.
 rumdl = "{{ rumdl }}"
+{% endif %}
+{% if tools["agnix"] %}
 # Lints skill frontmatter and agent files. Pinned in the scaffold package (Tools.pkl).
 "github:agent-sh/agnix" = "{{ agnix }}"
+{% endif %}
 # The scaffold runner, released together with the package that rendered this file.
 "github:pantheon-org/pantheon-scaffold" = "{{ runner }}"
 
@@ -29,22 +55,31 @@ minimum_release_age = "{{ minimumReleaseAge }}"
 lockfile = true
 locked_verify_provenance = true
 lockfile_platforms = [{% for p in lockfilePlatforms %}"{{ p }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+{% if present["hk"] %}
 
 [env]
 # Wrap hk-invoked git hooks in `mise x` so pinned tools are on PATH without
 # shell activation.
 HK_MISE = "1"
+{% endif %}
 
 [hooks]
+{% if present["hk"] %}
 # After tools are installed, wire up the git hooks (idempotent).
 postinstall = "hk install"
 # On entering the project, ensure tools are installed. On first run this
 # triggers postinstall (which installs the git hooks); afterwards it is a no-op.
+{% else %}
+# On entering the project, ensure tools are installed.
+{% endif %}
 enter = "mise install -q"
+{% if present["hk"] %}
 
 [tasks.setup]
 description = "Install tools and git hooks"
 run = "hk install"
+{% endif %}
+{% if present["rumdl"] %}
 
 [tasks.lint]
 description = "Lint all markdown (git-independent)"
@@ -52,11 +87,16 @@ run = "rumdl check ."
 
 [tasks.lint-fix]
 run = "rumdl check --fix ."
+{% endif %}
+{% if tools["rust"] %}
 
 [tasks.fmt]
 description = "Format Rust sources"
 run = "cargo fmt --all"
+{% endif %}
+{% if present["hk"] %}
 
 [tasks.check]
 description = "Run every hk check (the same steps as the git hooks)"
 run = "hk check --all"
+{% endif %}

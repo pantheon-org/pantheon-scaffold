@@ -7,7 +7,7 @@ const ALLOWED: Record<string, string> = {
   "crates/scaffold-core/src/config_name.rs": "the one error and its unit tests",
   "features/renamed-config.feature": "the scenarios for that error",
   "runner/test/config-name.test.ts": "this test",
-  "docs/adopting.md": "the upgrade note and the note about 0.1.10, which describe the old name",
+  "docs/adopting.md": "the upgrade note and the note about 0.2.0, which describe the old name",
   "docs/runner-upgrade.md": "what was observed on the real upgrade of 0.1.7 to 0.1.8",
   "docs/workflow-layer.md": "the 0.1.4 header note, a dated fact",
   "docs/ts-runner-test-mapping.md": "the title of a deleted TypeScript test",

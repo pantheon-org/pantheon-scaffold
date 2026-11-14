@@ -74,7 +74,7 @@ Files in `.tmp/presets-spike/` (untracked working files). Config: `toolchain = "
 
 ## Leaving a builtin out
 
-E12 filtered a key out of the standard set by hand. The supported way is `options.without` (added in 0.1.10, [adopting.md](adopting.md#leaving-builtins-out-optionswithout)): the aggregators skip a left-out builtin, so a Preset sees a mapping without it, and `amendWorkflow` and `amendFile` say that `options.without` may be the reason when the key is missing. A Preset does not decide what is present; the options do.
+E12 filtered a key out of the standard set by hand. The supported way is `options.without` (added in 0.2.0, [adopting.md](adopting.md#leaving-builtins-out-optionswithout)): the aggregators skip a left-out builtin, so a Preset sees a mapping without it, and `amendWorkflow` and `amendFile` say that `options.without` may be the reason when the key is missing. A Preset does not decide what is present; the options do.
 
 ## Open points for the owner (none block 4.1)
 

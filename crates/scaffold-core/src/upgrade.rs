@@ -7,6 +7,7 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
 use crate::checksums::{checksum_asset_url, find_checksum};
+use crate::config_name::{CONFIG_NAME, refuse_old_name, refuse_old_name_in_root};
 use crate::contract::FileClass;
 use crate::lock::{LockError, LockOptions, acquire_lock};
 use crate::lockcheck::check_runner_lock;
@@ -308,7 +309,16 @@ pub fn upgrade(
             json(requested)
         )));
     }
-    let config = opts.config.as_deref().unwrap_or("scaffold.pkl");
+    let config = match opts.config.as_deref() {
+        Some(config) => {
+            refuse_old_name(&root.join(config)).map_err(UpgradeError)?;
+            config
+        }
+        None => {
+            refuse_old_name_in_root(root).map_err(UpgradeError)?;
+            CONFIG_NAME
+        }
+    };
     let pins = read_pins(root, config)?;
     let from = pins.package_version.clone();
     match compare_semver(to, &from).map_err(UpgradeError)? {

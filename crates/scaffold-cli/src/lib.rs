@@ -3,6 +3,7 @@
 //! This build handles every command of the TypeScript runner: `--version`, `contract`, `render`, `check`, `detach`,
 //! `freshness`, `latest` and `upgrade`.
 
+use scaffold_core::config_name::{CONFIG_NAME, refuse_old_name, refuse_old_name_in_root};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
@@ -280,6 +281,10 @@ pub fn run_with_env(
     match cmd.as_str() {
         "contract" | "render" | "check" => {
             let config = config.expect("checked above");
+            if let Err(message) = refuse_old_name(&cwd.join(config)) {
+                io.complain(&message);
+                return EXIT_ERROR;
+            }
             command(cmd, config, cwd, &flags, env, &mut io)
         }
         "detach" => finish(run_detach(&flags, &mut io), &mut io),
@@ -438,12 +443,12 @@ fn evaluate_text(
         }
         std::fs::write(&path, body).map_err(|e| format!("could not write {}: {e}", path.display()))
     };
-    write("scaffold.pkl", text)?;
+    write(CONFIG_NAME, text)?;
     for (rel, body) in files {
         write(rel, body)?;
     }
     let json = scaffold_core::pkl::eval_contract_json(
-        &scratch.0.join("scaffold.pkl"),
+        &scratch.0.join(CONFIG_NAME),
         &flags.root,
         &eval_options(flags),
     )
@@ -492,7 +497,11 @@ fn prepare(
         ));
         return Ok(Err(EXIT_USAGE));
     }
-    if flags.root.join("scaffold.pkl").exists() {
+    if let Err(message) = refuse_old_name_in_root(&flags.root) {
+        io.complain(&message);
+        return Ok(Err(EXIT_REFUSED));
+    }
+    if flags.root.join(CONFIG_NAME).exists() {
         io.complain(&format!(
             "scaffold.pkl already exists in {}: {command} writes it once. Use upgrade to move it to another release.",
             flags.root.display()
@@ -535,7 +544,7 @@ fn run_init(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
         Ok(prepared) => prepared,
         Err(code) => return Ok(code),
     };
-    let config_path = flags.root.join("scaffold.pkl");
+    let config_path = flags.root.join(CONFIG_NAME);
     let render = |dry_run| Options {
         dry_run,
         package_version: package_version.clone(),
@@ -740,7 +749,7 @@ fn run_migrate(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
         }
         written_files.push(path);
     }
-    let config_path = flags.root.join("scaffold.pkl");
+    let config_path = flags.root.join(CONFIG_NAME);
     if let Err(e) = write_new(&config_path, &text) {
         undo(&written_files);
         return Err(e);

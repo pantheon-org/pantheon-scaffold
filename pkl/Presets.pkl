@@ -69,7 +69,7 @@ function insertStepsBefore(
     let (index = all.findIndex((s) -> s.name == name))
       (j) { steps = (all.take(index) + added + all.drop(index)).toListing() }
 
-/// Replaces the context keys `overrides` names in the template file at `path`, and returns the whole mapping. A key is replaced whole, never
+/// Replaces the context keys `overrides` names in the template file at `path`, and returns the whole mapping. `present` and `tools` are refused: they say what options.without leaves out. A key is replaced whole, never
 /// merged. Fails, naming the keys there are, when the file has no template or the context has no such key, so a misspelt key cannot do nothing.
 function amendContext(
   base: Mapping<String, Config.GenFile>,
@@ -82,7 +82,10 @@ function amendContext(
     else
       let (keys = f.context?.keys?.toList() ?? List())
       let (absent = overrides.keys.toList().filter((k) -> !keys.contains(k)))
-        if (!absent.isEmpty)
+      let (flags = overrides.keys.toList().filter((k) -> k == "present" || k == "tools"))
+        if (!flags.isEmpty)
+          throw("preset: context key \"\(flags.first)\" says which builtins and tools are present, and the package sets it from options.without. It cannot be replaced: change options.without instead.")
+        else if (!absent.isEmpty)
           throw("preset: context key \"\(absent.first)\" does not exist in the template \"\(path)\". Keys: \(keys.sort().join(", "))")
         else
           (f) { context = (f.context) { ...overrides } })

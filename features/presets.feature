@@ -172,3 +172,12 @@ Feature: Presets
     And the error contains 'preset: context key "licenses" does not exist in the template "deny.toml". Keys: '
     And the error contains "licences"
     And the file "deny.toml" does not exist
+
+  Scenario: a Preset cannot replace the flags that say which builtins are present
+    Given a new empty repository
+    And the project "preset-context-flags"
+    When I run "render <repo>/scaffold.pkl --root <repo> --allow-local-package <package>"
+    Then the exit code is 1
+    And the error contains 'preset: context key "present" says which builtins and tools are present'
+    And the error contains "change options.without instead"
+    And the file "mise.toml" does not exist

@@ -1,0 +1,6 @@
+// Tries to replace the flags that say which builtins are present, which the package refuses.
+import "@PACKAGE@/Config.pkl"
+import "@PACKAGE@/Presets.pkl"
+
+function apply(files: Mapping<String, Config.GenFile>): Mapping<String, Config.GenFile> =
+  Presets.amendContext(files, "mise.toml", new Mapping { ["present"] = new Mapping { ["hk"] = true } })

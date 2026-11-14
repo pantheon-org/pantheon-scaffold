@@ -95,7 +95,7 @@
     },
     ".github/workflows/plumber.yml": {
       "class": "owned",
-      "hash": "f92da6649cc7907d8f33863fd777e1bdaa487decd4d3f34045879f552bc4e378"
+      "hash": "e542bf273c92464292050c0e31ca1d8e226362dc1752cb79379a00cefde0c399"
     },
     ".github/workflows/pr-auto-rebase.yml": {
       "class": "owned",
@@ -115,7 +115,7 @@
     },
     ".github/workflows/scaffold-check.yml": {
       "class": "owned",
-      "hash": "8bf20a91b5e1a184e9e6b24295d7d8e54966bdadefa2a80d175b93455e4a3620"
+      "hash": "043f674103a0ad5e604bd22d02667f83ed811d422666fa5db3f9983125d1c78b"
     },
     ".github/workflows/sync-labels.yml": {
       "class": "owned",
@@ -150,6 +150,6 @@
     "presets/gitignore.pkl": "c005d0d7051ed017888166f482cf3b181d4ca262e9eb9ed238c9eb7a873fb4dc",
     "presets/own-deny.pkl": "97a203bf01d15bb4d0829dd257781909796cc34faa4a8afa8ee59e949543751c",
     "presets/rust-ci.pkl": "8aba8052614e85d391ffe30d578fc5a3d15377c09a8c8ff5611a9b791976a845",
-    "presets/scaffold-check.pkl": "7e661bc4af5b070e49494b4ea11bc224c835dc04dbb609c14a2685ffe54a4534"
+    "presets/scaffold-check.pkl": "070fbe9ecb8677c6136e202afc70ebc2d94ef43335caeade5cbacd373ee6652b"
   }
 }

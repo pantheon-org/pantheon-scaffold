@@ -5,7 +5,7 @@
 // --api names how the matrix configurations call the aggregators that gained a parameter: `new` (the default) is `toolingFiles(options)`, `old` is `toolingFiles()`, for a tree before the presence work.
 // Use old for the baseline tree (origin/main at 0b466dc).
 //
-// Configurations: the tree's own pantheon.pkl, every runner/test/fixtures/*/pantheon.pkl, and an option matrix written into
+// Configurations: the tree's own scaffold.pkl, every runner/test/fixtures/*/scaffold.pkl, and an option matrix written into
 // <out dir>/_matrix (skills, binary, compositeAction, features, plus error paths), all built on the tree's pkl/ folder.
 // Per configuration: exit code, stdout and stderr of `contract`, `render` and `check`, every file written
 // (path, mode, sha256) and the manifest as text. The tree path and the render directory are replaced by placeholders.
@@ -80,7 +80,7 @@ const writeMatrix = (name: string, o: Opts): string => {
     `compositeAction = ${o.compositeAction}`,
     o.ignore ? `gitDependencyIgnore { ${o.ignore.map((x) => `"${x}"`).join("; ")} }` : "",
   ].filter(Boolean);
-  const config = join(dir, "pantheon.pkl");
+  const config = join(dir, "scaffold.pkl");
   writeFileSync(
     config,
     `amends "file://${tree}/pkl/Config.pkl"\nimport "file://${tree}/pkl/Builtins.pkl"\noptions {\n  ${lines.join("\n  ")}\n}\nworkflows { ...Builtins.standardWorkflows(options) }\nfiles {\n  ...Builtins.standardFiles(options)\n  ...Builtins.baseFiles(options)\n  ...Builtins.toolingFiles(${api === "new" ? "options" : ""})\n  ...Builtins.miseFiles(options)\n  ...Builtins.hkFiles(options)\n}\n`,
@@ -89,10 +89,10 @@ const writeMatrix = (name: string, o: Opts): string => {
 };
 
 const configs: [string, string][] = [];
-if (existsSync(join(tree, "pantheon.pkl"))) configs.push(["root", join(tree, "pantheon.pkl")]);
+if (existsSync(join(tree, "scaffold.pkl"))) configs.push(["root", join(tree, "scaffold.pkl")]);
 const fixtures = join(tree, "runner/test/fixtures");
 for (const name of readdirSync(fixtures).sort()) {
-  const c = join(fixtures, name, "pantheon.pkl");
+  const c = join(fixtures, name, "scaffold.pkl");
   if (existsSync(c)) configs.push([`fixture-${name}`, c]);
 }
 for (const [name, o] of Object.entries(matrix)) configs.push([name, writeMatrix(name, o)]);

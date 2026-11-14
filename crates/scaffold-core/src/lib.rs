@@ -3,6 +3,7 @@
 //! The Rust runner must reproduce the TypeScript runner's behaviour (plan decision 7), so these types and their error
 //! messages follow `runner/src/contract.ts` and `runner/src/manifest.ts`.
 
+pub mod config_name;
 pub mod contract;
 pub mod guard;
 pub mod lock;

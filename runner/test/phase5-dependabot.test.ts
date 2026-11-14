@@ -9,7 +9,7 @@ import type { Schema } from "../src/schema";
 const root = join(import.meta.dir, "../..");
 const schema = (await Bun.file(join(root, "contract.schema.json")).json()) as Schema;
 const render = async (fixture: string) =>
-  parseContract(await evalContractJson(join(import.meta.dir, "fixtures", fixture, "pantheon.pkl"), root, { allowFilesUnder: [join(root, "pkl")] }), schema);
+  parseContract(await evalContractJson(join(import.meta.dir, "fixtures", fixture, "scaffold.pkl"), root, { allowFilesUnder: [join(root, "pkl")] }), schema);
 type Entry = { "package-ecosystem": string; ignore?: { "dependency-name": string }[]; "exclude-paths"?: string[] };
 const entries = (text: string): Record<string, Entry> =>
   Object.fromEntries((Bun.YAML.parse(text) as { updates: Entry[] }).updates.map((u) => [u["package-ecosystem"], u]));

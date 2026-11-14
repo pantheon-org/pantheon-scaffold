@@ -35,7 +35,7 @@ A failed fetch never stops a run. The list can only produce a warning, or a refu
 
 ## `detach`
 
-`pantheon-scaffold detach [--root <dir>] [--dry-run] [--force]` ends management of a repository. It needs no `pantheon.pkl` and no network.
+`pantheon-scaffold detach [--root <dir>] [--dry-run] [--force]` ends management of a repository. It needs no `scaffold.pkl` and no network.
 
 - It deletes the manifest, and the cache, stage and lock folders under `.pkl-gen/`.
 - It deletes the owned files the package marked `removeOnDetach` (the consumer upgrade workflow, which would fail on every run once detached). A file edited by hand is refused unless `--force`.

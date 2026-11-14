@@ -36,7 +36,7 @@ The skill auditor action is a typed pin built from `pkl/Tools.pkl` (commit, vers
 
 ## Wave C: the toggles
 
-The four toggles are options of `pantheon.pkl`: `skills`, `binary`, `features` and `compositeAction`. `Builtins.standardWorkflows(options)` and `Builtins.standardFiles(options)` give the whole workflow layer for a repository with those options, so a repository's `pantheon.pkl` is the options plus two spreads. Turning a toggle off removes its entries, and the runner then deletes the files it rendered before (the delete guard still applies: the file has to be tracked by git and unchanged).
+The four toggles are options of `scaffold.pkl`: `skills`, `binary`, `features` and `compositeAction`. `Builtins.standardWorkflows(options)` and `Builtins.standardFiles(options)` give the whole workflow layer for a repository with those options, so a repository's `scaffold.pkl` is the options plus two spreads. Turning a toggle off removes its entries, and the runner then deletes the files it rendered before (the delete guard still applies: the file has to be tracked by git and unchanged).
 
 | Toggle | Needs | On | What flipping it changes |
 |---|---|---|---|
@@ -58,7 +58,7 @@ Checks: `runner/test/phase5-toggles.test.ts` flips each toggle from a base confi
 | Workflow | When | What it does |
 |---|---|---|
 | `dist-check.yml` (`Builtins.distCheck()`) | `binary` | Runs `dist generate --check` with the cargo-dist version from `Tools.pkl` (`0.32.0`, which a test ties to the `cargo-dist-version` in `dist-workspace.toml`). Fails when `release.yml` is not what cargo-dist would write from `dist-workspace.toml`. Runs on a pull request or push that changes `dist-workspace.toml`, `release.yml` or `Cargo.toml`, and by hand. Reads contents only, no secrets |
-| `scaffold-check.yml` (`Builtins.scaffoldCheck()`) | always | `pantheon-scaffold check pantheon.pkl` on every pull request, the sample job of [check-in-ci.md](check-in-ci.md). A test compares it with that sample under P.1 |
+| `scaffold-check.yml` (`Builtins.scaffoldCheck()`) | always | `pantheon-scaffold check scaffold.pkl` on every pull request, the sample job of [check-in-ci.md](check-in-ci.md). A test compares it with that sample under P.1 |
 
 Both are new files: no repository has them yet, so the real-repository report lists them as "new". `actions/cache` is now a pin in `pkl/Pins.pkl` (v6.1.0), so the pin update workflow keeps it current.
 

@@ -103,7 +103,7 @@ mod tests {
     fn a_listed_preset_is_hashed_by_its_text() {
         let d = dir();
         put(d.path(), "presets/ci.pkl", "function f() = 1\n");
-        let hashes = read_listed(d.path(), "pantheon.pkl", &listed(&["presets/ci.pkl"])).unwrap();
+        let hashes = read_listed(d.path(), "scaffold.pkl", &listed(&["presets/ci.pkl"])).unwrap();
         assert_eq!(hashes.len(), 1);
         assert_eq!(hashes["presets/ci.pkl"], sha256("function f() = 1\n"));
     }
@@ -111,7 +111,7 @@ mod tests {
     #[test]
     fn no_listed_presets_is_an_empty_map() {
         assert!(
-            read_listed(dir().path(), "pantheon.pkl", &[])
+            read_listed(dir().path(), "scaffold.pkl", &[])
                 .unwrap()
                 .is_empty()
         );

@@ -52,10 +52,10 @@ try {
     mkdirSync(dir, { recursive: true });
     const common = `toolchain = "1.96.1"\n  runnerVersion = "0.1.9"\n  ${body}`;
     const composition = `workflows { ...Builtins.standardWorkflows(options) }\nfiles {\n  ...Builtins.standardFiles(options)\n  ...Builtins.baseFiles(options)\n  ...Builtins.toolingFiles(options)\n  ...Builtins.miseFiles(options)\n  ...Builtins.hkFiles(options)\n}\n`;
-    writeFileSync(join(dir, "pantheon.pkl"), `amends "${base}#/Config.pkl"\nimport "${base}#/Builtins.pkl"\noptions {\n  ${common}\n}\n${composition}`);
+    writeFileSync(join(dir, "scaffold.pkl"), `amends "${base}#/Config.pkl"\nimport "${base}#/Builtins.pkl"\noptions {\n  ${common}\n}\n${composition}`);
     writeFileSync(join(dir, "folder.pkl"), `amends "file://${tree}/pkl/Config.pkl"\nimport "file://${tree}/pkl/Builtins.pkl"\noptions {\n  ${common}\n}\n${composition}`);
     const p = Bun.spawn(
-      ["pkl", "eval", "-f", "json", "--cache-dir", join(dir, "cache"), "--http-rewrite", `https://github.com/=http://localhost:${server.port}/`, "--allowed-resources", "package:,https:,http:", join(dir, "pantheon.pkl")],
+      ["pkl", "eval", "-f", "json", "--cache-dir", join(dir, "cache"), "--http-rewrite", `https://github.com/=http://localhost:${server.port}/`, "--allowed-resources", "package:,https:,http:", join(dir, "scaffold.pkl")],
       { stdout: "pipe", stderr: "pipe" },
     );
     const [packaged, err, code] = await Promise.all([new Response(p.stdout).text(), new Response(p.stderr).text(), p.exited]);

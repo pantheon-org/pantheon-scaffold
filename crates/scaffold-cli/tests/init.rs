@@ -165,7 +165,7 @@ fn init_picks_the_newest_stable_release_that_is_not_known_bad_and_pins_its_verif
     let s = setup(routes(&list, bad, &["0.2.0"]));
     let r = s.run(&["--write"], &[]);
     assert_eq!(r.code, 0, "{} {}", r.out, r.err);
-    let config = s.get("pantheon.pkl");
+    let config = s.get("scaffold.pkl");
     assert!(config.contains(&amends("0.2.0")), "{config}");
     assert!(
         config.contains(
@@ -174,7 +174,7 @@ fn init_picks_the_newest_stable_release_that_is_not_known_bad_and_pins_its_verif
         "{config}"
     );
     assert!(
-        r.out.contains("init: wrote pantheon.pkl and 0 file(s)"),
+        r.out.contains("init: wrote scaffold.pkl and 0 file(s)"),
         "{}",
         r.out
     );
@@ -199,7 +199,7 @@ fn a_package_version_on_the_command_line_is_used_instead_of_the_newest() {
     let s = setup(routes(&list, NOTHING_BAD, &["0.1.5"]));
     let r = s.run(&["--write", "--package-version", "v0.1.5"], &[]);
     assert_eq!(r.code, 0, "{} {}", r.out, r.err);
-    assert!(s.get("pantheon.pkl").contains(&amends("0.1.5")));
+    assert!(s.get("scaffold.pkl").contains(&amends("0.1.5")));
 }
 
 #[test]
@@ -209,12 +209,12 @@ fn a_dry_run_shows_the_config_with_the_release_and_writes_nothing() {
     let r = s.run(&[], &[]);
     assert_eq!(r.code, 0, "{} {}", r.out, r.err);
     assert!(
-        r.out.starts_with("pantheon.pkl would be written:"),
+        r.out.starts_with("scaffold.pkl would be written:"),
         "{}",
         r.out
     );
     assert!(r.out.contains(&amends("0.2.0")), "{}", r.out);
-    assert!(!s.exists("pantheon.pkl"));
+    assert!(!s.exists("scaffold.pkl"));
 }
 
 #[test]
@@ -224,7 +224,7 @@ fn a_failed_attestation_stops_with_exit_1_and_writes_nothing() {
     let r = s.run(&["--write"], &[("GH_FAIL", "1")]);
     assert_eq!(r.code, 1, "{}", r.out);
     assert!(r.err.contains("attestation check failed"), "{}", r.err);
-    assert!(!s.exists("pantheon.pkl"));
+    assert!(!s.exists("scaffold.pkl"));
 }
 
 #[test]
@@ -233,7 +233,7 @@ fn a_release_whose_checksums_cannot_be_fetched_fails_closed_with_nothing_written
     let s = setup(routes(&list, NOTHING_BAD, &[]));
     let r = s.run(&["--write", "--attempts", "1"], &[]);
     assert_eq!(r.code, 1, "{}", r.out);
-    assert!(!s.exists("pantheon.pkl"));
+    assert!(!s.exists("scaffold.pkl"));
     assert!(s.calls().is_empty(), "{:?}", s.calls());
 }
 
@@ -248,7 +248,7 @@ fn with_no_release_that_qualifies_init_says_so_and_offers_a_version_flag() {
         "{}",
         r.err
     );
-    assert!(!s.exists("pantheon.pkl"));
+    assert!(!s.exists("scaffold.pkl"));
 }
 
 #[test]
@@ -262,5 +262,5 @@ fn a_release_on_the_known_bad_list_is_refused_even_when_named() {
         "{}",
         r.err
     );
-    assert!(!s.exists("pantheon.pkl"));
+    assert!(!s.exists("scaffold.pkl"));
 }

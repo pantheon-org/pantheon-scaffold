@@ -10,7 +10,7 @@ import type { Schema } from "../src/schema";
 const root = join(import.meta.dir, "../..");
 const schema = (await Bun.file(join(root, "contract.schema.json")).json()) as Schema;
 const render = async (fixture: string) =>
-  parseContract(await evalContractJson(join(import.meta.dir, "fixtures", fixture, "pantheon.pkl"), root, { allowFilesUnder: [join(root, "pkl")] }), schema);
+  parseContract(await evalContractJson(join(import.meta.dir, "fixtures", fixture, "scaffold.pkl"), root, { allowFilesUnder: [join(root, "pkl")] }), schema);
 const adr = await render("workflows-b");
 const kit = await render("workflows-b-kit");
 const auditor = await render("workflows-b-auditor");

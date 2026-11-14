@@ -33,11 +33,11 @@
    0
   ],
   "files": [
-   ".pkl-gen/manifest.json 644 05d1672023a60242428fe70e5560d8fb0a8bd4cdfcbbe9a0baa10cb4d35020ce",
+   ".pkl-gen/manifest.json 644 3a768731ce9dfb2b01847113a28030ac330e87d7333c1dbc57c2ed3286e65667",
    "hk.pkl 644 8d58c27f086941e2ab3d337df8009ca1160e6195d63174521d1d0cb50424322e",
-   "hk.shared.pkl 644 f6033497e958b6599b1ef1d6c8b9431cfc567fefdd2401f3074c53987c82a25e"
+   "hk.shared.pkl 644 36ea50a1e2dde52386ae76dd148142ca9bbf8213070a68d5278189cc349f2dae"
   ],
-  "manifest": "05d1672023a60242428fe70e5560d8fb0a8bd4cdfcbbe9a0baa10cb4d35020ce"
+  "manifest": "3a768731ce9dfb2b01847113a28030ac330e87d7333c1dbc57c2ed3286e65667"
  },
  "fixture-hk": {
   "codes": [
@@ -54,12 +54,12 @@
    ".github/scripts/check-commit-types.sh 755 8171624c888fb01c3316f6423fa23dfda530d4703d9ca7a9ee485081aab0e207",
    ".github/scripts/release-automerge.sh 755 52ae1d1cce62ec2c2e2bd6ae72a6cc39995f7ca0df0d6135c3407cc012477709",
    ".github/scripts/sync-labels.sh 755 1c0e401120d79ce1d65de0c98f0306905cd343e391e93f2bbe054b50ef4143ad",
-   ".pkl-gen/manifest.json 644 c39ab0e7e1f689c533ce155bbf8433a4003b0be56395bf165157649b10f47199",
+   ".pkl-gen/manifest.json 644 e7684264691a56bdb98f976b4a7891887d79bcb053e9def0a01246bb1f5633b3",
    ".rumdl.toml 644 08038a4e8c256f89e4bd54a9e253727342549e1f369005e5726d3c8d550f0490",
    "hk.pkl 644 8d58c27f086941e2ab3d337df8009ca1160e6195d63174521d1d0cb50424322e",
-   "hk.shared.pkl 644 0ba575d020fa0156da681e1c2cc5c0148eff8fadb1b415aad2807af9849a07c0"
+   "hk.shared.pkl 644 a0f037b792964081751b7f3ce8d05945079175c12e0704cafe15d1b5cb8b9d97"
   ],
-  "manifest": "c39ab0e7e1f689c533ce155bbf8433a4003b0be56395bf165157649b10f47199"
+  "manifest": "e7684264691a56bdb98f976b4a7891887d79bcb053e9def0a01246bb1f5633b3"
  },
  "fixture-minimal": {
   "codes": [
@@ -116,15 +116,15 @@
    ".github/scripts/release-automerge.sh 755 52ae1d1cce62ec2c2e2bd6ae72a6cc39995f7ca0df0d6135c3407cc012477709",
    ".github/scripts/sync-labels.sh 755 1c0e401120d79ce1d65de0c98f0306905cd343e391e93f2bbe054b50ef4143ad",
    ".mise/conf.d/repo.toml 644 86cce5464f068232fe090ed0458cc24e395f4cfc5826a5c966937d1e18342c94",
-   ".pkl-gen/manifest.json 644 f2386679438b2abb9a19e98dd0a43181fd779b8fe6aa6cc944c24912b3d4b0ef",
+   ".pkl-gen/manifest.json 644 0f45d2aba5629bac5397962470e5baee9a7d06941bf31de73477e2f849109fd9",
    ".rumdl.toml 644 08038a4e8c256f89e4bd54a9e253727342549e1f369005e5726d3c8d550f0490",
    "deny.toml 644 d8ea09367293a2a3ee1af3d6edc7cd59620a6604c807955d43918c2881dc6694",
    "hk.pkl 644 8d58c27f086941e2ab3d337df8009ca1160e6195d63174521d1d0cb50424322e",
-   "hk.shared.pkl 644 f6033497e958b6599b1ef1d6c8b9431cfc567fefdd2401f3074c53987c82a25e",
+   "hk.shared.pkl 644 36ea50a1e2dde52386ae76dd148142ca9bbf8213070a68d5278189cc349f2dae",
    "mise.toml 644 6cfaf808182f870027f9123a5f121cec355f8da63f061f5fbd950954cb7d96fd",
    "rust-toolchain.toml 644 4d0674575b116a100c7d0ad754308dc6dea178b4808c760afc43136db967c7a6"
   ],
-  "manifest": "f2386679438b2abb9a19e98dd0a43181fd779b8fe6aa6cc944c24912b3d4b0ef"
+  "manifest": "0f45d2aba5629bac5397962470e5baee9a7d06941bf31de73477e2f849109fd9"
  },
  "fixture-phase3": {
   "codes": [
@@ -145,15 +145,15 @@
    ".github/scripts/release-automerge.sh 755 52ae1d1cce62ec2c2e2bd6ae72a6cc39995f7ca0df0d6135c3407cc012477709",
    ".github/scripts/sync-labels.sh 755 1c0e401120d79ce1d65de0c98f0306905cd343e391e93f2bbe054b50ef4143ad",
    ".mise/conf.d/repo.toml 644 86cce5464f068232fe090ed0458cc24e395f4cfc5826a5c966937d1e18342c94",
-   ".pkl-gen/manifest.json 644 d9eed1788469591795b4e0ffa24f0cbf4801689e4a6edff067d2cce0c3a8abee",
+   ".pkl-gen/manifest.json 644 5407b0389a3f72741b1435496b83e083cc172001a4a0a28f6c987a64b8a4a5e5",
    ".rumdl.toml 644 08038a4e8c256f89e4bd54a9e253727342549e1f369005e5726d3c8d550f0490",
    "deny.toml 644 d8ea09367293a2a3ee1af3d6edc7cd59620a6604c807955d43918c2881dc6694",
    "hk.pkl 644 8d58c27f086941e2ab3d337df8009ca1160e6195d63174521d1d0cb50424322e",
-   "hk.shared.pkl 644 0ba575d020fa0156da681e1c2cc5c0148eff8fadb1b415aad2807af9849a07c0",
+   "hk.shared.pkl 644 a0f037b792964081751b7f3ce8d05945079175c12e0704cafe15d1b5cb8b9d97",
    "mise.toml 644 6cfaf808182f870027f9123a5f121cec355f8da63f061f5fbd950954cb7d96fd",
    "rust-toolchain.toml 644 4d0674575b116a100c7d0ad754308dc6dea178b4808c760afc43136db967c7a6"
   ],
-  "manifest": "d9eed1788469591795b4e0ffa24f0cbf4801689e4a6edff067d2cce0c3a8abee"
+  "manifest": "5407b0389a3f72741b1435496b83e083cc172001a4a0a28f6c987a64b8a4a5e5"
  },
  "fixture-phase5-binary": {
   "codes": [
@@ -213,22 +213,22 @@
    ".github/workflows/conventional-commits.yml 644 bdece7e27f2ffb0088f6ff4b3ef9d5ae80b252e945d03d3f96ed81f60614b641",
    ".github/workflows/dist-check.yml 644 37e7b19cf5e30cb1c96f70ff8ea292d4f252da64516400f8c4ad6b6194efe45c",
    ".github/workflows/inline-scripts.yml 644 0d83b92d7e271e287ab3ca091589225544b03caac4834c5c1d0589eb7bbe93f9",
-   ".github/workflows/plumber.yml 644 f92da6649cc7907d8f33863fd777e1bdaa487decd4d3f34045879f552bc4e378",
+   ".github/workflows/plumber.yml 644 e542bf273c92464292050c0e31ca1d8e226362dc1752cb79379a00cefde0c399",
    ".github/workflows/pr-auto-rebase.yml 644 80eb78ca8c515218160e347eac91c3e82299a40c98c018a3f3f8a8483c9e3282",
    ".github/workflows/release-automerge.yml 644 ba335d7da9381e46bc28b45c5a917331288f49060bb135dc5fffc8f4d200a472",
    ".github/workflows/release-please.yml 644 15cf033f320bb12e7aedd764b3573453a371950bba4b80d993d7904e51ff6398",
    ".github/workflows/rust-ci.yml 644 d49d5342ace41fc58b55c7bc7fee8d7f1a976332a76245924f661d76a2696525",
-   ".github/workflows/scaffold-check.yml 644 4557dae27b3ec39e86fc953ddde41b4e190b78c56151bb0ccfa13eaf6c39116d",
+   ".github/workflows/scaffold-check.yml 644 706c20cbe0026d32402d991dbcd880484cf220b6a63d4111ef862b087036c451",
    ".github/workflows/sync-labels.yml 644 646694213615c3e61d5af1b254d34339fa26246c1f7d7608ea0178f7658fc76c",
    ".github/workflows/zizmor.yml 644 943f366bd2549ca92ab039cb87816b1269ff2ce997c30b5e05b5895880bb011a",
    ".github/zizmor.yml 644 641785475250bd6387f35c27f4f08a98a084405c9cc02c59845268a744f925e5",
    ".gitignore 644 d203da81821e9e28d93e5c6a5d1758a126c6e3a95549d77736665d54fdcf982e",
-   ".pkl-gen/manifest.json 644 76db654d8a1f3a17ad7abe7060c7b341fa046b3b7a1735df0eaaedf78e9558c4",
+   ".pkl-gen/manifest.json 644 e5fae6d4cf873b471819128ec3ec7b2f115ed5aca385ef32cbe7529ee16213ba",
    ".plumber.yaml 644 151bde3704f31000d8c13fcb16f05345a63c84bc85e69d6e0ebcaed585d027a9",
    "SECURITY.md 644 bfdfcd56670720216869c2d27071e2e8ed138812609fd1c186db8286c43c65fb",
    "dist-workspace.toml 644 a9cf533c719221f1d5078e79be64df4609edfd29e671587c8721e4f1a5ce2e62"
   ],
-  "manifest": "76db654d8a1f3a17ad7abe7060c7b341fa046b3b7a1735df0eaaedf78e9558c4"
+  "manifest": "e5fae6d4cf873b471819128ec3ec7b2f115ed5aca385ef32cbe7529ee16213ba"
  },
  "fixture-real-workflows-pantheon-agentic-harness-dev-kit": {
   "codes": [
@@ -249,20 +249,20 @@
    ".github/workflows/commit-types.yml 644 bf414792b9e4e9363981e920d8fdaea946b3e3b55bba59554e9d3c876d0f1322",
    ".github/workflows/conventional-commits.yml 644 bdece7e27f2ffb0088f6ff4b3ef9d5ae80b252e945d03d3f96ed81f60614b641",
    ".github/workflows/inline-scripts.yml 644 0d83b92d7e271e287ab3ca091589225544b03caac4834c5c1d0589eb7bbe93f9",
-   ".github/workflows/plumber.yml 644 f92da6649cc7907d8f33863fd777e1bdaa487decd4d3f34045879f552bc4e378",
+   ".github/workflows/plumber.yml 644 e542bf273c92464292050c0e31ca1d8e226362dc1752cb79379a00cefde0c399",
    ".github/workflows/pr-auto-rebase.yml 644 80eb78ca8c515218160e347eac91c3e82299a40c98c018a3f3f8a8483c9e3282",
    ".github/workflows/release-automerge.yml 644 ba335d7da9381e46bc28b45c5a917331288f49060bb135dc5fffc8f4d200a472",
    ".github/workflows/release-please.yml 644 3ed3604ecee96fa09d57f306991c76a73064ac9e91c8f2a0d6b3f940e69d96ed",
    ".github/workflows/rust-ci.yml 644 9eec776b2b1ffdf0d7861c90dd2bb6efcd28521f86be10467bace6f90df5bc85",
-   ".github/workflows/scaffold-check.yml 644 4557dae27b3ec39e86fc953ddde41b4e190b78c56151bb0ccfa13eaf6c39116d",
+   ".github/workflows/scaffold-check.yml 644 706c20cbe0026d32402d991dbcd880484cf220b6a63d4111ef862b087036c451",
    ".github/workflows/sync-labels.yml 644 646694213615c3e61d5af1b254d34339fa26246c1f7d7608ea0178f7658fc76c",
    ".github/workflows/zizmor.yml 644 d8dd9a2ed59f79088903dea9455395aa4ca9af2fa5759d5da0a1fbc3be21ebd3",
    ".gitignore 644 d203da81821e9e28d93e5c6a5d1758a126c6e3a95549d77736665d54fdcf982e",
-   ".pkl-gen/manifest.json 644 2b40933937fd04cc6b548cf6a8a60302a0b28f43b937a9ee9531de9de13a637d",
+   ".pkl-gen/manifest.json 644 1dc1bdac304bc87329368880ba43554a4ffd448bd93f1148e9ce497261d59a9a",
    ".plumber.yaml 644 151bde3704f31000d8c13fcb16f05345a63c84bc85e69d6e0ebcaed585d027a9",
    "SECURITY.md 644 3cb548c5f656fd6024014b61efab8d18b5cc9265d2d4d01cadf1ccb9fa710352"
   ],
-  "manifest": "2b40933937fd04cc6b548cf6a8a60302a0b28f43b937a9ee9531de9de13a637d"
+  "manifest": "1dc1bdac304bc87329368880ba43554a4ffd448bd93f1148e9ce497261d59a9a"
  },
  "fixture-real-workflows-pantheon-journal": {
   "codes": [
@@ -287,22 +287,22 @@
    ".github/workflows/conventional-commits.yml 644 bdece7e27f2ffb0088f6ff4b3ef9d5ae80b252e945d03d3f96ed81f60614b641",
    ".github/workflows/dist-check.yml 644 37e7b19cf5e30cb1c96f70ff8ea292d4f252da64516400f8c4ad6b6194efe45c",
    ".github/workflows/inline-scripts.yml 644 0d83b92d7e271e287ab3ca091589225544b03caac4834c5c1d0589eb7bbe93f9",
-   ".github/workflows/plumber.yml 644 f92da6649cc7907d8f33863fd777e1bdaa487decd4d3f34045879f552bc4e378",
+   ".github/workflows/plumber.yml 644 e542bf273c92464292050c0e31ca1d8e226362dc1752cb79379a00cefde0c399",
    ".github/workflows/pr-auto-rebase.yml 644 80eb78ca8c515218160e347eac91c3e82299a40c98c018a3f3f8a8483c9e3282",
    ".github/workflows/release-automerge.yml 644 ba335d7da9381e46bc28b45c5a917331288f49060bb135dc5fffc8f4d200a472",
    ".github/workflows/release-please.yml 644 fdfa162f30899a01b600b24bbee37ae983d87ef80032f856fca3541797519308",
    ".github/workflows/rust-ci.yml 644 d49d5342ace41fc58b55c7bc7fee8d7f1a976332a76245924f661d76a2696525",
-   ".github/workflows/scaffold-check.yml 644 4557dae27b3ec39e86fc953ddde41b4e190b78c56151bb0ccfa13eaf6c39116d",
+   ".github/workflows/scaffold-check.yml 644 706c20cbe0026d32402d991dbcd880484cf220b6a63d4111ef862b087036c451",
    ".github/workflows/sync-labels.yml 644 646694213615c3e61d5af1b254d34339fa26246c1f7d7608ea0178f7658fc76c",
    ".github/workflows/zizmor.yml 644 943f366bd2549ca92ab039cb87816b1269ff2ce997c30b5e05b5895880bb011a",
    ".github/zizmor.yml 644 641785475250bd6387f35c27f4f08a98a084405c9cc02c59845268a744f925e5",
    ".gitignore 644 d203da81821e9e28d93e5c6a5d1758a126c6e3a95549d77736665d54fdcf982e",
-   ".pkl-gen/manifest.json 644 db2f2fca60e891fcf865e09289595fdb3aad89267dc4ae1b755a47acc3b28fbd",
+   ".pkl-gen/manifest.json 644 e273c414a9a9f714b53c720f8aa0680e6dff8f676736b462a3edf96671c2c992",
    ".plumber.yaml 644 151bde3704f31000d8c13fcb16f05345a63c84bc85e69d6e0ebcaed585d027a9",
    "SECURITY.md 644 58f5450cfe32b7d30b0dfb0e7a0f939584b6194caf7ca1bb9483ba343f9bacee",
    "dist-workspace.toml 644 a9cf533c719221f1d5078e79be64df4609edfd29e671587c8721e4f1a5ce2e62"
   ],
-  "manifest": "db2f2fca60e891fcf865e09289595fdb3aad89267dc4ae1b755a47acc3b28fbd"
+  "manifest": "e273c414a9a9f714b53c720f8aa0680e6dff8f676736b462a3edf96671c2c992"
  },
  "fixture-real-workflows-pantheon-skill-auditor": {
   "codes": [
@@ -327,22 +327,22 @@
    ".github/workflows/conventional-commits.yml 644 bdece7e27f2ffb0088f6ff4b3ef9d5ae80b252e945d03d3f96ed81f60614b641",
    ".github/workflows/dist-check.yml 644 37e7b19cf5e30cb1c96f70ff8ea292d4f252da64516400f8c4ad6b6194efe45c",
    ".github/workflows/inline-scripts.yml 644 0d83b92d7e271e287ab3ca091589225544b03caac4834c5c1d0589eb7bbe93f9",
-   ".github/workflows/plumber.yml 644 f92da6649cc7907d8f33863fd777e1bdaa487decd4d3f34045879f552bc4e378",
+   ".github/workflows/plumber.yml 644 e542bf273c92464292050c0e31ca1d8e226362dc1752cb79379a00cefde0c399",
    ".github/workflows/pr-auto-rebase.yml 644 80eb78ca8c515218160e347eac91c3e82299a40c98c018a3f3f8a8483c9e3282",
    ".github/workflows/release-automerge.yml 644 ba335d7da9381e46bc28b45c5a917331288f49060bb135dc5fffc8f4d200a472",
    ".github/workflows/release-please.yml 644 7b226e0bda805fa11d06a345e55522981d29fe002a715e9b12441286b0a510c6",
    ".github/workflows/rust-ci.yml 644 d49d5342ace41fc58b55c7bc7fee8d7f1a976332a76245924f661d76a2696525",
-   ".github/workflows/scaffold-check.yml 644 4557dae27b3ec39e86fc953ddde41b4e190b78c56151bb0ccfa13eaf6c39116d",
+   ".github/workflows/scaffold-check.yml 644 706c20cbe0026d32402d991dbcd880484cf220b6a63d4111ef862b087036c451",
    ".github/workflows/sync-labels.yml 644 646694213615c3e61d5af1b254d34339fa26246c1f7d7608ea0178f7658fc76c",
    ".github/workflows/zizmor.yml 644 5e22b6e63c540e7b8cba182acb04098d9a2497a82259556e87662ee754ecefe9",
    ".github/zizmor.yml 644 f123fffa0adcadf794bcd5e0408154bb3cad7cfbf638556732399d1b9891fe94",
    ".gitignore 644 d203da81821e9e28d93e5c6a5d1758a126c6e3a95549d77736665d54fdcf982e",
-   ".pkl-gen/manifest.json 644 3621c635b522110a347dc5bad1e17978eaeff9168a317c149ae2e0798f74f7e9",
+   ".pkl-gen/manifest.json 644 9f2da66d40e3d5e867a6e1c70391ea77a17778e95735be7fd333b781efcebf48",
    ".plumber.yaml 644 151bde3704f31000d8c13fcb16f05345a63c84bc85e69d6e0ebcaed585d027a9",
    "SECURITY.md 644 cc25720faf090cfbbb467a075a34a9a43d8c3f044cc6e082a65c6308a8fe2487",
    "dist-workspace.toml 644 a9cf533c719221f1d5078e79be64df4609edfd29e671587c8721e4f1a5ce2e62"
   ],
-  "manifest": "3621c635b522110a347dc5bad1e17978eaeff9168a317c149ae2e0798f74f7e9"
+  "manifest": "9f2da66d40e3d5e867a6e1c70391ea77a17778e95735be7fd333b781efcebf48"
  },
  "fixture-slice": {
   "codes": [
@@ -550,14 +550,14 @@
    ".github/pull_request_template.md 644 40b8b7e522dd84b62e96013d3a384e3920c11f15cdc80855c396332d30c0440b",
    ".github/workflows/commit-types.yml 644 bf414792b9e4e9363981e920d8fdaea946b3e3b55bba59554e9d3c876d0f1322",
    ".github/workflows/conventional-commits.yml 644 bdece7e27f2ffb0088f6ff4b3ef9d5ae80b252e945d03d3f96ed81f60614b641",
-   ".github/workflows/plumber.yml 644 f92da6649cc7907d8f33863fd777e1bdaa487decd4d3f34045879f552bc4e378",
+   ".github/workflows/plumber.yml 644 e542bf273c92464292050c0e31ca1d8e226362dc1752cb79379a00cefde0c399",
    ".github/workflows/pr-auto-rebase.yml 644 80eb78ca8c515218160e347eac91c3e82299a40c98c018a3f3f8a8483c9e3282",
    ".github/workflows/release-automerge.yml 644 ba335d7da9381e46bc28b45c5a917331288f49060bb135dc5fffc8f4d200a472",
    ".github/workflows/sync-labels.yml 644 646694213615c3e61d5af1b254d34339fa26246c1f7d7608ea0178f7658fc76c",
-   ".pkl-gen/manifest.json 644 242c1dac06162e9de9593d37de7b7ac82178ccfa60091ce1a7118c11c89c8442",
+   ".pkl-gen/manifest.json 644 40f5f5aa361e531960de596a707587bfc162addcce680096648ba0bdbf7d842c",
    ".plumber.yaml 644 151bde3704f31000d8c13fcb16f05345a63c84bc85e69d6e0ebcaed585d027a9"
   ],
-  "manifest": "242c1dac06162e9de9593d37de7b7ac82178ccfa60091ce1a7118c11c89c8442"
+  "manifest": "40f5f5aa361e531960de596a707587bfc162addcce680096648ba0bdbf7d842c"
  },
  "fixture-workflows-b-auditor": {
   "codes": [
@@ -618,10 +618,10 @@
    0
   ],
   "files": [
-   ".github/workflows/upgrade-scaffold.yml 644 bf619326b502ef5bedfc6f76246ca8be6261f0a9c3c25cac820ec3fbe94e8cc1",
-   ".pkl-gen/manifest.json 644 d9e7d80cd7ea774c6f0a420b511338b47f681c2d5e7da1ff95e8d3d77ef7cadc"
+   ".github/workflows/upgrade-scaffold.yml 644 c20915ffbe7737ecaa8449e041872a26933d6a48ec5dee81c811c3e1397989e8",
+   ".pkl-gen/manifest.json 644 a59da5f011f8543a0770a99e3dcc2c866b5096257bad30e6732f0d817d62260e"
   ],
-  "manifest": "d9e7d80cd7ea774c6f0a420b511338b47f681c2d5e7da1ff95e8d3d77ef7cadc"
+  "manifest": "a59da5f011f8543a0770a99e3dcc2c866b5096257bad30e6732f0d817d62260e"
  },
  "m-ignore": {
   "codes": [
@@ -657,29 +657,29 @@
    ".github/workflows/conventional-commits.yml 644 bdece7e27f2ffb0088f6ff4b3ef9d5ae80b252e945d03d3f96ed81f60614b641",
    ".github/workflows/dist-check.yml 644 37e7b19cf5e30cb1c96f70ff8ea292d4f252da64516400f8c4ad6b6194efe45c",
    ".github/workflows/inline-scripts.yml 644 0d83b92d7e271e287ab3ca091589225544b03caac4834c5c1d0589eb7bbe93f9",
-   ".github/workflows/plumber.yml 644 f92da6649cc7907d8f33863fd777e1bdaa487decd4d3f34045879f552bc4e378",
+   ".github/workflows/plumber.yml 644 e542bf273c92464292050c0e31ca1d8e226362dc1752cb79379a00cefde0c399",
    ".github/workflows/pr-auto-rebase.yml 644 80eb78ca8c515218160e347eac91c3e82299a40c98c018a3f3f8a8483c9e3282",
    ".github/workflows/release-automerge.yml 644 ba335d7da9381e46bc28b45c5a917331288f49060bb135dc5fffc8f4d200a472",
    ".github/workflows/release-please.yml 644 ca6e0033359c9e2dacb9ab0cfc85a10cf43f324a1e25a5db7e7e992ab5841ae2",
    ".github/workflows/rust-ci.yml 644 d49d5342ace41fc58b55c7bc7fee8d7f1a976332a76245924f661d76a2696525",
-   ".github/workflows/scaffold-check.yml 644 4557dae27b3ec39e86fc953ddde41b4e190b78c56151bb0ccfa13eaf6c39116d",
+   ".github/workflows/scaffold-check.yml 644 706c20cbe0026d32402d991dbcd880484cf220b6a63d4111ef862b087036c451",
    ".github/workflows/sync-labels.yml 644 646694213615c3e61d5af1b254d34339fa26246c1f7d7608ea0178f7658fc76c",
    ".github/workflows/zizmor.yml 644 943f366bd2549ca92ab039cb87816b1269ff2ce997c30b5e05b5895880bb011a",
    ".github/zizmor.yml 644 641785475250bd6387f35c27f4f08a98a084405c9cc02c59845268a744f925e5",
    ".gitignore 644 d203da81821e9e28d93e5c6a5d1758a126c6e3a95549d77736665d54fdcf982e",
    ".mise/conf.d/repo.toml 644 86cce5464f068232fe090ed0458cc24e395f4cfc5826a5c966937d1e18342c94",
-   ".pkl-gen/manifest.json 644 99db329a311dd5beef9705ad5afbab5b19bc59a220d1f928d12cb3d0dfdc6a47",
+   ".pkl-gen/manifest.json 644 b1a6f210366e5468a40b44ded8d4e3fa1541bf911f522a0a6c7c4d86bba754e3",
    ".plumber.yaml 644 151bde3704f31000d8c13fcb16f05345a63c84bc85e69d6e0ebcaed585d027a9",
    ".rumdl.toml 644 08038a4e8c256f89e4bd54a9e253727342549e1f369005e5726d3c8d550f0490",
    "SECURITY.md 644 d7f5871e6d8dc4c50d3eeddd64ca8998e510e3834048ce47fe3aac2ca8c2782f",
    "deny.toml 644 d8ea09367293a2a3ee1af3d6edc7cd59620a6604c807955d43918c2881dc6694",
    "dist-workspace.toml 644 a9cf533c719221f1d5078e79be64df4609edfd29e671587c8721e4f1a5ce2e62",
    "hk.pkl 644 8d58c27f086941e2ab3d337df8009ca1160e6195d63174521d1d0cb50424322e",
-   "hk.shared.pkl 644 0ba575d020fa0156da681e1c2cc5c0148eff8fadb1b415aad2807af9849a07c0",
+   "hk.shared.pkl 644 a0f037b792964081751b7f3ce8d05945079175c12e0704cafe15d1b5cb8b9d97",
    "mise.toml 644 af44586366432bfc526384a2e7e9bea5b7fe9cb89bf308bdfc5aedad3cc44588",
    "rust-toolchain.toml 644 4d0674575b116a100c7d0ad754308dc6dea178b4808c760afc43136db967c7a6"
   ],
-  "manifest": "99db329a311dd5beef9705ad5afbab5b19bc59a220d1f928d12cb3d0dfdc6a47"
+  "manifest": "b1a6f210366e5468a40b44ded8d4e3fa1541bf911f522a0a6c7c4d86bba754e3"
  },
  "m-skills-false-binary-false-composite-false-features-all": {
   "codes": [
@@ -711,27 +711,27 @@
    ".github/workflows/commit-types.yml 644 bf414792b9e4e9363981e920d8fdaea946b3e3b55bba59554e9d3c876d0f1322",
    ".github/workflows/conventional-commits.yml 644 bdece7e27f2ffb0088f6ff4b3ef9d5ae80b252e945d03d3f96ed81f60614b641",
    ".github/workflows/inline-scripts.yml 644 0d83b92d7e271e287ab3ca091589225544b03caac4834c5c1d0589eb7bbe93f9",
-   ".github/workflows/plumber.yml 644 f92da6649cc7907d8f33863fd777e1bdaa487decd4d3f34045879f552bc4e378",
+   ".github/workflows/plumber.yml 644 e542bf273c92464292050c0e31ca1d8e226362dc1752cb79379a00cefde0c399",
    ".github/workflows/pr-auto-rebase.yml 644 80eb78ca8c515218160e347eac91c3e82299a40c98c018a3f3f8a8483c9e3282",
    ".github/workflows/release-automerge.yml 644 ba335d7da9381e46bc28b45c5a917331288f49060bb135dc5fffc8f4d200a472",
    ".github/workflows/release-please.yml 644 3ed3604ecee96fa09d57f306991c76a73064ac9e91c8f2a0d6b3f940e69d96ed",
    ".github/workflows/rust-ci.yml 644 9eec776b2b1ffdf0d7861c90dd2bb6efcd28521f86be10467bace6f90df5bc85",
-   ".github/workflows/scaffold-check.yml 644 4557dae27b3ec39e86fc953ddde41b4e190b78c56151bb0ccfa13eaf6c39116d",
+   ".github/workflows/scaffold-check.yml 644 706c20cbe0026d32402d991dbcd880484cf220b6a63d4111ef862b087036c451",
    ".github/workflows/sync-labels.yml 644 646694213615c3e61d5af1b254d34339fa26246c1f7d7608ea0178f7658fc76c",
    ".github/workflows/zizmor.yml 644 d8dd9a2ed59f79088903dea9455395aa4ca9af2fa5759d5da0a1fbc3be21ebd3",
    ".gitignore 644 d203da81821e9e28d93e5c6a5d1758a126c6e3a95549d77736665d54fdcf982e",
    ".mise/conf.d/repo.toml 644 86cce5464f068232fe090ed0458cc24e395f4cfc5826a5c966937d1e18342c94",
-   ".pkl-gen/manifest.json 644 4a4a8de906f7dba7dcd642e09f0580baa559d3a5bf8ca28a8af44623c7e93066",
+   ".pkl-gen/manifest.json 644 f3128ce5b84a9f5bc6e685d5d533c298f769258b7b9e1ea8a5ec6e0190f80708",
    ".plumber.yaml 644 151bde3704f31000d8c13fcb16f05345a63c84bc85e69d6e0ebcaed585d027a9",
    ".rumdl.toml 644 08038a4e8c256f89e4bd54a9e253727342549e1f369005e5726d3c8d550f0490",
    "SECURITY.md 644 3cb548c5f656fd6024014b61efab8d18b5cc9265d2d4d01cadf1ccb9fa710352",
    "deny.toml 644 d8ea09367293a2a3ee1af3d6edc7cd59620a6604c807955d43918c2881dc6694",
    "hk.pkl 644 8d58c27f086941e2ab3d337df8009ca1160e6195d63174521d1d0cb50424322e",
-   "hk.shared.pkl 644 f6033497e958b6599b1ef1d6c8b9431cfc567fefdd2401f3074c53987c82a25e",
+   "hk.shared.pkl 644 36ea50a1e2dde52386ae76dd148142ca9bbf8213070a68d5278189cc349f2dae",
    "mise.toml 644 af44586366432bfc526384a2e7e9bea5b7fe9cb89bf308bdfc5aedad3cc44588",
    "rust-toolchain.toml 644 4d0674575b116a100c7d0ad754308dc6dea178b4808c760afc43136db967c7a6"
   ],
-  "manifest": "4a4a8de906f7dba7dcd642e09f0580baa559d3a5bf8ca28a8af44623c7e93066"
+  "manifest": "f3128ce5b84a9f5bc6e685d5d533c298f769258b7b9e1ea8a5ec6e0190f80708"
  },
  "m-skills-false-binary-false-composite-false-features-default": {
   "codes": [
@@ -763,27 +763,27 @@
    ".github/workflows/commit-types.yml 644 bf414792b9e4e9363981e920d8fdaea946b3e3b55bba59554e9d3c876d0f1322",
    ".github/workflows/conventional-commits.yml 644 bdece7e27f2ffb0088f6ff4b3ef9d5ae80b252e945d03d3f96ed81f60614b641",
    ".github/workflows/inline-scripts.yml 644 0d83b92d7e271e287ab3ca091589225544b03caac4834c5c1d0589eb7bbe93f9",
-   ".github/workflows/plumber.yml 644 f92da6649cc7907d8f33863fd777e1bdaa487decd4d3f34045879f552bc4e378",
+   ".github/workflows/plumber.yml 644 e542bf273c92464292050c0e31ca1d8e226362dc1752cb79379a00cefde0c399",
    ".github/workflows/pr-auto-rebase.yml 644 80eb78ca8c515218160e347eac91c3e82299a40c98c018a3f3f8a8483c9e3282",
    ".github/workflows/release-automerge.yml 644 ba335d7da9381e46bc28b45c5a917331288f49060bb135dc5fffc8f4d200a472",
    ".github/workflows/release-please.yml 644 3ed3604ecee96fa09d57f306991c76a73064ac9e91c8f2a0d6b3f940e69d96ed",
    ".github/workflows/rust-ci.yml 644 d49d5342ace41fc58b55c7bc7fee8d7f1a976332a76245924f661d76a2696525",
-   ".github/workflows/scaffold-check.yml 644 4557dae27b3ec39e86fc953ddde41b4e190b78c56151bb0ccfa13eaf6c39116d",
+   ".github/workflows/scaffold-check.yml 644 706c20cbe0026d32402d991dbcd880484cf220b6a63d4111ef862b087036c451",
    ".github/workflows/sync-labels.yml 644 646694213615c3e61d5af1b254d34339fa26246c1f7d7608ea0178f7658fc76c",
    ".github/workflows/zizmor.yml 644 d8dd9a2ed59f79088903dea9455395aa4ca9af2fa5759d5da0a1fbc3be21ebd3",
    ".gitignore 644 d203da81821e9e28d93e5c6a5d1758a126c6e3a95549d77736665d54fdcf982e",
    ".mise/conf.d/repo.toml 644 86cce5464f068232fe090ed0458cc24e395f4cfc5826a5c966937d1e18342c94",
-   ".pkl-gen/manifest.json 644 9923dc7701b2f9bb79d1a74728985d7c78c764436a6ae8a5ebcafb7635f6281a",
+   ".pkl-gen/manifest.json 644 995a1e34c5b2d095d080340acaa6d01a7b83cc8d96f0cbf20c8682481f309842",
    ".plumber.yaml 644 151bde3704f31000d8c13fcb16f05345a63c84bc85e69d6e0ebcaed585d027a9",
    ".rumdl.toml 644 08038a4e8c256f89e4bd54a9e253727342549e1f369005e5726d3c8d550f0490",
    "SECURITY.md 644 3cb548c5f656fd6024014b61efab8d18b5cc9265d2d4d01cadf1ccb9fa710352",
    "deny.toml 644 d8ea09367293a2a3ee1af3d6edc7cd59620a6604c807955d43918c2881dc6694",
    "hk.pkl 644 8d58c27f086941e2ab3d337df8009ca1160e6195d63174521d1d0cb50424322e",
-   "hk.shared.pkl 644 0ba575d020fa0156da681e1c2cc5c0148eff8fadb1b415aad2807af9849a07c0",
+   "hk.shared.pkl 644 a0f037b792964081751b7f3ce8d05945079175c12e0704cafe15d1b5cb8b9d97",
    "mise.toml 644 af44586366432bfc526384a2e7e9bea5b7fe9cb89bf308bdfc5aedad3cc44588",
    "rust-toolchain.toml 644 4d0674575b116a100c7d0ad754308dc6dea178b4808c760afc43136db967c7a6"
   ],
-  "manifest": "9923dc7701b2f9bb79d1a74728985d7c78c764436a6ae8a5ebcafb7635f6281a"
+  "manifest": "995a1e34c5b2d095d080340acaa6d01a7b83cc8d96f0cbf20c8682481f309842"
  },
  "m-skills-false-binary-false-composite-true-features-all": {
   "codes": [
@@ -815,27 +815,27 @@
    ".github/workflows/commit-types.yml 644 bf414792b9e4e9363981e920d8fdaea946b3e3b55bba59554e9d3c876d0f1322",
    ".github/workflows/conventional-commits.yml 644 bdece7e27f2ffb0088f6ff4b3ef9d5ae80b252e945d03d3f96ed81f60614b641",
    ".github/workflows/inline-scripts.yml 644 0d83b92d7e271e287ab3ca091589225544b03caac4834c5c1d0589eb7bbe93f9",
-   ".github/workflows/plumber.yml 644 f92da6649cc7907d8f33863fd777e1bdaa487decd4d3f34045879f552bc4e378",
+   ".github/workflows/plumber.yml 644 e542bf273c92464292050c0e31ca1d8e226362dc1752cb79379a00cefde0c399",
    ".github/workflows/pr-auto-rebase.yml 644 80eb78ca8c515218160e347eac91c3e82299a40c98c018a3f3f8a8483c9e3282",
    ".github/workflows/release-automerge.yml 644 ba335d7da9381e46bc28b45c5a917331288f49060bb135dc5fffc8f4d200a472",
    ".github/workflows/release-please.yml 644 3ed3604ecee96fa09d57f306991c76a73064ac9e91c8f2a0d6b3f940e69d96ed",
    ".github/workflows/rust-ci.yml 644 9eec776b2b1ffdf0d7861c90dd2bb6efcd28521f86be10467bace6f90df5bc85",
-   ".github/workflows/scaffold-check.yml 644 4557dae27b3ec39e86fc953ddde41b4e190b78c56151bb0ccfa13eaf6c39116d",
+   ".github/workflows/scaffold-check.yml 644 706c20cbe0026d32402d991dbcd880484cf220b6a63d4111ef862b087036c451",
    ".github/workflows/sync-labels.yml 644 646694213615c3e61d5af1b254d34339fa26246c1f7d7608ea0178f7658fc76c",
    ".github/workflows/zizmor.yml 644 78776d608477682ce9d405fd63ba0c98685f8dee1e679df90bbe477c96d8a3e2",
    ".gitignore 644 d203da81821e9e28d93e5c6a5d1758a126c6e3a95549d77736665d54fdcf982e",
    ".mise/conf.d/repo.toml 644 86cce5464f068232fe090ed0458cc24e395f4cfc5826a5c966937d1e18342c94",
-   ".pkl-gen/manifest.json 644 6f435e7a3a95b4680208a70708569846f8324a2b0b304e55248b21192b094344",
+   ".pkl-gen/manifest.json 644 9a14dfc3055ec3c83bf7b878b23cf6e6ab6234348b56b7d724f1e82e43ccc866",
    ".plumber.yaml 644 151bde3704f31000d8c13fcb16f05345a63c84bc85e69d6e0ebcaed585d027a9",
    ".rumdl.toml 644 08038a4e8c256f89e4bd54a9e253727342549e1f369005e5726d3c8d550f0490",
    "SECURITY.md 644 3cb548c5f656fd6024014b61efab8d18b5cc9265d2d4d01cadf1ccb9fa710352",
    "deny.toml 644 d8ea09367293a2a3ee1af3d6edc7cd59620a6604c807955d43918c2881dc6694",
    "hk.pkl 644 8d58c27f086941e2ab3d337df8009ca1160e6195d63174521d1d0cb50424322e",
-   "hk.shared.pkl 644 f6033497e958b6599b1ef1d6c8b9431cfc567fefdd2401f3074c53987c82a25e",
+   "hk.shared.pkl 644 36ea50a1e2dde52386ae76dd148142ca9bbf8213070a68d5278189cc349f2dae",
    "mise.toml 644 af44586366432bfc526384a2e7e9bea5b7fe9cb89bf308bdfc5aedad3cc44588",
    "rust-toolchain.toml 644 4d0674575b116a100c7d0ad754308dc6dea178b4808c760afc43136db967c7a6"
   ],
-  "manifest": "6f435e7a3a95b4680208a70708569846f8324a2b0b304e55248b21192b094344"
+  "manifest": "9a14dfc3055ec3c83bf7b878b23cf6e6ab6234348b56b7d724f1e82e43ccc866"
  },
  "m-skills-false-binary-false-composite-true-features-default": {
   "codes": [
@@ -867,27 +867,27 @@
    ".github/workflows/commit-types.yml 644 bf414792b9e4e9363981e920d8fdaea946b3e3b55bba59554e9d3c876d0f1322",
    ".github/workflows/conventional-commits.yml 644 bdece7e27f2ffb0088f6ff4b3ef9d5ae80b252e945d03d3f96ed81f60614b641",
    ".github/workflows/inline-scripts.yml 644 0d83b92d7e271e287ab3ca091589225544b03caac4834c5c1d0589eb7bbe93f9",
-   ".github/workflows/plumber.yml 644 f92da6649cc7907d8f33863fd777e1bdaa487decd4d3f34045879f552bc4e378",
+   ".github/workflows/plumber.yml 644 e542bf273c92464292050c0e31ca1d8e226362dc1752cb79379a00cefde0c399",
    ".github/workflows/pr-auto-rebase.yml 644 80eb78ca8c515218160e347eac91c3e82299a40c98c018a3f3f8a8483c9e3282",
    ".github/workflows/release-automerge.yml 644 ba335d7da9381e46bc28b45c5a917331288f49060bb135dc5fffc8f4d200a472",
    ".github/workflows/release-please.yml 644 3ed3604ecee96fa09d57f306991c76a73064ac9e91c8f2a0d6b3f940e69d96ed",
    ".github/workflows/rust-ci.yml 644 d49d5342ace41fc58b55c7bc7fee8d7f1a976332a76245924f661d76a2696525",
-   ".github/workflows/scaffold-check.yml 644 4557dae27b3ec39e86fc953ddde41b4e190b78c56151bb0ccfa13eaf6c39116d",
+   ".github/workflows/scaffold-check.yml 644 706c20cbe0026d32402d991dbcd880484cf220b6a63d4111ef862b087036c451",
    ".github/workflows/sync-labels.yml 644 646694213615c3e61d5af1b254d34339fa26246c1f7d7608ea0178f7658fc76c",
    ".github/workflows/zizmor.yml 644 78776d608477682ce9d405fd63ba0c98685f8dee1e679df90bbe477c96d8a3e2",
    ".gitignore 644 d203da81821e9e28d93e5c6a5d1758a126c6e3a95549d77736665d54fdcf982e",
    ".mise/conf.d/repo.toml 644 86cce5464f068232fe090ed0458cc24e395f4cfc5826a5c966937d1e18342c94",
-   ".pkl-gen/manifest.json 644 53d1ccb076563ebf076b16506db3a6f2ca627356fd1a89c45d15b16b90b88092",
+   ".pkl-gen/manifest.json 644 c71a41b24122a9182c7720a71fa144ac488bc7b02f79ab8592c83f3fc1236f0d",
    ".plumber.yaml 644 151bde3704f31000d8c13fcb16f05345a63c84bc85e69d6e0ebcaed585d027a9",
    ".rumdl.toml 644 08038a4e8c256f89e4bd54a9e253727342549e1f369005e5726d3c8d550f0490",
    "SECURITY.md 644 3cb548c5f656fd6024014b61efab8d18b5cc9265d2d4d01cadf1ccb9fa710352",
    "deny.toml 644 d8ea09367293a2a3ee1af3d6edc7cd59620a6604c807955d43918c2881dc6694",
    "hk.pkl 644 8d58c27f086941e2ab3d337df8009ca1160e6195d63174521d1d0cb50424322e",
-   "hk.shared.pkl 644 0ba575d020fa0156da681e1c2cc5c0148eff8fadb1b415aad2807af9849a07c0",
+   "hk.shared.pkl 644 a0f037b792964081751b7f3ce8d05945079175c12e0704cafe15d1b5cb8b9d97",
    "mise.toml 644 af44586366432bfc526384a2e7e9bea5b7fe9cb89bf308bdfc5aedad3cc44588",
    "rust-toolchain.toml 644 4d0674575b116a100c7d0ad754308dc6dea178b4808c760afc43136db967c7a6"
   ],
-  "manifest": "53d1ccb076563ebf076b16506db3a6f2ca627356fd1a89c45d15b16b90b88092"
+  "manifest": "c71a41b24122a9182c7720a71fa144ac488bc7b02f79ab8592c83f3fc1236f0d"
  },
  "m-skills-false-binary-true-composite-false-features-all": {
   "codes": [
@@ -922,29 +922,29 @@
    ".github/workflows/conventional-commits.yml 644 bdece7e27f2ffb0088f6ff4b3ef9d5ae80b252e945d03d3f96ed81f60614b641",
    ".github/workflows/dist-check.yml 644 37e7b19cf5e30cb1c96f70ff8ea292d4f252da64516400f8c4ad6b6194efe45c",
    ".github/workflows/inline-scripts.yml 644 0d83b92d7e271e287ab3ca091589225544b03caac4834c5c1d0589eb7bbe93f9",
-   ".github/workflows/plumber.yml 644 f92da6649cc7907d8f33863fd777e1bdaa487decd4d3f34045879f552bc4e378",
+   ".github/workflows/plumber.yml 644 e542bf273c92464292050c0e31ca1d8e226362dc1752cb79379a00cefde0c399",
    ".github/workflows/pr-auto-rebase.yml 644 80eb78ca8c515218160e347eac91c3e82299a40c98c018a3f3f8a8483c9e3282",
    ".github/workflows/release-automerge.yml 644 ba335d7da9381e46bc28b45c5a917331288f49060bb135dc5fffc8f4d200a472",
    ".github/workflows/release-please.yml 644 ca6e0033359c9e2dacb9ab0cfc85a10cf43f324a1e25a5db7e7e992ab5841ae2",
    ".github/workflows/rust-ci.yml 644 9eec776b2b1ffdf0d7861c90dd2bb6efcd28521f86be10467bace6f90df5bc85",
-   ".github/workflows/scaffold-check.yml 644 4557dae27b3ec39e86fc953ddde41b4e190b78c56151bb0ccfa13eaf6c39116d",
+   ".github/workflows/scaffold-check.yml 644 706c20cbe0026d32402d991dbcd880484cf220b6a63d4111ef862b087036c451",
    ".github/workflows/sync-labels.yml 644 646694213615c3e61d5af1b254d34339fa26246c1f7d7608ea0178f7658fc76c",
    ".github/workflows/zizmor.yml 644 943f366bd2549ca92ab039cb87816b1269ff2ce997c30b5e05b5895880bb011a",
    ".github/zizmor.yml 644 641785475250bd6387f35c27f4f08a98a084405c9cc02c59845268a744f925e5",
    ".gitignore 644 d203da81821e9e28d93e5c6a5d1758a126c6e3a95549d77736665d54fdcf982e",
    ".mise/conf.d/repo.toml 644 86cce5464f068232fe090ed0458cc24e395f4cfc5826a5c966937d1e18342c94",
-   ".pkl-gen/manifest.json 644 bcbaf0a8d1adcaa2161ef87449b70cb8254f571064fd57f7b4b0eb2d485d20b4",
+   ".pkl-gen/manifest.json 644 0a5e3e50b91dc1a0cf4c3d81bdeab1e2b5945953ab1dd340b2c93af0893b9a60",
    ".plumber.yaml 644 151bde3704f31000d8c13fcb16f05345a63c84bc85e69d6e0ebcaed585d027a9",
    ".rumdl.toml 644 08038a4e8c256f89e4bd54a9e253727342549e1f369005e5726d3c8d550f0490",
    "SECURITY.md 644 2d3143f1dfafc54b47396e905370861702b8d2bd811a91baef980df2a107abdc",
    "deny.toml 644 d8ea09367293a2a3ee1af3d6edc7cd59620a6604c807955d43918c2881dc6694",
    "dist-workspace.toml 644 a9cf533c719221f1d5078e79be64df4609edfd29e671587c8721e4f1a5ce2e62",
    "hk.pkl 644 8d58c27f086941e2ab3d337df8009ca1160e6195d63174521d1d0cb50424322e",
-   "hk.shared.pkl 644 f6033497e958b6599b1ef1d6c8b9431cfc567fefdd2401f3074c53987c82a25e",
+   "hk.shared.pkl 644 36ea50a1e2dde52386ae76dd148142ca9bbf8213070a68d5278189cc349f2dae",
    "mise.toml 644 af44586366432bfc526384a2e7e9bea5b7fe9cb89bf308bdfc5aedad3cc44588",
    "rust-toolchain.toml 644 4d0674575b116a100c7d0ad754308dc6dea178b4808c760afc43136db967c7a6"
   ],
-  "manifest": "bcbaf0a8d1adcaa2161ef87449b70cb8254f571064fd57f7b4b0eb2d485d20b4"
+  "manifest": "0a5e3e50b91dc1a0cf4c3d81bdeab1e2b5945953ab1dd340b2c93af0893b9a60"
  },
  "m-skills-false-binary-true-composite-false-features-default": {
   "codes": [
@@ -979,29 +979,29 @@
    ".github/workflows/conventional-commits.yml 644 bdece7e27f2ffb0088f6ff4b3ef9d5ae80b252e945d03d3f96ed81f60614b641",
    ".github/workflows/dist-check.yml 644 37e7b19cf5e30cb1c96f70ff8ea292d4f252da64516400f8c4ad6b6194efe45c",
    ".github/workflows/inline-scripts.yml 644 0d83b92d7e271e287ab3ca091589225544b03caac4834c5c1d0589eb7bbe93f9",
-   ".github/workflows/plumber.yml 644 f92da6649cc7907d8f33863fd777e1bdaa487decd4d3f34045879f552bc4e378",
+   ".github/workflows/plumber.yml 644 e542bf273c92464292050c0e31ca1d8e226362dc1752cb79379a00cefde0c399",
    ".github/workflows/pr-auto-rebase.yml 644 80eb78ca8c515218160e347eac91c3e82299a40c98c018a3f3f8a8483c9e3282",
    ".github/workflows/release-automerge.yml 644 ba335d7da9381e46bc28b45c5a917331288f49060bb135dc5fffc8f4d200a472",
    ".github/workflows/release-please.yml 644 ca6e0033359c9e2dacb9ab0cfc85a10cf43f324a1e25a5db7e7e992ab5841ae2",
    ".github/workflows/rust-ci.yml 644 d49d5342ace41fc58b55c7bc7fee8d7f1a976332a76245924f661d76a2696525",
-   ".github/workflows/scaffold-check.yml 644 4557dae27b3ec39e86fc953ddde41b4e190b78c56151bb0ccfa13eaf6c39116d",
+   ".github/workflows/scaffold-check.yml 644 706c20cbe0026d32402d991dbcd880484cf220b6a63d4111ef862b087036c451",
    ".github/workflows/sync-labels.yml 644 646694213615c3e61d5af1b254d34339fa26246c1f7d7608ea0178f7658fc76c",
    ".github/workflows/zizmor.yml 644 943f366bd2549ca92ab039cb87816b1269ff2ce997c30b5e05b5895880bb011a",
    ".github/zizmor.yml 644 641785475250bd6387f35c27f4f08a98a084405c9cc02c59845268a744f925e5",
    ".gitignore 644 d203da81821e9e28d93e5c6a5d1758a126c6e3a95549d77736665d54fdcf982e",
    ".mise/conf.d/repo.toml 644 86cce5464f068232fe090ed0458cc24e395f4cfc5826a5c966937d1e18342c94",
-   ".pkl-gen/manifest.json 644 4a071027d11fa4f0ccb58fd6217051bdcdba572ffb8ac3d48ffaab96954ec74a",
+   ".pkl-gen/manifest.json 644 cc6cd0d0d2e591c47bcc84cb979b7bf05cd26ece41629c3c1b42e61e0043b4b8",
    ".plumber.yaml 644 151bde3704f31000d8c13fcb16f05345a63c84bc85e69d6e0ebcaed585d027a9",
    ".rumdl.toml 644 08038a4e8c256f89e4bd54a9e253727342549e1f369005e5726d3c8d550f0490",
    "SECURITY.md 644 2d3143f1dfafc54b47396e905370861702b8d2bd811a91baef980df2a107abdc",
    "deny.toml 644 d8ea09367293a2a3ee1af3d6edc7cd59620a6604c807955d43918c2881dc6694",
    "dist-workspace.toml 644 a9cf533c719221f1d5078e79be64df4609edfd29e671587c8721e4f1a5ce2e62",
    "hk.pkl 644 8d58c27f086941e2ab3d337df8009ca1160e6195d63174521d1d0cb50424322e",
-   "hk.shared.pkl 644 0ba575d020fa0156da681e1c2cc5c0148eff8fadb1b415aad2807af9849a07c0",
+   "hk.shared.pkl 644 a0f037b792964081751b7f3ce8d05945079175c12e0704cafe15d1b5cb8b9d97",
    "mise.toml 644 af44586366432bfc526384a2e7e9bea5b7fe9cb89bf308bdfc5aedad3cc44588",
    "rust-toolchain.toml 644 4d0674575b116a100c7d0ad754308dc6dea178b4808c760afc43136db967c7a6"
   ],
-  "manifest": "4a071027d11fa4f0ccb58fd6217051bdcdba572ffb8ac3d48ffaab96954ec74a"
+  "manifest": "cc6cd0d0d2e591c47bcc84cb979b7bf05cd26ece41629c3c1b42e61e0043b4b8"
  },
  "m-skills-false-binary-true-composite-true-features-all": {
   "codes": [
@@ -1036,29 +1036,29 @@
    ".github/workflows/conventional-commits.yml 644 bdece7e27f2ffb0088f6ff4b3ef9d5ae80b252e945d03d3f96ed81f60614b641",
    ".github/workflows/dist-check.yml 644 37e7b19cf5e30cb1c96f70ff8ea292d4f252da64516400f8c4ad6b6194efe45c",
    ".github/workflows/inline-scripts.yml 644 0d83b92d7e271e287ab3ca091589225544b03caac4834c5c1d0589eb7bbe93f9",
-   ".github/workflows/plumber.yml 644 f92da6649cc7907d8f33863fd777e1bdaa487decd4d3f34045879f552bc4e378",
+   ".github/workflows/plumber.yml 644 e542bf273c92464292050c0e31ca1d8e226362dc1752cb79379a00cefde0c399",
    ".github/workflows/pr-auto-rebase.yml 644 80eb78ca8c515218160e347eac91c3e82299a40c98c018a3f3f8a8483c9e3282",
    ".github/workflows/release-automerge.yml 644 ba335d7da9381e46bc28b45c5a917331288f49060bb135dc5fffc8f4d200a472",
    ".github/workflows/release-please.yml 644 ca6e0033359c9e2dacb9ab0cfc85a10cf43f324a1e25a5db7e7e992ab5841ae2",
    ".github/workflows/rust-ci.yml 644 9eec776b2b1ffdf0d7861c90dd2bb6efcd28521f86be10467bace6f90df5bc85",
-   ".github/workflows/scaffold-check.yml 644 4557dae27b3ec39e86fc953ddde41b4e190b78c56151bb0ccfa13eaf6c39116d",
+   ".github/workflows/scaffold-check.yml 644 706c20cbe0026d32402d991dbcd880484cf220b6a63d4111ef862b087036c451",
    ".github/workflows/sync-labels.yml 644 646694213615c3e61d5af1b254d34339fa26246c1f7d7608ea0178f7658fc76c",
    ".github/workflows/zizmor.yml 644 5e22b6e63c540e7b8cba182acb04098d9a2497a82259556e87662ee754ecefe9",
    ".github/zizmor.yml 644 f123fffa0adcadf794bcd5e0408154bb3cad7cfbf638556732399d1b9891fe94",
    ".gitignore 644 d203da81821e9e28d93e5c6a5d1758a126c6e3a95549d77736665d54fdcf982e",
    ".mise/conf.d/repo.toml 644 86cce5464f068232fe090ed0458cc24e395f4cfc5826a5c966937d1e18342c94",
-   ".pkl-gen/manifest.json 644 492b2a51129232ba9853d05fa0043a89e78f63b0bc0e3e41de9baa6cced490e8",
+   ".pkl-gen/manifest.json 644 539dc761b876182a2b0f623558d15cb73e289b360b2867e70f5930f507a72ebd",
    ".plumber.yaml 644 151bde3704f31000d8c13fcb16f05345a63c84bc85e69d6e0ebcaed585d027a9",
    ".rumdl.toml 644 08038a4e8c256f89e4bd54a9e253727342549e1f369005e5726d3c8d550f0490",
    "SECURITY.md 644 2d3143f1dfafc54b47396e905370861702b8d2bd811a91baef980df2a107abdc",
    "deny.toml 644 d8ea09367293a2a3ee1af3d6edc7cd59620a6604c807955d43918c2881dc6694",
    "dist-workspace.toml 644 a9cf533c719221f1d5078e79be64df4609edfd29e671587c8721e4f1a5ce2e62",
    "hk.pkl 644 8d58c27f086941e2ab3d337df8009ca1160e6195d63174521d1d0cb50424322e",
-   "hk.shared.pkl 644 f6033497e958b6599b1ef1d6c8b9431cfc567fefdd2401f3074c53987c82a25e",
+   "hk.shared.pkl 644 36ea50a1e2dde52386ae76dd148142ca9bbf8213070a68d5278189cc349f2dae",
    "mise.toml 644 af44586366432bfc526384a2e7e9bea5b7fe9cb89bf308bdfc5aedad3cc44588",
    "rust-toolchain.toml 644 4d0674575b116a100c7d0ad754308dc6dea178b4808c760afc43136db967c7a6"
   ],
-  "manifest": "492b2a51129232ba9853d05fa0043a89e78f63b0bc0e3e41de9baa6cced490e8"
+  "manifest": "539dc761b876182a2b0f623558d15cb73e289b360b2867e70f5930f507a72ebd"
  },
  "m-skills-false-binary-true-composite-true-features-default": {
   "codes": [
@@ -1093,29 +1093,29 @@
    ".github/workflows/conventional-commits.yml 644 bdece7e27f2ffb0088f6ff4b3ef9d5ae80b252e945d03d3f96ed81f60614b641",
    ".github/workflows/dist-check.yml 644 37e7b19cf5e30cb1c96f70ff8ea292d4f252da64516400f8c4ad6b6194efe45c",
    ".github/workflows/inline-scripts.yml 644 0d83b92d7e271e287ab3ca091589225544b03caac4834c5c1d0589eb7bbe93f9",
-   ".github/workflows/plumber.yml 644 f92da6649cc7907d8f33863fd777e1bdaa487decd4d3f34045879f552bc4e378",
+   ".github/workflows/plumber.yml 644 e542bf273c92464292050c0e31ca1d8e226362dc1752cb79379a00cefde0c399",
    ".github/workflows/pr-auto-rebase.yml 644 80eb78ca8c515218160e347eac91c3e82299a40c98c018a3f3f8a8483c9e3282",
    ".github/workflows/release-automerge.yml 644 ba335d7da9381e46bc28b45c5a917331288f49060bb135dc5fffc8f4d200a472",
    ".github/workflows/release-please.yml 644 ca6e0033359c9e2dacb9ab0cfc85a10cf43f324a1e25a5db7e7e992ab5841ae2",
    ".github/workflows/rust-ci.yml 644 d49d5342ace41fc58b55c7bc7fee8d7f1a976332a76245924f661d76a2696525",
-   ".github/workflows/scaffold-check.yml 644 4557dae27b3ec39e86fc953ddde41b4e190b78c56151bb0ccfa13eaf6c39116d",
+   ".github/workflows/scaffold-check.yml 644 706c20cbe0026d32402d991dbcd880484cf220b6a63d4111ef862b087036c451",
    ".github/workflows/sync-labels.yml 644 646694213615c3e61d5af1b254d34339fa26246c1f7d7608ea0178f7658fc76c",
    ".github/workflows/zizmor.yml 644 5e22b6e63c540e7b8cba182acb04098d9a2497a82259556e87662ee754ecefe9",
    ".github/zizmor.yml 644 f123fffa0adcadf794bcd5e0408154bb3cad7cfbf638556732399d1b9891fe94",
    ".gitignore 644 d203da81821e9e28d93e5c6a5d1758a126c6e3a95549d77736665d54fdcf982e",
    ".mise/conf.d/repo.toml 644 86cce5464f068232fe090ed0458cc24e395f4cfc5826a5c966937d1e18342c94",
-   ".pkl-gen/manifest.json 644 ba4331cc9e6f563bd74b89ee0f147e10591fa6afc02773f196ed76ec0353fc7a",
+   ".pkl-gen/manifest.json 644 7ba81a7fbcc319a66797f342d171a0b916916038194c556bf78674932a4f7ad4",
    ".plumber.yaml 644 151bde3704f31000d8c13fcb16f05345a63c84bc85e69d6e0ebcaed585d027a9",
    ".rumdl.toml 644 08038a4e8c256f89e4bd54a9e253727342549e1f369005e5726d3c8d550f0490",
    "SECURITY.md 644 2d3143f1dfafc54b47396e905370861702b8d2bd811a91baef980df2a107abdc",
    "deny.toml 644 d8ea09367293a2a3ee1af3d6edc7cd59620a6604c807955d43918c2881dc6694",
    "dist-workspace.toml 644 a9cf533c719221f1d5078e79be64df4609edfd29e671587c8721e4f1a5ce2e62",
    "hk.pkl 644 8d58c27f086941e2ab3d337df8009ca1160e6195d63174521d1d0cb50424322e",
-   "hk.shared.pkl 644 0ba575d020fa0156da681e1c2cc5c0148eff8fadb1b415aad2807af9849a07c0",
+   "hk.shared.pkl 644 a0f037b792964081751b7f3ce8d05945079175c12e0704cafe15d1b5cb8b9d97",
    "mise.toml 644 af44586366432bfc526384a2e7e9bea5b7fe9cb89bf308bdfc5aedad3cc44588",
    "rust-toolchain.toml 644 4d0674575b116a100c7d0ad754308dc6dea178b4808c760afc43136db967c7a6"
   ],
-  "manifest": "ba4331cc9e6f563bd74b89ee0f147e10591fa6afc02773f196ed76ec0353fc7a"
+  "manifest": "7ba81a7fbcc319a66797f342d171a0b916916038194c556bf78674932a4f7ad4"
  },
  "m-skills-true-binary-false-composite-false-features-all": {
   "codes": [
@@ -1148,27 +1148,27 @@
    ".github/workflows/commit-types.yml 644 bf414792b9e4e9363981e920d8fdaea946b3e3b55bba59554e9d3c876d0f1322",
    ".github/workflows/conventional-commits.yml 644 bdece7e27f2ffb0088f6ff4b3ef9d5ae80b252e945d03d3f96ed81f60614b641",
    ".github/workflows/inline-scripts.yml 644 0d83b92d7e271e287ab3ca091589225544b03caac4834c5c1d0589eb7bbe93f9",
-   ".github/workflows/plumber.yml 644 f92da6649cc7907d8f33863fd777e1bdaa487decd4d3f34045879f552bc4e378",
+   ".github/workflows/plumber.yml 644 e542bf273c92464292050c0e31ca1d8e226362dc1752cb79379a00cefde0c399",
    ".github/workflows/pr-auto-rebase.yml 644 80eb78ca8c515218160e347eac91c3e82299a40c98c018a3f3f8a8483c9e3282",
    ".github/workflows/release-automerge.yml 644 ba335d7da9381e46bc28b45c5a917331288f49060bb135dc5fffc8f4d200a472",
    ".github/workflows/release-please.yml 644 3ed3604ecee96fa09d57f306991c76a73064ac9e91c8f2a0d6b3f940e69d96ed",
    ".github/workflows/rust-ci.yml 644 9eec776b2b1ffdf0d7861c90dd2bb6efcd28521f86be10467bace6f90df5bc85",
-   ".github/workflows/scaffold-check.yml 644 4557dae27b3ec39e86fc953ddde41b4e190b78c56151bb0ccfa13eaf6c39116d",
+   ".github/workflows/scaffold-check.yml 644 706c20cbe0026d32402d991dbcd880484cf220b6a63d4111ef862b087036c451",
    ".github/workflows/sync-labels.yml 644 646694213615c3e61d5af1b254d34339fa26246c1f7d7608ea0178f7658fc76c",
    ".github/workflows/zizmor.yml 644 d8dd9a2ed59f79088903dea9455395aa4ca9af2fa5759d5da0a1fbc3be21ebd3",
    ".gitignore 644 d203da81821e9e28d93e5c6a5d1758a126c6e3a95549d77736665d54fdcf982e",
    ".mise/conf.d/repo.toml 644 86cce5464f068232fe090ed0458cc24e395f4cfc5826a5c966937d1e18342c94",
-   ".pkl-gen/manifest.json 644 7116806cf1606b5aff8a677ade6a759245b969ca024626d047a43bc0e807d2b6",
+   ".pkl-gen/manifest.json 644 47f889c90a8d33c7fee4de9b7f9783e77cb408a500ed9ae00b72b9f32e313bd9",
    ".plumber.yaml 644 151bde3704f31000d8c13fcb16f05345a63c84bc85e69d6e0ebcaed585d027a9",
    ".rumdl.toml 644 08038a4e8c256f89e4bd54a9e253727342549e1f369005e5726d3c8d550f0490",
    "SECURITY.md 644 3cb548c5f656fd6024014b61efab8d18b5cc9265d2d4d01cadf1ccb9fa710352",
    "deny.toml 644 d8ea09367293a2a3ee1af3d6edc7cd59620a6604c807955d43918c2881dc6694",
    "hk.pkl 644 8d58c27f086941e2ab3d337df8009ca1160e6195d63174521d1d0cb50424322e",
-   "hk.shared.pkl 644 f6033497e958b6599b1ef1d6c8b9431cfc567fefdd2401f3074c53987c82a25e",
+   "hk.shared.pkl 644 36ea50a1e2dde52386ae76dd148142ca9bbf8213070a68d5278189cc349f2dae",
    "mise.toml 644 af44586366432bfc526384a2e7e9bea5b7fe9cb89bf308bdfc5aedad3cc44588",
    "rust-toolchain.toml 644 4d0674575b116a100c7d0ad754308dc6dea178b4808c760afc43136db967c7a6"
   ],
-  "manifest": "7116806cf1606b5aff8a677ade6a759245b969ca024626d047a43bc0e807d2b6"
+  "manifest": "47f889c90a8d33c7fee4de9b7f9783e77cb408a500ed9ae00b72b9f32e313bd9"
  },
  "m-skills-true-binary-false-composite-false-features-default": {
   "codes": [
@@ -1201,27 +1201,27 @@
    ".github/workflows/commit-types.yml 644 bf414792b9e4e9363981e920d8fdaea946b3e3b55bba59554e9d3c876d0f1322",
    ".github/workflows/conventional-commits.yml 644 bdece7e27f2ffb0088f6ff4b3ef9d5ae80b252e945d03d3f96ed81f60614b641",
    ".github/workflows/inline-scripts.yml 644 0d83b92d7e271e287ab3ca091589225544b03caac4834c5c1d0589eb7bbe93f9",
-   ".github/workflows/plumber.yml 644 f92da6649cc7907d8f33863fd777e1bdaa487decd4d3f34045879f552bc4e378",
+   ".github/workflows/plumber.yml 644 e542bf273c92464292050c0e31ca1d8e226362dc1752cb79379a00cefde0c399",
    ".github/workflows/pr-auto-rebase.yml 644 80eb78ca8c515218160e347eac91c3e82299a40c98c018a3f3f8a8483c9e3282",
    ".github/workflows/release-automerge.yml 644 ba335d7da9381e46bc28b45c5a917331288f49060bb135dc5fffc8f4d200a472",
    ".github/workflows/release-please.yml 644 3ed3604ecee96fa09d57f306991c76a73064ac9e91c8f2a0d6b3f940e69d96ed",
    ".github/workflows/rust-ci.yml 644 d49d5342ace41fc58b55c7bc7fee8d7f1a976332a76245924f661d76a2696525",
-   ".github/workflows/scaffold-check.yml 644 4557dae27b3ec39e86fc953ddde41b4e190b78c56151bb0ccfa13eaf6c39116d",
+   ".github/workflows/scaffold-check.yml 644 706c20cbe0026d32402d991dbcd880484cf220b6a63d4111ef862b087036c451",
    ".github/workflows/sync-labels.yml 644 646694213615c3e61d5af1b254d34339fa26246c1f7d7608ea0178f7658fc76c",
    ".github/workflows/zizmor.yml 644 d8dd9a2ed59f79088903dea9455395aa4ca9af2fa5759d5da0a1fbc3be21ebd3",
    ".gitignore 644 d203da81821e9e28d93e5c6a5d1758a126c6e3a95549d77736665d54fdcf982e",
    ".mise/conf.d/repo.toml 644 86cce5464f068232fe090ed0458cc24e395f4cfc5826a5c966937d1e18342c94",
-   ".pkl-gen/manifest.json 644 e38c51d7625e9986fc3e26c377852af6804ebe6e3967d946ffd564c2a71e17a4",
+   ".pkl-gen/manifest.json 644 5dd9637f35eba01677b595b0c65a54e2b3ed0665f285e567f0082f3a76f06925",
    ".plumber.yaml 644 151bde3704f31000d8c13fcb16f05345a63c84bc85e69d6e0ebcaed585d027a9",
    ".rumdl.toml 644 08038a4e8c256f89e4bd54a9e253727342549e1f369005e5726d3c8d550f0490",
    "SECURITY.md 644 3cb548c5f656fd6024014b61efab8d18b5cc9265d2d4d01cadf1ccb9fa710352",
    "deny.toml 644 d8ea09367293a2a3ee1af3d6edc7cd59620a6604c807955d43918c2881dc6694",
    "hk.pkl 644 8d58c27f086941e2ab3d337df8009ca1160e6195d63174521d1d0cb50424322e",
-   "hk.shared.pkl 644 0ba575d020fa0156da681e1c2cc5c0148eff8fadb1b415aad2807af9849a07c0",
+   "hk.shared.pkl 644 a0f037b792964081751b7f3ce8d05945079175c12e0704cafe15d1b5cb8b9d97",
    "mise.toml 644 af44586366432bfc526384a2e7e9bea5b7fe9cb89bf308bdfc5aedad3cc44588",
    "rust-toolchain.toml 644 4d0674575b116a100c7d0ad754308dc6dea178b4808c760afc43136db967c7a6"
   ],
-  "manifest": "e38c51d7625e9986fc3e26c377852af6804ebe6e3967d946ffd564c2a71e17a4"
+  "manifest": "5dd9637f35eba01677b595b0c65a54e2b3ed0665f285e567f0082f3a76f06925"
  },
  "m-skills-true-binary-false-composite-true-features-all": {
   "codes": [
@@ -1254,27 +1254,27 @@
    ".github/workflows/commit-types.yml 644 bf414792b9e4e9363981e920d8fdaea946b3e3b55bba59554e9d3c876d0f1322",
    ".github/workflows/conventional-commits.yml 644 bdece7e27f2ffb0088f6ff4b3ef9d5ae80b252e945d03d3f96ed81f60614b641",
    ".github/workflows/inline-scripts.yml 644 0d83b92d7e271e287ab3ca091589225544b03caac4834c5c1d0589eb7bbe93f9",
-   ".github/workflows/plumber.yml 644 f92da6649cc7907d8f33863fd777e1bdaa487decd4d3f34045879f552bc4e378",
+   ".github/workflows/plumber.yml 644 e542bf273c92464292050c0e31ca1d8e226362dc1752cb79379a00cefde0c399",
    ".github/workflows/pr-auto-rebase.yml 644 80eb78ca8c515218160e347eac91c3e82299a40c98c018a3f3f8a8483c9e3282",
    ".github/workflows/release-automerge.yml 644 ba335d7da9381e46bc28b45c5a917331288f49060bb135dc5fffc8f4d200a472",
    ".github/workflows/release-please.yml 644 3ed3604ecee96fa09d57f306991c76a73064ac9e91c8f2a0d6b3f940e69d96ed",
    ".github/workflows/rust-ci.yml 644 9eec776b2b1ffdf0d7861c90dd2bb6efcd28521f86be10467bace6f90df5bc85",
-   ".github/workflows/scaffold-check.yml 644 4557dae27b3ec39e86fc953ddde41b4e190b78c56151bb0ccfa13eaf6c39116d",
+   ".github/workflows/scaffold-check.yml 644 706c20cbe0026d32402d991dbcd880484cf220b6a63d4111ef862b087036c451",
    ".github/workflows/sync-labels.yml 644 646694213615c3e61d5af1b254d34339fa26246c1f7d7608ea0178f7658fc76c",
    ".github/workflows/zizmor.yml 644 78776d608477682ce9d405fd63ba0c98685f8dee1e679df90bbe477c96d8a3e2",
    ".gitignore 644 d203da81821e9e28d93e5c6a5d1758a126c6e3a95549d77736665d54fdcf982e",
    ".mise/conf.d/repo.toml 644 86cce5464f068232fe090ed0458cc24e395f4cfc5826a5c966937d1e18342c94",
-   ".pkl-gen/manifest.json 644 bf360375a706e09d38456c684f61af92392f46bb2cb86fe5bc085f8ed9d03e24",
+   ".pkl-gen/manifest.json 644 8f66e366f6633b4b4aaaba0e0c95295841aac2110619e5220470e6e9e497ad0b",
    ".plumber.yaml 644 151bde3704f31000d8c13fcb16f05345a63c84bc85e69d6e0ebcaed585d027a9",
    ".rumdl.toml 644 08038a4e8c256f89e4bd54a9e253727342549e1f369005e5726d3c8d550f0490",
    "SECURITY.md 644 3cb548c5f656fd6024014b61efab8d18b5cc9265d2d4d01cadf1ccb9fa710352",
    "deny.toml 644 d8ea09367293a2a3ee1af3d6edc7cd59620a6604c807955d43918c2881dc6694",
    "hk.pkl 644 8d58c27f086941e2ab3d337df8009ca1160e6195d63174521d1d0cb50424322e",
-   "hk.shared.pkl 644 f6033497e958b6599b1ef1d6c8b9431cfc567fefdd2401f3074c53987c82a25e",
+   "hk.shared.pkl 644 36ea50a1e2dde52386ae76dd148142ca9bbf8213070a68d5278189cc349f2dae",
    "mise.toml 644 af44586366432bfc526384a2e7e9bea5b7fe9cb89bf308bdfc5aedad3cc44588",
    "rust-toolchain.toml 644 4d0674575b116a100c7d0ad754308dc6dea178b4808c760afc43136db967c7a6"
   ],
-  "manifest": "bf360375a706e09d38456c684f61af92392f46bb2cb86fe5bc085f8ed9d03e24"
+  "manifest": "8f66e366f6633b4b4aaaba0e0c95295841aac2110619e5220470e6e9e497ad0b"
  },
  "m-skills-true-binary-false-composite-true-features-default": {
   "codes": [
@@ -1307,27 +1307,27 @@
    ".github/workflows/commit-types.yml 644 bf414792b9e4e9363981e920d8fdaea946b3e3b55bba59554e9d3c876d0f1322",
    ".github/workflows/conventional-commits.yml 644 bdece7e27f2ffb0088f6ff4b3ef9d5ae80b252e945d03d3f96ed81f60614b641",
    ".github/workflows/inline-scripts.yml 644 0d83b92d7e271e287ab3ca091589225544b03caac4834c5c1d0589eb7bbe93f9",
-   ".github/workflows/plumber.yml 644 f92da6649cc7907d8f33863fd777e1bdaa487decd4d3f34045879f552bc4e378",
+   ".github/workflows/plumber.yml 644 e542bf273c92464292050c0e31ca1d8e226362dc1752cb79379a00cefde0c399",
    ".github/workflows/pr-auto-rebase.yml 644 80eb78ca8c515218160e347eac91c3e82299a40c98c018a3f3f8a8483c9e3282",
    ".github/workflows/release-automerge.yml 644 ba335d7da9381e46bc28b45c5a917331288f49060bb135dc5fffc8f4d200a472",
    ".github/workflows/release-please.yml 644 3ed3604ecee96fa09d57f306991c76a73064ac9e91c8f2a0d6b3f940e69d96ed",
    ".github/workflows/rust-ci.yml 644 d49d5342ace41fc58b55c7bc7fee8d7f1a976332a76245924f661d76a2696525",
-   ".github/workflows/scaffold-check.yml 644 4557dae27b3ec39e86fc953ddde41b4e190b78c56151bb0ccfa13eaf6c39116d",
+   ".github/workflows/scaffold-check.yml 644 706c20cbe0026d32402d991dbcd880484cf220b6a63d4111ef862b087036c451",
    ".github/workflows/sync-labels.yml 644 646694213615c3e61d5af1b254d34339fa26246c1f7d7608ea0178f7658fc76c",
    ".github/workflows/zizmor.yml 644 78776d608477682ce9d405fd63ba0c98685f8dee1e679df90bbe477c96d8a3e2",
    ".gitignore 644 d203da81821e9e28d93e5c6a5d1758a126c6e3a95549d77736665d54fdcf982e",
    ".mise/conf.d/repo.toml 644 86cce5464f068232fe090ed0458cc24e395f4cfc5826a5c966937d1e18342c94",
-   ".pkl-gen/manifest.json 644 660f1d7fdc824a9d517bd56c45c19a2cf80ad1e216dc8e7326c80e92640e87be",
+   ".pkl-gen/manifest.json 644 7deed7bc6fccf5742700f18e3ca809e3808ba47864bcd28a300afa16cc15cc0d",
    ".plumber.yaml 644 151bde3704f31000d8c13fcb16f05345a63c84bc85e69d6e0ebcaed585d027a9",
    ".rumdl.toml 644 08038a4e8c256f89e4bd54a9e253727342549e1f369005e5726d3c8d550f0490",
    "SECURITY.md 644 3cb548c5f656fd6024014b61efab8d18b5cc9265d2d4d01cadf1ccb9fa710352",
    "deny.toml 644 d8ea09367293a2a3ee1af3d6edc7cd59620a6604c807955d43918c2881dc6694",
    "hk.pkl 644 8d58c27f086941e2ab3d337df8009ca1160e6195d63174521d1d0cb50424322e",
-   "hk.shared.pkl 644 0ba575d020fa0156da681e1c2cc5c0148eff8fadb1b415aad2807af9849a07c0",
+   "hk.shared.pkl 644 a0f037b792964081751b7f3ce8d05945079175c12e0704cafe15d1b5cb8b9d97",
    "mise.toml 644 af44586366432bfc526384a2e7e9bea5b7fe9cb89bf308bdfc5aedad3cc44588",
    "rust-toolchain.toml 644 4d0674575b116a100c7d0ad754308dc6dea178b4808c760afc43136db967c7a6"
   ],
-  "manifest": "660f1d7fdc824a9d517bd56c45c19a2cf80ad1e216dc8e7326c80e92640e87be"
+  "manifest": "7deed7bc6fccf5742700f18e3ca809e3808ba47864bcd28a300afa16cc15cc0d"
  },
  "m-skills-true-binary-true-composite-false-features-all": {
   "codes": [
@@ -1363,29 +1363,29 @@
    ".github/workflows/conventional-commits.yml 644 bdece7e27f2ffb0088f6ff4b3ef9d5ae80b252e945d03d3f96ed81f60614b641",
    ".github/workflows/dist-check.yml 644 37e7b19cf5e30cb1c96f70ff8ea292d4f252da64516400f8c4ad6b6194efe45c",
    ".github/workflows/inline-scripts.yml 644 0d83b92d7e271e287ab3ca091589225544b03caac4834c5c1d0589eb7bbe93f9",
-   ".github/workflows/plumber.yml 644 f92da6649cc7907d8f33863fd777e1bdaa487decd4d3f34045879f552bc4e378",
+   ".github/workflows/plumber.yml 644 e542bf273c92464292050c0e31ca1d8e226362dc1752cb79379a00cefde0c399",
    ".github/workflows/pr-auto-rebase.yml 644 80eb78ca8c515218160e347eac91c3e82299a40c98c018a3f3f8a8483c9e3282",
    ".github/workflows/release-automerge.yml 644 ba335d7da9381e46bc28b45c5a917331288f49060bb135dc5fffc8f4d200a472",
    ".github/workflows/release-please.yml 644 ca6e0033359c9e2dacb9ab0cfc85a10cf43f324a1e25a5db7e7e992ab5841ae2",
    ".github/workflows/rust-ci.yml 644 9eec776b2b1ffdf0d7861c90dd2bb6efcd28521f86be10467bace6f90df5bc85",
-   ".github/workflows/scaffold-check.yml 644 4557dae27b3ec39e86fc953ddde41b4e190b78c56151bb0ccfa13eaf6c39116d",
+   ".github/workflows/scaffold-check.yml 644 706c20cbe0026d32402d991dbcd880484cf220b6a63d4111ef862b087036c451",
    ".github/workflows/sync-labels.yml 644 646694213615c3e61d5af1b254d34339fa26246c1f7d7608ea0178f7658fc76c",
    ".github/workflows/zizmor.yml 644 943f366bd2549ca92ab039cb87816b1269ff2ce997c30b5e05b5895880bb011a",
    ".github/zizmor.yml 644 641785475250bd6387f35c27f4f08a98a084405c9cc02c59845268a744f925e5",
    ".gitignore 644 d203da81821e9e28d93e5c6a5d1758a126c6e3a95549d77736665d54fdcf982e",
    ".mise/conf.d/repo.toml 644 86cce5464f068232fe090ed0458cc24e395f4cfc5826a5c966937d1e18342c94",
-   ".pkl-gen/manifest.json 644 ba88730cace8a2d82263f727c43c4bf8d8c1984ec4977e9b0ea545f84d27520b",
+   ".pkl-gen/manifest.json 644 34f5daf9dad7eaa5c7417b206e22e685fe0a8b859de6cb27b40915689bbe2c84",
    ".plumber.yaml 644 151bde3704f31000d8c13fcb16f05345a63c84bc85e69d6e0ebcaed585d027a9",
    ".rumdl.toml 644 08038a4e8c256f89e4bd54a9e253727342549e1f369005e5726d3c8d550f0490",
    "SECURITY.md 644 d7f5871e6d8dc4c50d3eeddd64ca8998e510e3834048ce47fe3aac2ca8c2782f",
    "deny.toml 644 d8ea09367293a2a3ee1af3d6edc7cd59620a6604c807955d43918c2881dc6694",
    "dist-workspace.toml 644 a9cf533c719221f1d5078e79be64df4609edfd29e671587c8721e4f1a5ce2e62",
    "hk.pkl 644 8d58c27f086941e2ab3d337df8009ca1160e6195d63174521d1d0cb50424322e",
-   "hk.shared.pkl 644 f6033497e958b6599b1ef1d6c8b9431cfc567fefdd2401f3074c53987c82a25e",
+   "hk.shared.pkl 644 36ea50a1e2dde52386ae76dd148142ca9bbf8213070a68d5278189cc349f2dae",
    "mise.toml 644 af44586366432bfc526384a2e7e9bea5b7fe9cb89bf308bdfc5aedad3cc44588",
    "rust-toolchain.toml 644 4d0674575b116a100c7d0ad754308dc6dea178b4808c760afc43136db967c7a6"
   ],
-  "manifest": "ba88730cace8a2d82263f727c43c4bf8d8c1984ec4977e9b0ea545f84d27520b"
+  "manifest": "34f5daf9dad7eaa5c7417b206e22e685fe0a8b859de6cb27b40915689bbe2c84"
  },
  "m-skills-true-binary-true-composite-false-features-default": {
   "codes": [
@@ -1421,29 +1421,29 @@
    ".github/workflows/conventional-commits.yml 644 bdece7e27f2ffb0088f6ff4b3ef9d5ae80b252e945d03d3f96ed81f60614b641",
    ".github/workflows/dist-check.yml 644 37e7b19cf5e30cb1c96f70ff8ea292d4f252da64516400f8c4ad6b6194efe45c",
    ".github/workflows/inline-scripts.yml 644 0d83b92d7e271e287ab3ca091589225544b03caac4834c5c1d0589eb7bbe93f9",
-   ".github/workflows/plumber.yml 644 f92da6649cc7907d8f33863fd777e1bdaa487decd4d3f34045879f552bc4e378",
+   ".github/workflows/plumber.yml 644 e542bf273c92464292050c0e31ca1d8e226362dc1752cb79379a00cefde0c399",
    ".github/workflows/pr-auto-rebase.yml 644 80eb78ca8c515218160e347eac91c3e82299a40c98c018a3f3f8a8483c9e3282",
    ".github/workflows/release-automerge.yml 644 ba335d7da9381e46bc28b45c5a917331288f49060bb135dc5fffc8f4d200a472",
    ".github/workflows/release-please.yml 644 ca6e0033359c9e2dacb9ab0cfc85a10cf43f324a1e25a5db7e7e992ab5841ae2",
    ".github/workflows/rust-ci.yml 644 d49d5342ace41fc58b55c7bc7fee8d7f1a976332a76245924f661d76a2696525",
-   ".github/workflows/scaffold-check.yml 644 4557dae27b3ec39e86fc953ddde41b4e190b78c56151bb0ccfa13eaf6c39116d",
+   ".github/workflows/scaffold-check.yml 644 706c20cbe0026d32402d991dbcd880484cf220b6a63d4111ef862b087036c451",
    ".github/workflows/sync-labels.yml 644 646694213615c3e61d5af1b254d34339fa26246c1f7d7608ea0178f7658fc76c",
    ".github/workflows/zizmor.yml 644 943f366bd2549ca92ab039cb87816b1269ff2ce997c30b5e05b5895880bb011a",
    ".github/zizmor.yml 644 641785475250bd6387f35c27f4f08a98a084405c9cc02c59845268a744f925e5",
    ".gitignore 644 d203da81821e9e28d93e5c6a5d1758a126c6e3a95549d77736665d54fdcf982e",
    ".mise/conf.d/repo.toml 644 86cce5464f068232fe090ed0458cc24e395f4cfc5826a5c966937d1e18342c94",
-   ".pkl-gen/manifest.json 644 6327f3c5e1771df7edf813044378addf582ce00f73124014ea7d2dbd4fc59ebe",
+   ".pkl-gen/manifest.json 644 6db3dae49b513930ab734127702aef6ad1b87fadb0b329e3a8e474f657e06f26",
    ".plumber.yaml 644 151bde3704f31000d8c13fcb16f05345a63c84bc85e69d6e0ebcaed585d027a9",
    ".rumdl.toml 644 08038a4e8c256f89e4bd54a9e253727342549e1f369005e5726d3c8d550f0490",
    "SECURITY.md 644 d7f5871e6d8dc4c50d3eeddd64ca8998e510e3834048ce47fe3aac2ca8c2782f",
    "deny.toml 644 d8ea09367293a2a3ee1af3d6edc7cd59620a6604c807955d43918c2881dc6694",
    "dist-workspace.toml 644 a9cf533c719221f1d5078e79be64df4609edfd29e671587c8721e4f1a5ce2e62",
    "hk.pkl 644 8d58c27f086941e2ab3d337df8009ca1160e6195d63174521d1d0cb50424322e",
-   "hk.shared.pkl 644 0ba575d020fa0156da681e1c2cc5c0148eff8fadb1b415aad2807af9849a07c0",
+   "hk.shared.pkl 644 a0f037b792964081751b7f3ce8d05945079175c12e0704cafe15d1b5cb8b9d97",
    "mise.toml 644 af44586366432bfc526384a2e7e9bea5b7fe9cb89bf308bdfc5aedad3cc44588",
    "rust-toolchain.toml 644 4d0674575b116a100c7d0ad754308dc6dea178b4808c760afc43136db967c7a6"
   ],
-  "manifest": "6327f3c5e1771df7edf813044378addf582ce00f73124014ea7d2dbd4fc59ebe"
+  "manifest": "6db3dae49b513930ab734127702aef6ad1b87fadb0b329e3a8e474f657e06f26"
  },
  "m-skills-true-binary-true-composite-true-features-all": {
   "codes": [
@@ -1479,29 +1479,29 @@
    ".github/workflows/conventional-commits.yml 644 bdece7e27f2ffb0088f6ff4b3ef9d5ae80b252e945d03d3f96ed81f60614b641",
    ".github/workflows/dist-check.yml 644 37e7b19cf5e30cb1c96f70ff8ea292d4f252da64516400f8c4ad6b6194efe45c",
    ".github/workflows/inline-scripts.yml 644 0d83b92d7e271e287ab3ca091589225544b03caac4834c5c1d0589eb7bbe93f9",
-   ".github/workflows/plumber.yml 644 f92da6649cc7907d8f33863fd777e1bdaa487decd4d3f34045879f552bc4e378",
+   ".github/workflows/plumber.yml 644 e542bf273c92464292050c0e31ca1d8e226362dc1752cb79379a00cefde0c399",
    ".github/workflows/pr-auto-rebase.yml 644 80eb78ca8c515218160e347eac91c3e82299a40c98c018a3f3f8a8483c9e3282",
    ".github/workflows/release-automerge.yml 644 ba335d7da9381e46bc28b45c5a917331288f49060bb135dc5fffc8f4d200a472",
    ".github/workflows/release-please.yml 644 ca6e0033359c9e2dacb9ab0cfc85a10cf43f324a1e25a5db7e7e992ab5841ae2",
    ".github/workflows/rust-ci.yml 644 9eec776b2b1ffdf0d7861c90dd2bb6efcd28521f86be10467bace6f90df5bc85",
-   ".github/workflows/scaffold-check.yml 644 4557dae27b3ec39e86fc953ddde41b4e190b78c56151bb0ccfa13eaf6c39116d",
+   ".github/workflows/scaffold-check.yml 644 706c20cbe0026d32402d991dbcd880484cf220b6a63d4111ef862b087036c451",
    ".github/workflows/sync-labels.yml 644 646694213615c3e61d5af1b254d34339fa26246c1f7d7608ea0178f7658fc76c",
    ".github/workflows/zizmor.yml 644 5e22b6e63c540e7b8cba182acb04098d9a2497a82259556e87662ee754ecefe9",
    ".github/zizmor.yml 644 f123fffa0adcadf794bcd5e0408154bb3cad7cfbf638556732399d1b9891fe94",
    ".gitignore 644 d203da81821e9e28d93e5c6a5d1758a126c6e3a95549d77736665d54fdcf982e",
    ".mise/conf.d/repo.toml 644 86cce5464f068232fe090ed0458cc24e395f4cfc5826a5c966937d1e18342c94",
-   ".pkl-gen/manifest.json 644 9bcb884273349db62ed05af742d56db3903f11713ddd91b5d4b273198f19d353",
+   ".pkl-gen/manifest.json 644 cc12d0ba1111150bc01940ea6449a59c6063c865b719050d649dbe45754c1c97",
    ".plumber.yaml 644 151bde3704f31000d8c13fcb16f05345a63c84bc85e69d6e0ebcaed585d027a9",
    ".rumdl.toml 644 08038a4e8c256f89e4bd54a9e253727342549e1f369005e5726d3c8d550f0490",
    "SECURITY.md 644 d7f5871e6d8dc4c50d3eeddd64ca8998e510e3834048ce47fe3aac2ca8c2782f",
    "deny.toml 644 d8ea09367293a2a3ee1af3d6edc7cd59620a6604c807955d43918c2881dc6694",
    "dist-workspace.toml 644 a9cf533c719221f1d5078e79be64df4609edfd29e671587c8721e4f1a5ce2e62",
    "hk.pkl 644 8d58c27f086941e2ab3d337df8009ca1160e6195d63174521d1d0cb50424322e",
-   "hk.shared.pkl 644 f6033497e958b6599b1ef1d6c8b9431cfc567fefdd2401f3074c53987c82a25e",
+   "hk.shared.pkl 644 36ea50a1e2dde52386ae76dd148142ca9bbf8213070a68d5278189cc349f2dae",
    "mise.toml 644 af44586366432bfc526384a2e7e9bea5b7fe9cb89bf308bdfc5aedad3cc44588",
    "rust-toolchain.toml 644 4d0674575b116a100c7d0ad754308dc6dea178b4808c760afc43136db967c7a6"
   ],
-  "manifest": "9bcb884273349db62ed05af742d56db3903f11713ddd91b5d4b273198f19d353"
+  "manifest": "cc12d0ba1111150bc01940ea6449a59c6063c865b719050d649dbe45754c1c97"
  },
  "m-skills-true-binary-true-composite-true-features-default": {
   "codes": [
@@ -1537,29 +1537,29 @@
    ".github/workflows/conventional-commits.yml 644 bdece7e27f2ffb0088f6ff4b3ef9d5ae80b252e945d03d3f96ed81f60614b641",
    ".github/workflows/dist-check.yml 644 37e7b19cf5e30cb1c96f70ff8ea292d4f252da64516400f8c4ad6b6194efe45c",
    ".github/workflows/inline-scripts.yml 644 0d83b92d7e271e287ab3ca091589225544b03caac4834c5c1d0589eb7bbe93f9",
-   ".github/workflows/plumber.yml 644 f92da6649cc7907d8f33863fd777e1bdaa487decd4d3f34045879f552bc4e378",
+   ".github/workflows/plumber.yml 644 e542bf273c92464292050c0e31ca1d8e226362dc1752cb79379a00cefde0c399",
    ".github/workflows/pr-auto-rebase.yml 644 80eb78ca8c515218160e347eac91c3e82299a40c98c018a3f3f8a8483c9e3282",
    ".github/workflows/release-automerge.yml 644 ba335d7da9381e46bc28b45c5a917331288f49060bb135dc5fffc8f4d200a472",
    ".github/workflows/release-please.yml 644 ca6e0033359c9e2dacb9ab0cfc85a10cf43f324a1e25a5db7e7e992ab5841ae2",
    ".github/workflows/rust-ci.yml 644 d49d5342ace41fc58b55c7bc7fee8d7f1a976332a76245924f661d76a2696525",
-   ".github/workflows/scaffold-check.yml 644 4557dae27b3ec39e86fc953ddde41b4e190b78c56151bb0ccfa13eaf6c39116d",
+   ".github/workflows/scaffold-check.yml 644 706c20cbe0026d32402d991dbcd880484cf220b6a63d4111ef862b087036c451",
    ".github/workflows/sync-labels.yml 644 646694213615c3e61d5af1b254d34339fa26246c1f7d7608ea0178f7658fc76c",
    ".github/workflows/zizmor.yml 644 5e22b6e63c540e7b8cba182acb04098d9a2497a82259556e87662ee754ecefe9",
    ".github/zizmor.yml 644 f123fffa0adcadf794bcd5e0408154bb3cad7cfbf638556732399d1b9891fe94",
    ".gitignore 644 d203da81821e9e28d93e5c6a5d1758a126c6e3a95549d77736665d54fdcf982e",
    ".mise/conf.d/repo.toml 644 86cce5464f068232fe090ed0458cc24e395f4cfc5826a5c966937d1e18342c94",
-   ".pkl-gen/manifest.json 644 396cb7515b81a0819eb330f527119d7b14c7a5d22f551c3ef1216d8b9dfddf3f",
+   ".pkl-gen/manifest.json 644 eee13c04447d9f1e34baa46bbf2c57264eda6556c0c893ba174b2db1423b0a3a",
    ".plumber.yaml 644 151bde3704f31000d8c13fcb16f05345a63c84bc85e69d6e0ebcaed585d027a9",
    ".rumdl.toml 644 08038a4e8c256f89e4bd54a9e253727342549e1f369005e5726d3c8d550f0490",
    "SECURITY.md 644 d7f5871e6d8dc4c50d3eeddd64ca8998e510e3834048ce47fe3aac2ca8c2782f",
    "deny.toml 644 d8ea09367293a2a3ee1af3d6edc7cd59620a6604c807955d43918c2881dc6694",
    "dist-workspace.toml 644 a9cf533c719221f1d5078e79be64df4609edfd29e671587c8721e4f1a5ce2e62",
    "hk.pkl 644 8d58c27f086941e2ab3d337df8009ca1160e6195d63174521d1d0cb50424322e",
-   "hk.shared.pkl 644 0ba575d020fa0156da681e1c2cc5c0148eff8fadb1b415aad2807af9849a07c0",
+   "hk.shared.pkl 644 a0f037b792964081751b7f3ce8d05945079175c12e0704cafe15d1b5cb8b9d97",
    "mise.toml 644 af44586366432bfc526384a2e7e9bea5b7fe9cb89bf308bdfc5aedad3cc44588",
    "rust-toolchain.toml 644 4d0674575b116a100c7d0ad754308dc6dea178b4808c760afc43136db967c7a6"
   ],
-  "manifest": "396cb7515b81a0819eb330f527119d7b14c7a5d22f551c3ef1216d8b9dfddf3f"
+  "manifest": "eee13c04447d9f1e34baa46bbf2c57264eda6556c0c893ba174b2db1423b0a3a"
  },
  "root": {
   "codes": [
@@ -1591,21 +1591,21 @@
    ".github/workflows/commit-types.yml 644 bf414792b9e4e9363981e920d8fdaea946b3e3b55bba59554e9d3c876d0f1322",
    ".github/workflows/conventional-commits.yml 644 bdece7e27f2ffb0088f6ff4b3ef9d5ae80b252e945d03d3f96ed81f60614b641",
    ".github/workflows/inline-scripts.yml 644 0d83b92d7e271e287ab3ca091589225544b03caac4834c5c1d0589eb7bbe93f9",
-   ".github/workflows/plumber.yml 644 f92da6649cc7907d8f33863fd777e1bdaa487decd4d3f34045879f552bc4e378",
+   ".github/workflows/plumber.yml 644 e542bf273c92464292050c0e31ca1d8e226362dc1752cb79379a00cefde0c399",
    ".github/workflows/pr-auto-rebase.yml 644 80eb78ca8c515218160e347eac91c3e82299a40c98c018a3f3f8a8483c9e3282",
    ".github/workflows/release-automerge.yml 644 ba335d7da9381e46bc28b45c5a917331288f49060bb135dc5fffc8f4d200a472",
    ".github/workflows/release-please.yml 644 3ed3604ecee96fa09d57f306991c76a73064ac9e91c8f2a0d6b3f940e69d96ed",
    ".github/workflows/rust-ci.yml 644 5e5bfe90cc10bf99390c161672426a61a7b62f730ac6146f0d42490e6813e434",
-   ".github/workflows/scaffold-check.yml 644 8bf20a91b5e1a184e9e6b24295d7d8e54966bdadefa2a80d175b93455e4a3620",
+   ".github/workflows/scaffold-check.yml 644 043f674103a0ad5e604bd22d02667f83ed811d422666fa5db3f9983125d1c78b",
    ".github/workflows/sync-labels.yml 644 646694213615c3e61d5af1b254d34339fa26246c1f7d7608ea0178f7658fc76c",
    ".github/workflows/zizmor.yml 644 d8dd9a2ed59f79088903dea9455395aa4ca9af2fa5759d5da0a1fbc3be21ebd3",
    ".gitignore 644 8e706228cc7d147e69966814304cd5cd1b8483472e270c609ff7b2c1a48bf1be",
-   ".pkl-gen/manifest.json 644 7c7300e77473c90a9014fd67d4949c91c90930f77a0ed9c79a7226b034bcac1b",
+   ".pkl-gen/manifest.json 644 353b4276a94c55ee05e46f83f6eab39bf65c3954e4698d1c5aa1f90fe5a45fff",
    ".plumber.yaml 644 151bde3704f31000d8c13fcb16f05345a63c84bc85e69d6e0ebcaed585d027a9",
    ".rumdl.toml 644 08038a4e8c256f89e4bd54a9e253727342549e1f369005e5726d3c8d550f0490",
    "SECURITY.md 644 3cb548c5f656fd6024014b61efab8d18b5cc9265d2d4d01cadf1ccb9fa710352",
    "rust-toolchain.toml 644 4d0674575b116a100c7d0ad754308dc6dea178b4808c760afc43136db967c7a6"
   ],
-  "manifest": "7c7300e77473c90a9014fd67d4949c91c90930f77a0ed9c79a7226b034bcac1b"
+  "manifest": "353b4276a94c55ee05e46f83f6eab39bf65c3954e4698d1c5aa1f90fe5a45fff"
  }
 }

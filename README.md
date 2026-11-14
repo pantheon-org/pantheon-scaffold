@@ -1,6 +1,6 @@
 # pantheon-scaffold
 
-Defines the GitHub CI/CD of the `pantheon-*` repositories in pkl, and renders it from one `pantheon.pkl` per repository, in the style of hk's `hk.pkl`. The workflows, hooks and tooling files a repository needs are ported into this package as **Builtins**, whatever language the repository uses. A repository can add its own **Presets**: local custom versions of a Builtin that add to it or override it. A small runner renders the files and keeps them in sync.
+Defines the GitHub CI/CD of the `pantheon-*` repositories in pkl, and renders it from one `scaffold.pkl` per repository, in the style of hk's `hk.pkl`. The workflows, hooks and tooling files a repository needs are ported into this package as **Builtins**, whatever language the repository uses. A repository can add its own **Presets**: local custom versions of a Builtin that add to it or override it. A small runner renders the files and keeps them in sync.
 
 ## Status
 

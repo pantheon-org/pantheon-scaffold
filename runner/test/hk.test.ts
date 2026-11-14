@@ -11,7 +11,7 @@ afterEach(cleanupRepos);
 const root = join(import.meta.dir, "../..");
 const schema = (await Bun.file(join(root, "contract.schema.json")).json()) as Schema;
 const render = async (fixture: string) =>
-  parseContract(await evalContractJson(join(import.meta.dir, "fixtures", fixture, "pantheon.pkl"), root, { allowFilesUnder: [join(root, "pkl")] }), schema);
+  parseContract(await evalContractJson(join(import.meta.dir, "fixtures", fixture, "scaffold.pkl"), root, { allowFilesUnder: [join(root, "pkl")] }), schema);
 const def = await render("hk");
 const all = await render("hk-all");
 const content = (c: typeof def, path: string) => c.files.find((f) => f.path === path)!.content!;

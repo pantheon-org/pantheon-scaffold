@@ -3,6 +3,7 @@
 //! This build handles every command of the TypeScript runner: `--version`, `contract`, `render`, `check`, `detach`,
 //! `freshness`, `latest` and `upgrade`.
 
+use scaffold_core::config_name::{CONFIG_NAME, refuse_old_name, refuse_old_name_in_root};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
@@ -22,9 +23,9 @@ pub const EXIT_DRIFT: i32 = 4;
 
 pub const USAGE: &str = "usage (exit codes: 0 ok, 1 error, 2 usage, 3 refused, 4 drift; --dry-run exits 3 when the render would be refused, otherwise 0):
   pantheon-scaffold --version
-  pantheon-scaffold contract <pantheon.pkl> [--json] [--cache-dir <dir>] [--allow-local-package <dir>]...
-  pantheon-scaffold render <pantheon.pkl> [--root <dir>] [--dry-run] [--force] [--repair] [--strict] [--cache-dir <dir>] [--allow-local-package <dir>]... [--attempts <n>]
-  pantheon-scaffold check <pantheon.pkl> [--root <dir>] [--strict] [--cache-dir <dir>] [--allow-local-package <dir>]... [--attempts <n>]
+  pantheon-scaffold contract <scaffold.pkl> [--json] [--cache-dir <dir>] [--allow-local-package <dir>]...
+  pantheon-scaffold render <scaffold.pkl> [--root <dir>] [--dry-run] [--force] [--repair] [--strict] [--cache-dir <dir>] [--allow-local-package <dir>]... [--attempts <n>]
+  pantheon-scaffold check <scaffold.pkl> [--root <dir>] [--strict] [--cache-dir <dir>] [--allow-local-package <dir>]... [--attempts <n>]
   pantheon-scaffold detach [--root <dir>] [--dry-run] [--force]
   pantheon-scaffold latest [--include-prereleases] [--url <url>] [--root <dir>] [--attempts <n>]
   pantheon-scaffold freshness [--url <url>] [--max-age-days <n>] [--attempts <n>]
@@ -280,6 +281,10 @@ pub fn run_with_env(
     match cmd.as_str() {
         "contract" | "render" | "check" => {
             let config = config.expect("checked above");
+            if let Err(message) = refuse_old_name(&cwd.join(config)) {
+                io.complain(&message);
+                return EXIT_ERROR;
+            }
             command(cmd, config, cwd, &flags, env, &mut io)
         }
         "detach" => finish(run_detach(&flags, &mut io), &mut io),
@@ -408,11 +413,11 @@ fn init_package(flags: &Flags, env: &Env) -> Result<scaffold_core::init::Package
     Ok(Package::Release { version, checksum })
 }
 
-/// `init`: writes `pantheon.pkl` once for a new project and renders it. Nothing is written without `--write`; then the config is
+/// `init`: writes `scaffold.pkl` once for a new project and renders it. Nothing is written without `--write`; then the config is
 /// evaluated against its package and the files it would write are listed. Nothing is written either when the render would be refused
-/// (a file that is there and differs), and a failure after `pantheon.pkl` is written takes it back.
-/// What `init` and `migrate` both start from: a `pantheon.pkl` text for the options and package, evaluated in a scratch folder
-/// (so a repository with no `pantheon.pkl` yet can be rendered from it), and passed through the strict gate, because a project
+/// (a file that is there and differs), and a failure after `scaffold.pkl` is written takes it back.
+/// What `init` and `migrate` both start from: a `scaffold.pkl` text for the options and package, evaluated in a scratch folder
+/// (so a repository with no `scaffold.pkl` yet can be rendered from it), and passed through the strict gate, because a project
 /// must not start on a release that is known to be bad. Returns the exit code instead when it has to stop.
 struct Prepared {
     text: String,
@@ -422,8 +427,8 @@ struct Prepared {
     package: scaffold_core::init::Package,
 }
 
-/// Evaluates a `pantheon.pkl` text in a scratch folder, with `files` (path and text) beside it, so that a repository with no
-/// `pantheon.pkl` yet, and Presets not written yet, can be rendered from it.
+/// Evaluates a `scaffold.pkl` text in a scratch folder, with `files` (path and text) beside it, so that a repository with no
+/// `scaffold.pkl` yet, and Presets not written yet, can be rendered from it.
 fn evaluate_text(
     text: &str,
     files: &[(String, String)],
@@ -438,12 +443,12 @@ fn evaluate_text(
         }
         std::fs::write(&path, body).map_err(|e| format!("could not write {}: {e}", path.display()))
     };
-    write("pantheon.pkl", text)?;
+    write(CONFIG_NAME, text)?;
     for (rel, body) in files {
         write(rel, body)?;
     }
     let json = scaffold_core::pkl::eval_contract_json(
-        &scratch.0.join("pantheon.pkl"),
+        &scratch.0.join(CONFIG_NAME),
         &flags.root,
         &eval_options(flags),
     )
@@ -492,9 +497,13 @@ fn prepare(
         ));
         return Ok(Err(EXIT_USAGE));
     }
-    if flags.root.join("pantheon.pkl").exists() {
+    if let Err(message) = refuse_old_name_in_root(&flags.root) {
+        io.complain(&message);
+        return Ok(Err(EXIT_REFUSED));
+    }
+    if flags.root.join(CONFIG_NAME).exists() {
         io.complain(&format!(
-            "pantheon.pkl already exists in {}: {command} writes it once. Use upgrade to move it to another release.",
+            "scaffold.pkl already exists in {}: {command} writes it once. Use upgrade to move it to another release.",
             flags.root.display()
         ));
         return Ok(Err(EXIT_REFUSED));
@@ -535,7 +544,7 @@ fn run_init(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
         Ok(prepared) => prepared,
         Err(code) => return Ok(code),
     };
-    let config_path = flags.root.join("pantheon.pkl");
+    let config_path = flags.root.join(CONFIG_NAME);
     let render = |dry_run| Options {
         dry_run,
         package_version: package_version.clone(),
@@ -555,7 +564,7 @@ fn run_init(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
         return Ok(refused(&plan.refusals, io));
     }
     if !flags.write {
-        io.say("pantheon.pkl would be written:");
+        io.say("scaffold.pkl would be written:");
         io.say(text.trim_end());
         for action in &plan.actions {
             io.say(&format!("{:<9} {}", action.kind.name(), action.path));
@@ -566,7 +575,7 @@ fn run_init(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
             .filter(|a| matches!(a.kind, Kind::Create | Kind::Update | Kind::Seed))
             .count();
         io.say(&format!(
-            "dry run: init would write pantheon.pkl and {files} file(s). Run again with --write to write them."
+            "dry run: init would write scaffold.pkl and {files} file(s). Run again with --write to write them."
         ));
         return Ok(EXIT_OK);
     }
@@ -586,7 +595,7 @@ fn run_init(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
         io.say(&format!("{:<9} {}", action.kind.name(), action.path));
     }
     io.say(&format!(
-        "init: wrote pantheon.pkl and {} file(s). Next: run mise lock, then commit.",
+        "init: wrote scaffold.pkl and {} file(s). Next: run mise lock, then commit.",
         report.written
     ));
     Ok(EXIT_OK)
@@ -596,7 +605,7 @@ fn run_init(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
 /// each file, whether it is identical to the Builtin, drifted from it, or new, and which files are the repository's own. Nothing is
 /// written without `--write`. `--write` is refused while any file has drifted, unless `--as-presets` keeps each drifted file as a
 /// Preset: then the config with the Presets is evaluated first, and every file must come out identical or nothing is written.
-/// Otherwise it writes `pantheon.pkl` and the new files, and overwrites only the YAML files that are equal to the render and
+/// Otherwise it writes `scaffold.pkl` and the new files, and overwrites only the YAML files that are equal to the render and
 /// differ in their text.
 fn run_migrate(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
     use scaffold_core::apply::{Options, apply};
@@ -722,7 +731,7 @@ fn run_migrate(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
             format!(", {} Preset(s)", presets.len())
         };
         io.say(&format!(
-            "migrate: {counts}. Nothing was written. Run again with --write to write pantheon.pkl{kept} and the new files."
+            "migrate: {counts}. Nothing was written. Run again with --write to write scaffold.pkl{kept} and the new files."
         ));
         return Ok(EXIT_OK);
     }
@@ -740,7 +749,7 @@ fn run_migrate(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
         }
         written_files.push(path);
     }
-    let config_path = flags.root.join("pantheon.pkl");
+    let config_path = flags.root.join(CONFIG_NAME);
     if let Err(e) = write_new(&config_path, &text) {
         undo(&written_files);
         return Err(e);
@@ -768,7 +777,7 @@ fn run_migrate(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
         format!(", {} Preset(s)", presets.len())
     };
     io.say(&format!(
-        "migrate: {counts}. Wrote pantheon.pkl{kept} and {written} file(s). Next: run mise lock, then commit."
+        "migrate: {counts}. Wrote scaffold.pkl{kept} and {written} file(s). Next: run mise lock, then commit."
     ));
     if !accepted.is_empty() {
         io.say("replaced by --accept-builtins (the git diff of the adoption commit is the full record):");
@@ -817,10 +826,10 @@ fn accept_drifted(
     Ok(paths.into_iter().map(str::to_owned).collect())
 }
 
-/// Writes a file that must not exist yet, so a `pantheon.pkl` made in the meantime is never overwritten.
+/// Writes a file that must not exist yet, so a `scaffold.pkl` made in the meantime is never overwritten.
 fn write_new(path: &Path, text: &str) -> Result<(), String> {
     use std::io::Write;
-    let failed = |e: std::io::Error| format!("pantheon.pkl could not be written: {e}");
+    let failed = |e: std::io::Error| format!("scaffold.pkl could not be written: {e}");
     std::fs::OpenOptions::new()
         .write(true)
         .create_new(true)
@@ -1439,7 +1448,7 @@ mod tests {
     fn pinned_repo() -> tempfile::TempDir {
         let repo = tempfile::tempdir().unwrap();
         std::fs::write(
-            repo.path().join("pantheon.pkl"),
+            repo.path().join("scaffold.pkl"),
             "amends \"package://github.com/pantheon-org/pantheon-scaffold/releases/download/v0.1.0/pantheon-scaffold@0.1.0#/Config.pkl\"\n",
         )
         .unwrap();
@@ -1552,7 +1561,7 @@ mod tests {
 
     fn preset_inputs(pairs: &[(&str, &str)]) -> PresetInputs {
         PresetInputs {
-            config_name: "pantheon.pkl".into(),
+            config_name: "scaffold.pkl".into(),
             listed: pairs.iter().map(|(p, _)| (*p).to_owned()).collect(),
             hashes: pairs
                 .iter()
@@ -1589,7 +1598,7 @@ mod tests {
 
     fn minimal() -> String {
         checkout()
-            .join("runner/test/fixtures/minimal/pantheon.pkl")
+            .join("runner/test/fixtures/minimal/scaffold.pkl")
             .display()
             .to_string()
     }
@@ -1619,7 +1628,7 @@ mod tests {
         let package = package();
         std::fs::create_dir_all(dir.path().join("presets")).expect("the test setup works");
         std::fs::write(
-            dir.path().join("pantheon.pkl"),
+            dir.path().join("scaffold.pkl"),
             format!(
                 "amends \"{package}/Config.pkl\"\noptions {{ toolchain = \"1.96.1\" }}\npresets {{ \"presets/ci.pkl\" }}\nfiles {{ [\"a.txt\"] = new GenFile {{ content = \"one\\n\" }} }}\n"
             ),
@@ -1639,7 +1648,7 @@ mod tests {
 
     fn in_project(command: &str, extra: &[&str], dir: &Path) -> (i32, String, String) {
         let (config, package, root) = (
-            dir.join("pantheon.pkl").display().to_string(),
+            dir.join("scaffold.pkl").display().to_string(),
             package(),
             dir.display().to_string(),
         );
@@ -1682,7 +1691,7 @@ mod tests {
                 (
                     EXIT_ERROR,
                     "",
-                    "preset presets/ci.pkl is listed by pantheon.pkl but the file does not exist\n"
+                    "preset presets/ci.pkl is listed by scaffold.pkl but the file does not exist\n"
                 ),
                 "{command}"
             );
@@ -1714,7 +1723,7 @@ mod tests {
         assert!(out.contains("preset presets/ci.pkl\n"), "{out}");
         assert_eq!(
             err,
-            "warning: presets/forgotten.pkl is not applied by pantheon.pkl\n"
+            "warning: presets/forgotten.pkl is not applied by scaffold.pkl\n"
         );
     }
 
@@ -1882,7 +1891,7 @@ mod tests {
             err.starts_with("--binary needs --crate-name\nusage"),
             "{err}"
         );
-        assert!(!dir.path().join("pantheon.pkl").exists());
+        assert!(!dir.path().join("scaffold.pkl").exists());
     }
 
     #[test]
@@ -1892,7 +1901,7 @@ mod tests {
         assert_eq!((code, err.as_str()), (EXIT_OK, ""));
         assert!(
             out.starts_with(
-                "pantheon.pkl would be written:\n// Written by `pantheon-scaffold init`."
+                "scaffold.pkl would be written:\n// Written by `pantheon-scaffold init`."
             ),
             "{out}"
         );
@@ -1904,7 +1913,7 @@ mod tests {
             "{out}"
         );
         assert!(
-            out.contains("dry run: init would write pantheon.pkl and "),
+            out.contains("dry run: init would write scaffold.pkl and "),
             "{out}"
         );
         assert_eq!(
@@ -1925,9 +1934,9 @@ mod tests {
                 .ends_with("Next: run mise lock, then commit."),
             "{out}"
         );
-        assert!(out.contains("init: wrote pantheon.pkl and "), "{out}");
+        assert!(out.contains("init: wrote scaffold.pkl and "), "{out}");
         for file in [
-            "pantheon.pkl",
+            "scaffold.pkl",
             "mise.toml",
             "rust-toolchain.toml",
             ".pkl-gen/manifest.json",
@@ -1943,15 +1952,15 @@ mod tests {
     }
 
     #[test]
-    fn init_never_overwrites_a_pantheon_pkl() {
+    fn init_never_overwrites_a_scaffold_pkl() {
         let dir = tempfile::tempdir().expect("a directory");
-        std::fs::write(dir.path().join("pantheon.pkl"), "mine\n").expect("a file");
+        std::fs::write(dir.path().join("scaffold.pkl"), "mine\n").expect("a file");
         let (code, out, err) = init_in(dir.path(), &["--toolchain", "1.96.1", "--write"]);
         assert_eq!((code, out.as_str()), (EXIT_REFUSED, ""));
-        assert!(err.starts_with("pantheon.pkl already exists in "), "{err}");
+        assert!(err.starts_with("scaffold.pkl already exists in "), "{err}");
         assert!(err.contains("init writes it once"), "{err}");
         assert_eq!(
-            std::fs::read_to_string(dir.path().join("pantheon.pkl")).expect("the file"),
+            std::fs::read_to_string(dir.path().join("scaffold.pkl")).expect("the file"),
             "mine\n"
         );
         assert!(!dir.path().join("mise.toml").exists());
@@ -1969,7 +1978,7 @@ mod tests {
             assert_eq!(code, EXIT_REFUSED, "{extra:?}");
             assert!(err.starts_with("refused 1 file(s), nothing was written:\n  .gitignore: already exists and differs"), "{err}");
         }
-        assert!(!dir.path().join("pantheon.pkl").exists());
+        assert!(!dir.path().join("scaffold.pkl").exists());
         assert!(!dir.path().join("mise.toml").exists());
     }
 
@@ -1992,7 +2001,7 @@ mod tests {
         let (code, _, err) = init_in(dir.path(), &["--toolchain", "1.96.1", "--write"]);
         assert_eq!(code, EXIT_ERROR, "{err}");
         assert!(err.contains(".pkl-gen/lock is held"), "{err}");
-        assert!(!dir.path().join("pantheon.pkl").exists());
+        assert!(!dir.path().join("scaffold.pkl").exists());
     }
 
     #[test]
@@ -2042,7 +2051,7 @@ mod tests {
 
     #[test]
     fn a_config_that_does_not_exist_is_an_error() {
-        let (code, out, err) = go(&["contract", "/no/such/pantheon.pkl"], &checkout());
+        let (code, out, err) = go(&["contract", "/no/such/scaffold.pkl"], &checkout());
         assert_eq!((code, out.as_str()), (EXIT_ERROR, ""));
         assert!(err.starts_with("pkl eval failed (exit 1)"), "{err}");
     }
@@ -2174,7 +2183,7 @@ mod tests {
         )
         .unwrap();
         let config = checkout()
-            .join("runner/test/fixtures/smoke-detach/pantheon.pkl")
+            .join("runner/test/fixtures/smoke-detach/scaffold.pkl")
             .display()
             .to_string();
         let (root, package) = (repo.path().display().to_string(), package());

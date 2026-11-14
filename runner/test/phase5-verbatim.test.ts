@@ -13,7 +13,7 @@ afterEach(cleanupRepos);
 const root = join(import.meta.dir, "../..");
 const schema = (await Bun.file(join(root, "contract.schema.json")).json()) as Schema;
 const render = async (fixture: string) =>
-  parseContract(await evalContractJson(join(import.meta.dir, "fixtures", fixture, "pantheon.pkl"), root, { allowFilesUnder: [join(root, "pkl")] }), schema);
+  parseContract(await evalContractJson(join(import.meta.dir, "fixtures", fixture, "scaffold.pkl"), root, { allowFilesUnder: [join(root, "pkl")] }), schema);
 const binary = await render("phase5-binary");
 const library = await render("phase5-library");
 const file = (c: typeof binary, path: string) => c.files.find((f) => f.path === path)!;
@@ -83,7 +83,7 @@ test("release.yml is external: listed with no content, because dist generate wri
 test("an external release.yml is never written, and an existing one is left alone", async () => {
   const dir = tempRepo();
 
-  const config = join(import.meta.dir, "fixtures/phase5-binary/pantheon.pkl");
+  const config = join(import.meta.dir, "fixtures/phase5-binary/scaffold.pkl");
   const run = () => Bun.spawn([scaffoldBin(), "render", config, "--root", dir, "--allow-local-package", join(root, "pkl")], { stdout: "pipe", stderr: "pipe" });
   const p = run();
   expect(await p.exited).toBe(0);

@@ -7,6 +7,7 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
 use crate::checksums::{checksum_asset_url, find_checksum};
+use crate::config_name::{CONFIG_NAME, refuse_old_name, refuse_old_name_in_root};
 use crate::contract::FileClass;
 use crate::lock::{LockError, LockOptions, acquire_lock};
 use crate::lockcheck::check_runner_lock;
@@ -308,7 +309,16 @@ pub fn upgrade(
             json(requested)
         )));
     }
-    let config = opts.config.as_deref().unwrap_or("pantheon.pkl");
+    let config = match opts.config.as_deref() {
+        Some(config) => {
+            refuse_old_name(&root.join(config)).map_err(UpgradeError)?;
+            config
+        }
+        None => {
+            refuse_old_name_in_root(root).map_err(UpgradeError)?;
+            CONFIG_NAME
+        }
+    };
     let pins = read_pins(root, config)?;
     let from = pins.package_version.clone();
     match compare_semver(to, &from).map_err(UpgradeError)? {
@@ -482,7 +492,7 @@ mod tests {
 
     fn repo(v: &str) -> tempfile::TempDir {
         let dir = tempfile::tempdir().unwrap();
-        put(dir.path(), "pantheon.pkl", &amends(v, &h('a')));
+        put(dir.path(), "scaffold.pkl", &amends(v, &h('a')));
         put(dir.path(), "mise.toml", &mise(v));
         put(dir.path(), "mise.lock", "# lock for 0.1.0\n");
         dir
@@ -586,7 +596,7 @@ mod tests {
 
     fn snapshot(root: &Path) -> (String, String, String) {
         (
-            get(root, "pantheon.pkl"),
+            get(root, "scaffold.pkl"),
             get(root, "mise.toml"),
             get(root, "mise.lock"),
         )
@@ -640,17 +650,17 @@ mod tests {
         let dir = repo("0.1.0");
         let f = fake();
         let r = run(dir.path(), &f, "0.2.0").unwrap();
-        assert_eq!(get(dir.path(), "pantheon.pkl"), amends("0.2.0", &h('c')));
+        assert_eq!(get(dir.path(), "scaffold.pkl"), amends("0.2.0", &h('c')));
         assert_eq!(get(dir.path(), "mise.toml"), mise("0.2.0"));
         assert_eq!(
             calls(&f),
             [
                 format!("fetch {BASE}/v0.2.0/checksums.txt"),
                 "verify pantheon-org/pantheon-scaffold".to_owned(),
-                "evaluate pantheon.pkl".to_owned(),
+                "evaluate scaffold.pkl".to_owned(),
                 "exec mise install".to_owned(),
                 "exec mise lock".to_owned(),
-                format!("exec {}", render_line(dir.path(), "pantheon.pkl")),
+                format!("exec {}", render_line(dir.path(), "scaffold.pkl")),
             ]
         );
         assert_eq!(
@@ -686,7 +696,7 @@ mod tests {
         run(dir.path(), &f, "0.2.0").unwrap();
         let evaluated = f.evaluated.borrow();
         assert_eq!(evaluated.len(), 1);
-        assert_eq!(evaluated[0].0, dir.path().join("pantheon.pkl"));
+        assert_eq!(evaluated[0].0, dir.path().join("scaffold.pkl"));
         assert_eq!(evaluated[0].1, amends("0.2.0", &h('c')));
         assert!(!has(dir.path(), "pantheon.upgrade-check.pkl"));
     }
@@ -730,7 +740,7 @@ mod tests {
         let error = run(dir.path(), &f, "0.2.0").unwrap_err().0;
         assert_eq!(
             error,
-            "pantheon.pkl does not evaluate with 0.2.0, so nothing was changed:\npreset: job \"build\" does not exist in workflow \"Rust CI\". Jobs: build-test"
+            "scaffold.pkl does not evaluate with 0.2.0, so nothing was changed:\npreset: job \"build\" does not exist in workflow \"Rust CI\". Jobs: build-test"
         );
         assert_eq!(
             (
@@ -843,7 +853,7 @@ mod tests {
     #[test]
     fn a_config_in_a_folder_moves_the_presets_next_to_it_and_is_evaluated_where_it_is() {
         let dir = tempfile::tempdir().unwrap();
-        put(dir.path(), "conf/pantheon.pkl", &amends("0.1.0", &h('a')));
+        put(dir.path(), "conf/scaffold.pkl", &amends("0.1.0", &h('a')));
         put(
             dir.path(),
             "conf/presets/ci.pkl",
@@ -858,13 +868,13 @@ mod tests {
         put(dir.path(), "mise.lock", "# lock\n");
         let f = fake();
         let o = UpgradeOptions {
-            config: Some("conf/pantheon.pkl".to_owned()),
+            config: Some("conf/scaffold.pkl".to_owned()),
             ..opts()
         };
         let r = run_with(dir.path(), &f, "0.2.0", o).unwrap();
         assert_eq!(
             f.evaluated.borrow()[0].0,
-            dir.path().join("conf/pantheon.pkl")
+            dir.path().join("conf/scaffold.pkl")
         );
         assert_eq!(
             get(dir.path(), "conf/presets/ci.pkl"),
@@ -905,7 +915,7 @@ mod tests {
             r.changes,
             [
                 format!(
-                    "pantheon.pkl: 0.1.0 -> 0.2.0, checksum {}...",
+                    "scaffold.pkl: 0.1.0 -> 0.2.0, checksum {}...",
                     &h('c')[..12]
                 ),
                 format!("mise.toml: {RUNNER_TOOL} 0.1.0 -> 0.2.0"),
@@ -1165,20 +1175,20 @@ mod tests {
     fn a_render_that_fails_afterwards_leaves_the_new_pins_in_place_and_reports_its_exit_code() {
         let dir = repo("0.1.0");
         let f = Fake {
-            exits: HashMap::from([(render_line(dir.path(), "pantheon.pkl"), 3)]),
+            exits: HashMap::from([(render_line(dir.path(), "scaffold.pkl"), 3)]),
             ..fake()
         };
         let r = run(dir.path(), &f, "0.2.0").unwrap();
         assert_eq!(r.render_exit, Some(3));
         assert_eq!(get(dir.path(), "mise.toml"), mise("0.2.0"));
-        assert_eq!(get(dir.path(), "pantheon.pkl"), amends("0.2.0", &h('c')));
+        assert_eq!(get(dir.path(), "scaffold.pkl"), amends("0.2.0", &h('c')));
     }
 
     #[test]
     fn a_render_that_cannot_be_started_is_an_error_that_says_the_pins_are_updated() {
         let dir = repo("0.1.0");
         let f = Fake {
-            cannot_start: Some(render_line(dir.path(), "pantheon.pkl")),
+            cannot_start: Some(render_line(dir.path(), "scaffold.pkl")),
             ..fake()
         };
         let message = run(dir.path(), &f, "0.2.0").unwrap_err().to_string();
@@ -1269,7 +1279,7 @@ mod tests {
         let f = with_text(&format!("{}  pantheon-scaffold@0.2.0-rc.1\n", h('c')));
         let r = run(dir.path(), &f, "v0.2.0-rc.1").unwrap();
         assert_eq!(r.to, "0.2.0-rc.1");
-        assert!(get(dir.path(), "pantheon.pkl").contains("pantheon-scaffold@0.2.0-rc.1::sha256:"));
+        assert!(get(dir.path(), "scaffold.pkl").contains("pantheon-scaffold@0.2.0-rc.1::sha256:"));
         assert!(calls(&f)[0].ends_with("/v0.2.0-rc.1/checksums.txt"));
     }
 
@@ -1300,7 +1310,7 @@ mod tests {
     #[test]
     fn a_pinned_version_that_is_not_a_version_is_an_error_not_a_crash() {
         let dir = repo("0.1.0");
-        put(dir.path(), "pantheon.pkl", &amends("weird", &h('a')));
+        put(dir.path(), "scaffold.pkl", &amends("weird", &h('a')));
         let message = run(dir.path(), &fake(), "0.2.0").unwrap_err().to_string();
         assert_eq!(message, "\"weird\" is not a version");
     }
@@ -1308,7 +1318,7 @@ mod tests {
     #[test]
     fn a_custom_config_file_name_is_used_for_the_pins_and_the_render() {
         let dir = repo("0.1.0");
-        put(dir.path(), "other.pkl", &get(dir.path(), "pantheon.pkl"));
+        put(dir.path(), "other.pkl", &get(dir.path(), "scaffold.pkl"));
         let f = fake();
         run_with(
             dir.path(),
@@ -1454,15 +1464,15 @@ mod tests {
         let first_line = amends("0.1.0", &h('a')).lines().next().unwrap().to_owned();
         put(
             dir.path(),
-            "pantheon.pkl",
+            "scaffold.pkl",
             &format!(
                 "{first_line}\n{}\n\noptions {{ toolchain = \"1.96.1\" }}\n",
                 import_line("0.1.0", &h('a'))
             ),
         );
         let r = run(dir.path(), &fake(), "0.2.0").unwrap();
-        assert!(get(dir.path(), "pantheon.pkl").contains(&import_line("0.2.0", &h('c'))));
-        assert!(!get(dir.path(), "pantheon.pkl").contains("0.1.0"));
+        assert!(get(dir.path(), "scaffold.pkl").contains(&import_line("0.2.0", &h('c'))));
+        assert!(!get(dir.path(), "scaffold.pkl").contains("0.1.0"));
         assert!(
             r.changes[0].ends_with(", 1 import of the package"),
             "{}",
@@ -1479,7 +1489,7 @@ mod tests {
             import_line("0.1.0", &h('a')),
             import_line("0.1.0", &h('a')).replace("Builtins", "Tools")
         );
-        put(dir.path(), "pantheon.pkl", &two);
+        put(dir.path(), "scaffold.pkl", &two);
         let r = run_with(
             dir.path(),
             &fake(),
@@ -1502,7 +1512,7 @@ mod tests {
         let dir = repo("0.1.0");
         let first_line = amends("0.1.0", &h('a')).lines().next().unwrap().to_owned();
         let text = format!("{first_line}\n{}\n", import_line("0.1.0", &h('a')));
-        put(dir.path(), "pantheon.pkl", &text);
+        put(dir.path(), "scaffold.pkl", &text);
         let r = run_with(
             dir.path(),
             &fake(),
@@ -1514,7 +1524,7 @@ mod tests {
         )
         .unwrap();
         assert!(r.changes[0].contains("1 import"));
-        assert_eq!(get(dir.path(), "pantheon.pkl"), text);
+        assert_eq!(get(dir.path(), "scaffold.pkl"), text);
     }
 
     fn manifest_of(root: &Path, files: &[(&str, FileClass, String)]) {
@@ -1728,7 +1738,7 @@ mod tests {
         );
         let conf = dir.path().join("conf");
         std::fs::create_dir(&conf).unwrap();
-        let config = conf.join("pantheon.pkl");
+        let config = conf.join("scaffold.pkl");
         std::fs::write(&config, "amends \"x\"\n").unwrap();
         let eval = |fail: Option<&str>| crate::pkl::EvalOptions {
             binary: pkl.clone(),

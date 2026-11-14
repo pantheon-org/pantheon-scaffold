@@ -4,7 +4,7 @@ Workflows the four Rust repositories share, rendered from typed pkl by the built
 
 ## Where the builtins live
 
-`pkl/Builtins.pkl` is the API: every function a repository's `pantheon.pkl` calls (`standardWorkflows`, `standardFiles`, `rustCi`, `plumber` and the rest) is defined there, and each is one line that calls into a folder.
+`pkl/Builtins.pkl` is the API: every function a repository's `scaffold.pkl` calls (`standardWorkflows`, `standardFiles`, `rustCi`, `plumber` and the rest) is defined there, and each is one line that calls into a folder.
 
 | Path | What it holds |
 |---|---|
@@ -119,7 +119,7 @@ A pin pull request changes `pkl/`, so while the version in `pkl/PklProject` is a
 
 1. `pantheon-scaffold freshness` fails the run when the record is older than 30 days or cannot be read.
 2. `pantheon-scaffold latest` finds the newest release the known-bad list allows. If the repository is already on it, nothing else runs.
-3. `pantheon-scaffold upgrade <version> --config pantheon.pkl` verifies the release, rewrites the pins and renders.
+3. `pantheon-scaffold upgrade <version> --config scaffold.pkl` verifies the release, rewrites the pins and renders.
 4. The workflow pushes `chore/upgrade-pantheon-scaffold-<version>` and opens a pull request with the App token.
 
 The App token asks for `contents`, `pull-requests` and `workflows` write. `workflows: write` is needed because an upgrade can change files under `.github/workflows`; whether the `pantheon-ai-bot` App has it is not confirmed (plan P.4). The file is marked `removeOnDetach`, so `pantheon-scaffold detach` deletes it: once the repository leaves the scaffold the workflow would fail on every run. To support that, `Workflow` has a new `removeOnDetach` option. Each `run:` block is 15 lines or fewer, and every value that comes from an expression goes through `env`.

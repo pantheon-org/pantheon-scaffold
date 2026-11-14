@@ -11,7 +11,7 @@ afterEach(cleanupRepos);
 // disk is the mode in the index, so a committed mode that is wrong shows up as mode drift. These tests prove that with real git.
 const root = join(import.meta.dir, "../..");
 
-const config = join(import.meta.dir, "fixtures/tooling/pantheon.pkl");
+const config = join(import.meta.dir, "fixtures/tooling/scaffold.pkl");
 const NINE = ["agnix-assemble-comment", "agnix-file-issues", "agnix-introduced-errors", "auto-rebase", "cargo-deny", "check-commit-types", "check-inline-scripts", "release-automerge", "sync-labels"].map((n) => `.github/scripts/${n}.sh`);
 
 const run = async (cwd: string, ...args: string[]) => {

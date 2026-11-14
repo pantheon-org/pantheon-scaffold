@@ -12,7 +12,7 @@ type T = { skills: boolean; binary: boolean; features: "default" | "all"; compos
 const BASE: T = { skills: true, binary: true, features: "default", compositeAction: false, skillName: "demo-skill", crateName: "demo" };
 
 let n = 0;
-/** Writes a pantheon.pkl for these options that uses the standard workflows and files, and returns its path. */
+/** Writes a scaffold.pkl for these options that uses the standard workflows and files, and returns its path. */
 function config(t: T): string {
   const f = join(tempRepo(), `pantheon-${n++}.pkl`);
   const names = [t.skillName ? `skillName = "${t.skillName}"` : "", t.crateName ? `crateName = "${t.crateName}"` : ""].join("\n  ");

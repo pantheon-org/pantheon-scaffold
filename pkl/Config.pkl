@@ -1,5 +1,5 @@
 /// Entry module of the pantheon-scaffold package. A repository amends this module in its
-/// pantheon.pkl, sets `options`, `workflows` and `files`, and the runner reads the one JSON
+/// scaffold.pkl, sets `options`, `workflows` and `files`, and the runner reads the one JSON
 /// document this module renders (decision 44, contract.schema.json).
 @ModuleInfo { minPklVersion = "0.32.0" }
 module pantheon.scaffold.Config

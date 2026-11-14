@@ -316,9 +316,9 @@ jobs:
           cd "$RUNNER_TEMP/consumer"
           sum="$(awk -v n="pantheon-scaffold@$VERSION" '$2 == n { print $1 }' checksums.txt)"
           test -n "$sum"
-          printf 'amends "package://github.com/%s/releases/download/%s/pantheon-scaffold@%s::sha256:%s#/Config.pkl"\n\noptions { toolchain = "1.96.1" }\n' "$REPO" "$TAG" "$VERSION" "$sum" > pantheon.pkl
-          mise x -- pantheon-scaffold render pantheon.pkl --attempts 8
-          mise x -- pantheon-scaffold check pantheon.pkl --attempts 8
+          printf 'amends "package://github.com/%s/releases/download/%s/pantheon-scaffold@%s::sha256:%s#/Config.pkl"\n\noptions { toolchain = "1.96.1" }\n' "$REPO" "$TAG" "$VERSION" "$sum" > scaffold.pkl
+          mise x -- pantheon-scaffold render scaffold.pkl --attempts 8
+          mise x -- pantheon-scaffold check scaffold.pkl --attempts 8
       - name: Render the standard workflows and files through the package, check them, and render again
         run: |
           cd "$RUNNER_TEMP/consumer"
@@ -336,7 +336,7 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/old"
           zeros="$(printf '0%.0s' $(seq 64))"
-          printf 'amends "package://github.com/%s/releases/download/v0.0.0/pantheon-scaffold@0.0.0::sha256:%s#/Config.pkl"\n' "$REPO" "$zeros" > "$RUNNER_TEMP/old/pantheon.pkl"
+          printf 'amends "package://github.com/%s/releases/download/v0.0.0/pantheon-scaffold@0.0.0::sha256:%s#/Config.pkl"\n' "$REPO" "$zeros" > "$RUNNER_TEMP/old/scaffold.pkl"
           printf '[tools]\n"github:%s" = "0.0.0"\n' "$REPO" > "$RUNNER_TEMP/old/mise.toml"
           cd "$RUNNER_TEMP/consumer"
           mise x -- pantheon-scaffold upgrade "$VERSION" --dry-run --root "$RUNNER_TEMP/old"

@@ -1,6 +1,6 @@
 # Builtins baseline: render a tree and compare it with origin/main at 0b466dc
 
-These scripts render a tree's own `pantheon.pkl`, every `runner/test/fixtures/*/pantheon.pkl` and an option matrix with one binary, and compare the
+These scripts render a tree's own `scaffold.pkl`, every `runner/test/fixtures/*/scaffold.pkl` and an option matrix with one binary, and compare the
 result with a baseline render field by field. They are how the Builtins split (pull request 116) and the presence work show that the default render
 did not change: same binary, same inputs, only `pkl/` differs.
 
@@ -39,7 +39,7 @@ The binary is the same for both sides on purpose: a change to the Rust runner wo
 
 `baseline.json` is the baseline in a form that needs no old tree and no old binary: for each of the 55 configurations, the exit codes of `contract`, `render` and `check`, every
 file written (path, mode, sha256) and the sha256 of the manifest. Messages are left out on purpose: a message may change when the runner changes, what a repository gets must not.
-It was made from main at 1259a90, where it equals the baseline above (0 differences):
+It was made from main at 1259a90, where it equalled the baseline above (0 differences), and was refreshed once for the rename of `pantheon.pkl` to `scaffold.pkl`, which changes the text of four rendered files (the plumber and hk headers, scaffold-check and upgrade). The rename was proved first by rendering `origin/main` with the same substitution applied to its sources and comparing the two snapshot folders: 55 configurations on both sides, 0 differences. To refresh it:
 
 ```bash
 command bun runner/scripts/builtins-baseline/freeze.ts /tmp/baseline > runner/scripts/builtins-baseline/baseline.json
@@ -53,4 +53,4 @@ command bun runner/scripts/builtins-baseline/snapshot.ts . target/debug/pantheon
 command bun runner/scripts/builtins-baseline/compare.ts runner/scripts/builtins-baseline/baseline.json /tmp/candidate
 ```
 
-Refresh `baseline.json` only when a change is meant to alter what a repository renders, in its own commit, and say why in the pull request.
+Refresh `baseline.json` only when a change is meant to alter what a repository renders, in the same commit as that change so no commit has a red baseline job, and say why in the pull request.

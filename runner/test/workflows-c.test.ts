@@ -8,7 +8,7 @@ import type { Schema } from "../src/schema";
 // The steps that use the GitHub App are built but unverified until the App has `workflows: write` (decision 83, plan P.4).
 const root = join(import.meta.dir, "../..");
 const schema = (await Bun.file(join(root, "contract.schema.json")).json()) as Schema;
-const contract = parseContract(await evalContractJson(join(import.meta.dir, "fixtures/workflows-c/pantheon.pkl"), root, { allowFilesUnder: [join(root, "pkl")] }), schema);
+const contract = parseContract(await evalContractJson(join(import.meta.dir, "fixtures/workflows-c/scaffold.pkl"), root, { allowFilesUnder: [join(root, "pkl")] }), schema);
 const file = contract.files.find((f) => f.path === ".github/workflows/upgrade-scaffold.yml")!;
 const text = file.content!;
 type Step = { name?: string; id?: string; uses?: string; run?: string; env?: Record<string, string>; with?: Record<string, unknown>; if?: string };

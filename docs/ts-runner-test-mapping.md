@@ -194,7 +194,7 @@ The match column is a word-overlap score between the TypeScript test name and th
 | `pins.test.ts` | a checksum is added when there was none | `scaffold-core/src/pins.rs`: a_checksum_is_added_when_there_was_none | 1.00 |
 | `pins.test.ts` | a pre-release version is written as given | `scaffold-core/src/pins.rs`: a_pre_release_version_is_written_as_given | 1.00 |
 | `pins.test.ts` | the table form of the runner pin is rewritten too | `scaffold-core/src/pins.rs`: the_table_form_of_the_runner_pin_is_rewritten_too | 1.00 |
-| `pins.test.ts` | a pantheon.pkl with no amends line for the package, or two, is an error that names the file | `scaffold-core/src/pins.rs`: a_pantheon_pkl_with_no_amends_line_for_the_package_or_two_is_an_error_that_names | 1.00 |
+| `pins.test.ts` | a pantheon.pkl with no amends line for the package, or two, is an error that names the file | `scaffold-core/src/pins.rs`: a_scaffold_pkl_with_no_amends_line_for_the_package_or_two_is_an_error_that_names | 1.00 |
 | `pins.test.ts` | a mise.toml without the runner tool, or with two, is an error | `scaffold-core/src/pins.rs`: a_mise_toml_without_the_runner_tool_or_with_two_is_an_error | 1.00 |
 | `pins.test.ts` | a missing file is an error, not a crash | `scaffold-core/src/pins.rs`: a_missing_file_is_an_error_not_a_crash | 1.00 |
 | `pins.test.ts` | nothing is written when one of the two files cannot be rewritten | `scaffold-core/src/pins.rs`: nothing_is_written_when_one_of_the_two_files_cannot_be_rewritten | 1.00 |

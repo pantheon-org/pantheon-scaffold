@@ -5,7 +5,7 @@ import { evalContractJson } from "./support/contract";
 // The fixtures the compiled-binary smoke suite (runner/scripts/smoke.ts) renders. Kept honest here, where bun test can see them.
 const root = join(import.meta.dir, "../..");
 const paths = async (name: string) =>
-  ((await evalContractJson(join(import.meta.dir, "fixtures", name, "pantheon.pkl"), root, { allowFilesUnder: [join(root, "pkl")] })) as { files: { path: string }[] }).files.map((f) => f.path);
+  ((await evalContractJson(join(import.meta.dir, "fixtures", name, "scaffold.pkl"), root, { allowFilesUnder: [join(root, "pkl")] })) as { files: { path: string }[] }).files.map((f) => f.path);
 
 test("smoke-orphan-a renders two files and smoke-orphan-b drops the second", async () => {
   expect(await paths("smoke-orphan-a")).toEqual(["a.txt", "b.txt"]);

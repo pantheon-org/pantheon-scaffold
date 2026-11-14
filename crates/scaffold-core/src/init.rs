@@ -1,4 +1,4 @@
-//! The `pantheon.pkl` that `init` writes for a new project: the amends line of one release (or of a local package folder), the options,
+//! The `scaffold.pkl` that `init` writes for a new project: the amends line of one release (or of a local package folder), the options,
 //! and the composition of Builtins that renders a complete, working set (verified in a fresh repository: it renders, `check` passes and
 //! a second render writes nothing). `init` writes it once; from then on `upgrade` edits the amends line and the imports of the package.
 
@@ -155,12 +155,12 @@ pub fn module_address(package: &Package, module: &str) -> Result<String, InitErr
     Ok(format!("{base}/{module}"))
 }
 
-/// The text of `pantheon.pkl`.
+/// The text of `scaffold.pkl`.
 pub fn config_text(opts: &InitOptions, package: &Package) -> Result<String, InitError> {
     config_text_with(opts, package, &[])
 }
 
-/// The text of `pantheon.pkl` with the Presets at these paths (under `presets/`) applied to the files, in order.
+/// The text of `scaffold.pkl` with the Presets at these paths (under `presets/`) applied to the files, in order.
 pub fn config_text_with(
     opts: &InitOptions,
     package: &Package,
@@ -320,7 +320,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         put(
             dir.path(),
-            "pantheon.pkl",
+            "scaffold.pkl",
             &config_text(&opts(), &release()).unwrap(),
         );
         put(
@@ -328,11 +328,11 @@ mod tests {
             "mise.toml",
             &format!("[tools]\n\"{RUNNER_TOOL}\" = \"0.2.0\"\n"),
         );
-        let pins = read_pins(dir.path(), "pantheon.pkl").unwrap();
+        let pins = read_pins(dir.path(), "scaffold.pkl").unwrap();
         assert_eq!(pins.package_version, "0.2.0");
         assert_eq!(pins.checksum.as_deref(), Some("c".repeat(64).as_str()));
         assert_eq!(
-            count_package_imports(dir.path(), "pantheon.pkl").unwrap(),
+            count_package_imports(dir.path(), "scaffold.pkl").unwrap(),
             1
         );
     }

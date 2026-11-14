@@ -9,11 +9,14 @@ import "../Shared.pkl"
 function parameterisedFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
   ["SECURITY.md"] = new Config.GenFile {
     `class` = "seed"
-    content =
-      if (opts.binary)
-        read("assets/security-binary.md.tmpl").text
-          .replaceAll("@@CRATE@@", Shared.needCrateName(opts))
-          .replaceAll("@@SKILL_LINE@@\n", if (opts.skills) "- The bundled `\(Shared.needSkillName(opts))` skill and its scripts.\n" else "")
-      else read("assets/security-library.md").text
+    template = if (opts.binary) read("assets/security-binary.md.j2").text else null
+    content = if (opts.binary) null else read("assets/security-library.md").text
+    context = if (opts.binary)
+      new Mapping {
+        ["crate"] = Shared.needCrateName(opts)
+        ["skills"] = opts.skills
+        ["skill"] = if (opts.skills) Shared.needSkillName(opts) else ""
+      }
+    else null
   }
 }

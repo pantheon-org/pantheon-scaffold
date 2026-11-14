@@ -1,6 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { evalContractJson } from "./support/contract";
 import { cleanupRepos, tempRepo } from "./helpers";
 
 // Presence inside templates: what mise.toml, hk.shared.pkl and the headers say when a builtin is left out (options.without).
@@ -68,4 +69,43 @@ test("every tool a script names outside its comments is owned by that script's b
     }
   }
   expect(found).toEqual([]);
+});
+
+// ---- rendering with builtins left out ----
+const COMPOSITION = `workflows { ...Builtins.standardWorkflows(options) }
+files {
+  ...Builtins.standardFiles(options)
+  ...Builtins.baseFiles(options)
+  ...Builtins.toolingFiles(options)
+  ...Builtins.miseFiles(options)
+  ...Builtins.hkFiles(options)
+}`;
+let n = 0;
+type Contract = { files: { path: string; content?: string }[] };
+/** Renders the full composition with these builtins left out and returns the files by path. */
+async function render(without: string[], extra = ""): Promise<Map<string, string>> {
+  const list = without.map((w) => `"${w}"`).join("; ");
+  const f = join(tempRepo(), `presence-${n++}.pkl`);
+  writeFileSync(
+    f,
+    `amends "file://${root}/pkl/Config.pkl"\nimport "file://${root}/pkl/Builtins.pkl"\noptions {\n  toolchain = "1.96.1"\n  runnerVersion = "0.1.9"\n  skillName = "demo-skill"\n  crateName = "demo"\n  ${extra}\n  without { ${list} }\n}\n${COMPOSITION}\n`,
+  );
+  const c = (await evalContractJson(f, root, { allowFilesUnder: [join(root, "pkl")] })) as Contract;
+  return new Map(c.files.map((x) => [x.path, x.content ?? ""]));
+}
+const text = (files: Map<string, string>, path: string): string => {
+  const t = files.get(path);
+  if (t === undefined) throw new Error(`${path} was not rendered. Files: ${[...files.keys()].join(", ")}`);
+  return t;
+};
+
+test(".rumdl.toml names mise run lint only when mise is present, and keeps the pull request template ignore either way", async () => {
+  const full = text(await render([]), ".rumdl.toml");
+  expect(full).toContain("Lint everything with: mise run lint   (or: rumdl check .)");
+  for (const without of [["mise"], ["mise", "hk"], ["pull-request-template"]]) {
+    const t = text(await render(without), ".rumdl.toml");
+    expect(t.includes("mise run lint"), without.join()).toBe(!without.includes("mise"));
+    expect(t, without.join()).toContain('".github/pull_request_template.md" = ["MD041"]');
+  }
+  expect(text(await render(["mise"]), ".rumdl.toml").split("\n")[0]).toBe("# rumdl configuration. Lint everything with: rumdl check .");
 });

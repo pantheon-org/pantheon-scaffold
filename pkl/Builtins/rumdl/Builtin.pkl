@@ -4,12 +4,14 @@ module pantheon.scaffold.builtins.Rumdl
 
 import "../../Config.pkl"
 import "../../Values.pkl"
+import "../Shared.pkl"
 
-/// The file of this builtin that `toolingFiles()` renders.
-function toolingFiles(): Mapping<String, Config.GenFile> = new {
+/// The file of this builtin that `toolingFiles()` renders. The hint in its first line names `mise run lint` only when the mise builtin is present.
+function toolingFiles(p: Shared.Present): Mapping<String, Config.GenFile> = new {
   [".rumdl.toml"] = new Config.GenFile {
     template = read("assets/rumdl.toml.j2").text
     context = new Mapping {
+      ["present"] = Shared.presentFlags(p)
       ["disabled"] = Values.rumdlDisabled
       ["prTemplatePath"] = Values.prTemplatePath
     }

@@ -1,4 +1,8 @@
+{% if present["mise"] %}
 # rumdl configuration. Lint everything with: mise run lint   (or: rumdl check .)
+{% else %}
+# rumdl configuration. Lint everything with: rumdl check .
+{% endif %}
 # Same rules switched off as the tekhne configuration.
 
 [global]

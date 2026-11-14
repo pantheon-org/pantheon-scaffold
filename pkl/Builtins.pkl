@@ -71,7 +71,7 @@ function toolingFiles(opts: Config.Options): Mapping<String, Config.GenFile> =
     when (p.has("commit-types")) { ...commitTypesBuiltin.toolingFiles() }
     when (p.has("release-automerge")) { ...releaseAutomergeBuiltin.toolingFiles() }
     when (p.has("sync-labels")) { ...syncLabelsBuiltin.toolingFiles() }
-    when (p.has("rumdl")) { ...rumdlBuiltin.toolingFiles() }
+    when (p.has("rumdl")) { ...rumdlBuiltin.toolingFiles(p) }
     when (p.has("claude-settings")) { ...claudeSettingsBuiltin.toolingFiles() }
   }
 

@@ -142,13 +142,13 @@ What it does:
 - A name that is not a builtin, an empty name, or a name listed twice stops the render with an error that lists the builtins.
 - A builtin that cannot work without another fails with an error that names both and the way out. `commit-types` needs `conventional-commits`, and `rust-ci` needs `rust-toolchain` and `cargo-deny`, because its `check-toolchain-version.sh` reads their files. Leave the dependent out too, or keep the other.
 - `mise` and `hk` are not on that list, because you can supply `mise.toml` and `hk.pkl` yourself. If you leave `mise` out, `scaffold-check`, `release`, `upgrade` and the toolchain check of `rust-ci` still read `mise.toml` and the runner pin in it, so write your own.
-- Not yet reduced: the tools in `mise.toml` and the steps in `hk.shared.pkl` are the same whatever is left out, and `.rumdl.toml` keeps its ignore for the pull request template. Those follow in a later change.
+- What stays reads what is left out. `mise.toml` pins only the tools a present builtin needs, and has only the tasks, env and hooks of the builtins that are present; `hk.shared.pkl` holds only the steps of the builtins that are present; and text that names another builtin (the `mise run lint` hint in `.rumdl.toml`, the zizmor header, the hk comments) appears only when it is true. `.rumdl.toml` keeps its ignore for the pull request template whatever is left out, because it does nothing when that file is absent. The owners and the full list are in [feature-toggles.md](feature-toggles.md#presence-inside-templates-what-a-left-out-builtin-changes-in-the-files-that-stay).
 
 In a repository that already uses the scaffold, leaving a builtin out is a render like any other:
 
 - Its owned files are deleted on the next `render` when they are tracked, unedited and the tree is clean. A file you edited by hand makes the render refuse (exit 3, "it is not deleted"), and `--force` deletes it together with your edit.
-- A seeded file is never deleted. Leaving out `hk` removes `hk.shared.pkl` and keeps `hk.pkl`, which still imports it: delete `hk.pkl` yourself. The same goes for `.mise/conf.d/repo.toml` and `SECURITY.md`.
-- `mise.lock` belongs to mise and is not touched: run `mise lock` after you change `mise.toml`.
+- A seeded file is never deleted or re-rendered. Leaving out `hk` removes `hk.shared.pkl`, and also the `hk` pin, the `setup` and `check` tasks, `HK_MISE` and the hooks from `mise.toml`. It keeps `hk.pkl`, which still imports the file that is gone: delete `hk.pkl` yourself, or, to keep your own `hk.pkl`, add `hk = "latest"` to `.mise/conf.d/repo.toml`. Leaving out `rust-ci` or `rumdl` removes their steps from `hk.shared.pkl` but keeps a `hk.pkl` of yours that calls them by name, and that breaks: edit your `hk.pkl`. The same goes for `SECURITY.md`.
+- `mise.lock` belongs to mise and is not touched: run `mise lock` after you change `mise.toml`, and so after you change `options.without`, because dropping or adding a tool changes the file. A `mise.toml` you edited by hand is refused on the next render (exit 3), as any owned file is.
 - Putting a builtin back writes its files again.
 
 Checks: `runner/test/presence.test.ts` (what each of the 28 builtins removes when it is left out, the errors, and the cases above in a scratch git repository) and `features/without.feature`.

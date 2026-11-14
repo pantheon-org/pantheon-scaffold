@@ -134,3 +134,17 @@ functions that take no `options` keep their text, because making them conditiona
 These stay exceptions, like `mise` and `hk` in [adopting.md](adopting.md#leaving-builtins-out-optionswithout): `release-please` expects `release` to create the GitHub
 Release when `binary` is on, `release-automerge` merges what `release-please` opens, and `rust-ci`, `scaffold-check` and `upgrade` need a `mise.toml` that pins
 the toolchain or the runner.
+
+### What leaving some builtins out does to the files that stay
+
+- **`hk` left out** means no hooks at all: `mise.toml` loses the `hk` pin, the `setup` and `check` tasks, `HK_MISE` and `postinstall`, and `yq` and `shellcheck`
+  go too unless `inline-scripts` or `actionlint` is present. A repository that keeps its own `hk.pkl` adds `hk = "latest"` to `.mise/conf.d/repo.toml`: mise
+  reads that file too, and `mise.toml` wins only for a tool listed in both.
+- **`rust-ci` left out** drops the `clippy` and `test` steps, and the pre-push hook has no steps; real `hk validate` accepts that. **`rust-ci` and
+  `rust-toolchain` left out** also drop `rustfmt`, the `rust` pin and the `fmt` task. **`rumdl` left out** drops its step, pin and the `lint` tasks.
+- **`mise` left out** drops the sentences about mise from the hk files, `.rumdl.toml` and the `zizmor` header, and the header then runs `zizmor` directly.
+- A seeded `hk.pkl` is never re-rendered, so a step that goes can break an `hk.pkl` of yours that calls it by name. `mise.lock` is not touched: run `mise lock`
+  after changing `options.without`. A `mise.toml` edited by hand is refused on the next render.
+- `Presets.amendContext` refuses the keys `present` and `tools`: the package sets them from `options.without`, so `mise.toml` cannot disagree with the files
+  that are rendered. Change `options.without` instead.
+- `runner/scripts/builtins-baseline` freezes six configurations with builtins left out (`w-*`), so a later change to these files shows as a difference.

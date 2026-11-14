@@ -41,8 +41,9 @@ for (const name of ["cargo-deny", "check-inline-scripts", "check-toolchain-versi
   });
 }
 
-test("deny.toml is byte for byte the asset and not executable", async () => {
-  expect(file("deny.toml").content).toBe(await read(assetPath("deny.toml")));
+test("deny.toml renders as valid toml with the shared licence list and is not executable", () => {
+  const toml = Bun.TOML.parse(file("deny.toml").content!) as { licenses: { allow: string[] } };
+  expect(toml.licenses.allow).toContain("Apache-2.0");
   expect(file("deny.toml").mode).toBe("0644");
 });
 

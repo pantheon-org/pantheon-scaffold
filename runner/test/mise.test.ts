@@ -1,15 +1,16 @@
 import { afterEach, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { ContractError, parseContract } from "../src/contract";
-import { SUPPORTED_PLATFORMS } from "../src/lockcheck";
-import { evalContractJson } from "../src/pkl";
+import { evalContractJson } from "./support/contract";
 import type { Schema } from "../src/schema";
 import { cleanupRepos, tempRepo } from "./helpers";
 
 afterEach(cleanupRepos);
 
 const root = join(import.meta.dir, "../..");
+// The platforms the runner is built for, read from the Rust runner (the check of mise.lock was ported from runner/src/lockcheck.ts when that was retired).
+const SUPPORTED_PLATFORMS = [...readFileSync(join(root, "crates/scaffold-core/src/lockcheck.rs"), "utf8").match(/SUPPORTED_PLATFORMS: [^=]*= \[([^\]]*)\]/)![1]!.matchAll(/\(\s*"([^"]+)"/g)].map((m) => m[1]!);
 const schema = (await Bun.file(join(root, "contract.schema.json")).json()) as Schema;
 const render = async (fixture: string) =>
   parseContract(await evalContractJson(join(import.meta.dir, "fixtures", fixture, "pantheon.pkl"), root, { allowFilesUnder: [join(root, "pkl")] }), schema);
@@ -71,7 +72,7 @@ test("the tool specifiers are the ones the repositories use today: exact stays e
 
 test("lockfile_platforms is exactly the platforms the runner is built for", () => {
   const m = /lockfile_platforms = \[(.*)\]/.exec(file("mise.toml").content!)!;
-  expect(m[1].split(",").map((s) => s.trim().replaceAll('"', ""))).toEqual(Object.keys(SUPPORTED_PLATFORMS));
+  expect(m[1].split(",").map((s) => s.trim().replaceAll('"', ""))).toEqual(SUPPORTED_PLATFORMS);
 });
 
 test("the toolchain option reaches the rust entry", async () => {

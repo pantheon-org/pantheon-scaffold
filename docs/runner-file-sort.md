@@ -1,5 +1,7 @@
 # Runner files: what happens to each in the Rust rewrite
 
+**Status (13-11-2026): done.** The TypeScript rendering runner is retired: its modules, their tests and the scripts that built and compared it are deleted, and what stays in TypeScript is the release tooling and its modules (`release`, `semver`, `checksums`, `promote`, `knownbad`, `preflight`, `manifest`, `contract`, `schema`, `pinupdate`, `freshness`), the baseline scripts, the fixtures and `runner/test/support`. The gate of the refocus plan (N1) was met: releases 0.1.8 and 0.1.9 were built and published with the Rust runner (`build-rust.ts`). The evidence for each deleted test is in [ts-runner-test-mapping.md](ts-runner-test-mapping.md). The tables below are the plan as it was written.
+
 Written on 10-11-2026 for task 3.4 of the refocus plan (remove the TypeScript runner after one release cycle of Rust use). It sorts every file under `runner/src`, `runner/scripts` and `runner/test` into one group. The sort follows the imports found on `main` after the governance and evidence move; where two groups apply, the file is marked shared.
 
 Groups:

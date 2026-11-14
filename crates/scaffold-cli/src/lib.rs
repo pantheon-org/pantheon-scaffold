@@ -22,7 +22,7 @@ pub const EXIT_DRIFT: i32 = 4;
 
 pub const USAGE: &str = "usage (exit codes: 0 ok, 1 error, 2 usage, 3 refused, 4 drift; --dry-run exits 3 when the render would be refused, otherwise 0):
   pantheon-scaffold --version
-  pantheon-scaffold contract <pantheon.pkl>
+  pantheon-scaffold contract <pantheon.pkl> [--json] [--cache-dir <dir>] [--allow-local-package <dir>]...
   pantheon-scaffold render <pantheon.pkl> [--root <dir>] [--dry-run] [--force] [--repair] [--strict] [--cache-dir <dir>] [--allow-local-package <dir>]... [--attempts <n>]
   pantheon-scaffold check <pantheon.pkl> [--root <dir>] [--strict] [--cache-dir <dir>] [--allow-local-package <dir>]... [--attempts <n>]
   pantheon-scaffold detach [--root <dir>] [--dry-run] [--force]
@@ -62,6 +62,8 @@ pub struct Flags {
     pub features_all: bool,
     pub binary: bool,
     pub skills: bool,
+    /// `contract --json`: print the contract instead of the summary. A seam for tests that read what a package renders.
+    pub json: bool,
 }
 
 /// An absolute path with `.` and `..` folded away, like Node's `path.resolve`. Nothing is read from the disk.
@@ -127,6 +129,7 @@ pub fn parse_flags(args: &[String], cwd: &Path) -> Result<Flags, String> {
         features_all: false,
         binary: false,
         skills: false,
+        json: false,
     };
     let mut rest = args.iter();
     while let Some(a) = rest.next().map(String::as_str) {
@@ -135,6 +138,7 @@ pub fn parse_flags(args: &[String], cwd: &Path) -> Result<Flags, String> {
             "--force" => f.force = true,
             "--repair" => f.repair = true,
             "--strict" => f.strict = true,
+            "--json" => f.json = true,
             "--no-render" => f.no_render = true,
             "--include-prereleases" => f.include_prereleases = true,
             "--write" => f.write = true,
@@ -288,9 +292,7 @@ pub fn run_with_env(
             finish(run_upgrade(version, &flags, env, &mut io), &mut io)
         }
         _ => {
-            io.complain(&format!(
-                "{cmd} is not available in the Rust runner yet, use the TypeScript runner"
-            ));
+            io.complain(&format!("{cmd} is not a pantheon-scaffold command"));
             EXIT_ERROR
         }
     }
@@ -966,6 +968,11 @@ fn command_inner(
     io: &mut Io,
 ) -> Result<i32, String> {
     let contract = load_contract(config, cwd, flags)?;
+    if cmd == "contract" && flags.json {
+        let text = serde_json::to_string(&contract).map_err(|e| e.to_string())?;
+        io.say(&text);
+        return Ok(EXIT_OK);
+    }
     if cmd == "contract" {
         let hatch = &contract.escape_hatch;
         io.say(&format!(
@@ -1282,6 +1289,7 @@ mod tests {
         assert!(flags(&["--force"]).force);
         assert!(flags(&["--repair"]).repair);
         assert!(flags(&["--strict"]).strict);
+        assert!(flags(&["--json"]).json);
         assert!(flags(&["--no-render"]).no_render);
         assert!(flags(&["--include-prereleases"]).include_prereleases);
         let all = flags(&[
@@ -2002,6 +2010,34 @@ mod tests {
                 ""
             )
         );
+    }
+
+    #[test]
+    fn contract_json_prints_the_contract_and_the_flag_means_nothing_to_other_commands() {
+        let (config, package) = (minimal(), package());
+        let (code, out, err) = go(
+            &[
+                "contract",
+                &config,
+                "--json",
+                "--allow-local-package",
+                &package,
+            ],
+            &checkout(),
+        );
+        assert_eq!((code, err.as_str()), (EXIT_OK, ""));
+        let json: serde_json::Value = serde_json::from_str(out.trim()).expect("one JSON document");
+        assert_eq!(json["schemaVersion"], 1);
+        assert_eq!(json["files"].as_array().map(Vec::len), Some(4));
+        // render with --json still renders: it prints the plan, not the contract.
+        let repo = tempfile::tempdir().unwrap();
+        let (code, out, err) = with_repo("render", &["--json"], repo.path());
+        assert_eq!((code, err.as_str()), (EXIT_OK, ""));
+        assert!(
+            out.starts_with("create    .github/scripts/hello.sh\n"),
+            "{out}"
+        );
+        assert!(repo.path().join("rust-toolchain.toml").exists());
     }
 
     #[test]

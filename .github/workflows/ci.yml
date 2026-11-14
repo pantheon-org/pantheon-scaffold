@@ -42,16 +42,21 @@ jobs:
         run: find pkl -name '*.pkl' -print0 | xargs -0 -n1 mise x -- pkl eval > /dev/null
       - name: Build the package
         run: mise x -- pkl project package pkl --output-path "$RUNNER_TEMP/package"
-      - name: Run the runner tests
-        working-directory: runner
-        run: mise x -- bun test
-      - name: Lint the consumer check sample
-        run: mise x -- actionlint runner/test/fixtures/consumer-check.yml
       # rustup is preinstalled on GitHub-hosted runners. The version must match rust-toolchain.toml.
       - name: Install the Rust toolchain
         run: |
           rustup toolchain install 1.96.1 --profile minimal --component rustfmt,clippy
           rustup default 1.96.1
+      # The package tests read what the package renders through the Rust runner (runner/test/support/contract.ts).
+      - name: Build the Rust runner for the package tests
+        run: cargo build -p scaffold-cli --locked
+      - name: Run the runner tests
+        working-directory: runner
+        env:
+          SCAFFOLD_BIN: ${{ github.workspace }}/target/debug/pantheon-scaffold
+        run: mise x -- bun test
+      - name: Lint the consumer check sample
+        run: mise x -- actionlint runner/test/fixtures/consumer-check.yml
       - name: Check the Rust formatting
         run: cargo fmt --all --check
       - name: Lint the Rust code
@@ -102,119 +107,8 @@ jobs:
         if: github.event_name != 'pull_request'
         run: mise x -- cargo mutants --package scaffold-core --package scaffold-cli --jobs 2
 
-  build:
-    name: Build the binaries
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-    env:
-      GITHUB_TOKEN: ${{ github.token }}
-      BUILD_VERSION: 0.0.1-ci.${{ github.run_number }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
-        with:
-          version: 2026.10.25
-          install: false
-          cache: false
-      - name: Install the pinned tools from the lock file
-        run: mise install --locked
-      - name: Build the runner for the three targets
-        run: mise x -- bun runner/scripts/build.ts --version "$BUILD_VERSION" --out dist
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: binaries
-          path: dist/
-          retention-days: 1
-          if-no-files-found: error
-
-  smoke:
-    name: Smoke test ${{ matrix.target }}
-    needs: build
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { os: ubuntu-latest, target: linux-x64 }
-          - { os: ubuntu-24.04-arm, target: linux-arm64 }
-          - { os: macos-latest, target: darwin-arm64 }
-    permissions:
-      contents: read
-    env:
-      GITHUB_TOKEN: ${{ github.token }}
-      BUILD_VERSION: 0.0.1-ci.${{ github.run_number }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
-        with:
-          version: 2026.10.25
-          install: false
-          cache: false
-      - name: Install the pinned tools from the lock file
-        run: mise install --locked
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: binaries
-          path: dist/
-      - name: Make the binary executable
-        run: chmod +x "dist/pantheon-scaffold-${{ matrix.target }}"
-      - name: Run the smoke suite against the built binary
-        run: mise x -- bun runner/scripts/smoke.ts "dist/pantheon-scaffold-${{ matrix.target }}" --version "$BUILD_VERSION"
-
-  features:
-    name: Features ${{ matrix.target }}
-    needs: build
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { os: ubuntu-latest, target: linux-x64 }
-          - { os: ubuntu-24.04-arm, target: linux-arm64 }
-          - { os: macos-latest, target: darwin-arm64 }
-    permissions:
-      contents: read
-    env:
-      GITHUB_TOKEN: ${{ github.token }}
-      SCAFFOLD_BIN: ${{ github.workspace }}/dist/pantheon-scaffold-${{ matrix.target }}
-      SCAFFOLD_VERSION: 0.0.1-ci.${{ github.run_number }}
-      # The TypeScript runner does not record or list Presets and will not: it is removed in task 3.4.
-      SCAFFOLD_SKIP_TAGS: rust-only
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
-        with:
-          version: 2026.10.25
-          install: false
-          cache: false
-      - name: Install the pinned tools from the lock file
-        run: mise install --locked
-      # rustup is preinstalled on GitHub-hosted runners. The version must match rust-toolchain.toml.
-      - name: Install the Rust toolchain
-        run: |
-          rustup toolchain install 1.96.1 --profile minimal
-          rustup default 1.96.1
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: binaries
-          path: dist/
-      - name: Make the binary executable
-        run: chmod +x "$SCAFFOLD_BIN"
-      - name: Run the features against the built binary
-        run: mise x -- cargo test -p scaffold-features --locked
-
-  # The same features, run against the Rust build: every scenario, nothing skipped. SCAFFOLD_SKIP_TAGS (see features/README.md) exists
-  # for a scenario that one build cannot pass.
+  # The features (features/*.feature), run against the Rust build: every scenario, nothing skipped. SCAFFOLD_SKIP_TAGS (see features/README.md)
+  # exists for a scenario that one build cannot pass.
   features-rust:
     name: Features (Rust) ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
@@ -252,10 +146,40 @@ jobs:
         run: cargo build -p scaffold-cli --locked
       - name: Run the features against the Rust build
         run: mise x -- cargo test -p scaffold-features --locked
-      # Every fixture configuration (all of them build on the Builtins) rendered by both runners and compared byte for byte.
-      # It goes with the TypeScript runner when that is removed (plan task 3.4).
-      - name: Compare what the Rust and TypeScript runners write for every Builtin
-        run: mise x -- bun runner/scripts/builtin-differential.ts target/debug/pantheon-scaffold
+
+  # What a repository renders must not change by accident: this repository, the fixtures and an option matrix (55 configurations) are rendered
+  # with the Rust runner and compared with a frozen snapshot of exit codes, file hashes and the manifest hash, made from main at 1259a90.
+  # runner/scripts/builtins-baseline/README.md says how the snapshot was made and how to refresh it on purpose.
+  baseline:
+    name: Baseline render
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
+        with:
+          version: 2026.10.25
+          install: false
+          cache: false
+      - name: Install the pinned tools from the lock file
+        run: mise install --locked
+      # rustup is preinstalled on GitHub-hosted runners. The version must match rust-toolchain.toml.
+      - name: Install the Rust toolchain
+        run: |
+          rustup toolchain install 1.96.1 --profile minimal
+          rustup default 1.96.1
+      - name: Build the Rust runner
+        run: cargo build -p scaffold-cli --locked
+      - name: Render the 55 configurations and compare them with the frozen snapshot
+        run: |
+          mise x -- bun runner/scripts/builtins-baseline/snapshot.ts . target/debug/pantheon-scaffold "$RUNNER_TEMP/candidate"
+          mise x -- bun runner/scripts/builtins-baseline/compare.ts runner/scripts/builtins-baseline/baseline.json "$RUNNER_TEMP/candidate"
 
   # The release binary, built the way a release builds it (runner/scripts/build-rust.ts: static musl on Linux with zig cc, native on macOS),
   # with the smoke suite run against it, on every pull request. The release workflow runs the same two scripts on a tag.

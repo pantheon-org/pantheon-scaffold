@@ -2,8 +2,8 @@ import { assetPath, expectPins, unpin } from "./helpers";
 import { expect, test } from "bun:test";
 import { join } from "node:path";
 import { parseContract } from "../src/contract";
-import { compareWorkflows } from "../src/equality";
-import { evalContractJson } from "../src/pkl";
+import { compareWorkflows } from "./support/equality";
+import { evalContractJson } from "./support/contract";
 import type { Schema } from "../src/schema";
 
 const root = join(import.meta.dir, "../..");

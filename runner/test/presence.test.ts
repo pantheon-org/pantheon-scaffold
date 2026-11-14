@@ -1,7 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
 import { readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { evalContractJson } from "../src/pkl";
+import { evalContractJson, scaffoldBin } from "./support/contract";
 import { cleanupRepos, commitAll, get, gitRepo, has, put, tempRepo } from "./helpers";
 
 // options.without: builtins left out by name. The aggregators in Builtins.pkl skip a left-out builtin; a builtin that cannot work without another
@@ -181,7 +181,7 @@ test("a single builtin function still renders when its builtin is left out: with
 
 /** Renders a configuration into a repository with the CLI, the way a consumer would; returns the exit code and what it printed. */
 async function cliRender(repo: string, without: string[]): Promise<{ code: number; err: string }> {
-  const p = Bun.spawn(["bun", join(root, "runner/src/cli.ts"), "render", config(without), "--root", repo, "--allow-local-package", join(root, "pkl")], { stdout: "pipe", stderr: "pipe" });
+  const p = Bun.spawn([scaffoldBin(), "render", config(without), "--root", repo, "--allow-local-package", join(root, "pkl")], { stdout: "pipe", stderr: "pipe" });
   const [err] = await Promise.all([new Response(p.stderr).text(), p.exited]);
   return { code: p.exitCode ?? 1, err };
 }

@@ -2,8 +2,8 @@ import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseContract } from "../src/contract";
-import { compareDirectives, compareWorkflows } from "../src/equality";
-import { evalContractJson } from "../src/pkl";
+import { compareDirectives, compareWorkflows } from "./support/equality";
+import { evalContractJson } from "./support/contract";
 import type { Schema } from "../src/schema";
 
 // Phase 5 wave B: the files that differ between the four repositories only in a parameter (crate name, skill name) or a toggle. Each is

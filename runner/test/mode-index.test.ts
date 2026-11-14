@@ -1,3 +1,4 @@
+import { scaffoldBin } from "./support/contract";
 import { afterEach, expect, test } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -9,12 +10,12 @@ afterEach(cleanupRepos);
 // Task 3.3: the executable bit as git records it. The runner never reads the index. In CI `check` runs on a checkout, where the mode on
 // disk is the mode in the index, so a committed mode that is wrong shows up as mode drift. These tests prove that with real git.
 const root = join(import.meta.dir, "../..");
-const cli = join(import.meta.dir, "../src/cli.ts");
+
 const config = join(import.meta.dir, "fixtures/tooling/pantheon.pkl");
 const NINE = ["agnix-assemble-comment", "agnix-file-issues", "agnix-introduced-errors", "auto-rebase", "cargo-deny", "check-commit-types", "check-inline-scripts", "release-automerge", "sync-labels"].map((n) => `.github/scripts/${n}.sh`);
 
 const run = async (cwd: string, ...args: string[]) => {
-  const p = Bun.spawn(["bun", cli, ...args, "--allow-local-package", join(root, "pkl")], { cwd, stdout: "pipe", stderr: "pipe" });
+  const p = Bun.spawn([scaffoldBin(), ...args, "--allow-local-package", join(root, "pkl")], { cwd, stdout: "pipe", stderr: "pipe" });
   const [out, err, code] = await Promise.all([new Response(p.stdout).text(), new Response(p.stderr).text(), p.exited]);
   return { out: out.trim(), err: err.trim(), code };
 };

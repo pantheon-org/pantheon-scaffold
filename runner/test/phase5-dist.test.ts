@@ -2,8 +2,8 @@ import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseContract } from "../src/contract";
-import { compareDirectives, compareWorkflows } from "../src/equality";
-import { evalContractJson } from "../src/pkl";
+import { compareDirectives, compareWorkflows } from "./support/equality";
+import { evalContractJson } from "./support/contract";
 import type { Schema } from "../src/schema";
 import { expectPins, unpin } from "./helpers";
 

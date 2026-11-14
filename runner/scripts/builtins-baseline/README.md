@@ -37,15 +37,15 @@ The binary is the same for both sides on purpose: a change to the Rust runner wo
 
 ## The frozen snapshot, and CI
 
-`baseline.json` is the baseline in a form that needs no old tree and no old binary: for each of the 55 configurations, the exit codes of `contract`, `render` and `check`, every
+`baseline.json` is the baseline in a form that needs no old tree and no old binary: for each of the 61 configurations (the 55 of the baseline above and six with builtins left out, `w-*`), the exit codes of `contract`, `render` and `check`, every
 file written (path, mode, sha256) and the sha256 of the manifest. Messages are left out on purpose: a message may change when the runner changes, what a repository gets must not.
-It was made from main at 1259a90, where it equalled the baseline above (0 differences), and was refreshed once for the rename of `pantheon.pkl` to `scaffold.pkl`, which changes the text of four rendered files (the plumber and hk headers, scaffold-check and upgrade). The rename was proved first by rendering `origin/main` with the same substitution applied to its sources and comparing the two snapshot folders: 55 configurations on both sides, 0 differences. To refresh it:
+It was made from main at 1259a90, where it equalled the baseline above (0 differences), was extended with the six `w-*` configurations for the presence work, and was refreshed once for the rename of `pantheon.pkl` to `scaffold.pkl`, which changes the text of four rendered files (the plumber and hk headers, scaffold-check and upgrade). The rename was proved first by rendering `origin/main` with the same substitution applied to its sources and comparing the two snapshot folders: 55 configurations on both sides, 0 differences. To refresh it:
 
 ```bash
 command bun runner/scripts/builtins-baseline/freeze.ts /tmp/baseline > runner/scripts/builtins-baseline/baseline.json
 ```
 
-The `baseline` job of `.github/workflows/ci.yml` builds the Rust runner, renders the 55 configurations with `snapshot.ts` and compares them with `baseline.json` using `compare.ts`.
+The `baseline` job of `.github/workflows/ci.yml` builds the Rust runner, renders the 61 configurations with `snapshot.ts` and compares them with `baseline.json` using `compare.ts`.
 Run the same two commands locally to check a change:
 
 ```bash

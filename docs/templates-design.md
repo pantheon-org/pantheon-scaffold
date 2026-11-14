@@ -55,7 +55,7 @@ baseline: the default render of every configuration must equal the frozen snapsh
 
 ## Baseline
 
-`runner/scripts/builtins-baseline/baseline.json` is the frozen snapshot of 55 configurations (exit codes, files, manifest
+`runner/scripts/builtins-baseline/baseline.json` is the frozen snapshot of 61 configurations (55, and six with builtins left out) (exit codes, files, manifest
 hash). The `baseline` CI job compares against it, so each conversion commit is proven byte for byte.
 
 ## Strict-undefined rule

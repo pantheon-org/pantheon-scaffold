@@ -53,7 +53,7 @@ const files = (dir: string): string[] => {
   return found.sort();
 };
 
-type Opts = { skills: boolean; binary: boolean; compositeAction: boolean; features: "default" | "all"; skillName: string | null; crateName: string | null; runnerVersion: string | null; ignore?: string[] };
+type Opts = { skills: boolean; binary: boolean; compositeAction: boolean; features: "default" | "all"; skillName: string | null; crateName: string | null; runnerVersion: string | null; ignore?: string[]; without?: string[] };
 const BASE: Opts = { skills: true, binary: true, compositeAction: false, features: "default", skillName: "demo-skill", crateName: "demo", runnerVersion: "0.1.9" };
 const matrix: Record<string, Opts> = {};
 for (const skills of [true, false])
@@ -62,6 +62,16 @@ for (const skills of [true, false])
       for (const features of ["default", "all"] as const)
         matrix[`m-skills-${skills}-binary-${bin}-composite-${compositeAction}-features-${features}`] = { ...BASE, skills, binary: bin, compositeAction, features };
 matrix["m-ignore"] = { ...BASE, ignore: ["serde", "tokio"] };
+// Builtins left out (options.without): what mise.toml, hk.shared.pkl, .rumdl.toml and the zizmor header say when something is missing.
+const LEFT_OUT: Record<string, string[]> = {
+  "w-hk": ["hk"],
+  "w-rumdl": ["rumdl"],
+  "w-rust-ci": ["rust-ci"],
+  "w-rust-ci-and-toolchain": ["rust-ci", "rust-toolchain"],
+  "w-mise": ["mise"],
+  "w-hk-and-mise": ["hk", "mise"],
+};
+for (const [name, without] of Object.entries(LEFT_OUT)) matrix[name] = { ...BASE, without };
 matrix["e-no-skill-name"] = { ...BASE, skillName: null };
 matrix["e-no-crate-name"] = { ...BASE, crateName: null };
 matrix["e-no-runner-version"] = { ...BASE, runnerVersion: null };
@@ -78,6 +88,7 @@ const writeMatrix = (name: string, o: Opts): string => {
     `binary = ${o.binary}`,
     `features = "${o.features}"`,
     `compositeAction = ${o.compositeAction}`,
+    o.without ? `without { ${o.without.map((x) => `"${x}"`).join("; ")} }` : "",
     o.ignore ? `gitDependencyIgnore { ${o.ignore.map((x) => `"${x}"`).join("; ")} }` : "",
   ].filter(Boolean);
   const config = join(dir, "scaffold.pkl");

@@ -236,3 +236,33 @@ for (const c of HK_CASES) {
     for (const s of STEPS.filter((x) => !c.steps.includes(x) && x !== "clippy" && x !== "test")) expect(plan.out, `no ${s}`).not.toContain(s);
   }, 120_000);
 }
+
+// ---- text that names another builtin ----
+const MISE_LINE = "Tools are pinned in mise.toml; HK_MISE=1 runs each hook under `mise x`.";
+
+test("the hk files say where tools are pinned only when mise is present", async () => {
+  const full = await render([]);
+  for (const path of ["hk.shared.pkl", "hk.pkl"]) {
+    expect(text(full, path), path).toContain(MISE_LINE);
+    const noMise = text(await render(["mise"]), path);
+    expect(noMise.includes("mise"), `${path} without mise`).toBe(false);
+  }
+});
+
+test("the pre-push comment names the rust-ci workflow only when rust-ci is present", async () => {
+  expect(text(await render([]), "hk.shared.pkl")).toContain("/// The steps of the pre-push hook, matching the rust-ci workflow.\n");
+  const noCi = text(await render(["rust-ci"]), "hk.shared.pkl");
+  expect(noCi).toContain("/// The steps of the pre-push hook.\n");
+  expect(noCi.includes("rust-ci")).toBe(false);
+});
+
+test("the zizmor workflow header runs zizmor through mise, and says it is pinned there, only when mise is present", async () => {
+  const header = (files: Map<string, string>) => text(files, ".github/workflows/zizmor.yml");
+  const full = header(await render([]));
+  expect(full).toContain("(zizmor is pinned in mise.toml)");
+  expect(full).toContain("mise exec -- zizmor --min-severity high");
+  const noMise = header(await render(["mise"]));
+  expect(noMise.includes("mise")).toBe(false);
+  expect(noMise).toContain("Run it locally with the same findings:");
+  expect(noMise).toContain("GH_TOKEN=$(gh auth token) zizmor --min-severity high");
+});

@@ -93,8 +93,8 @@ test("every builtin has an entry in the table of what leaving it out removes", (
   expect(Object.keys(EXPECTED).sort()).toEqual(folders);
 });
 
-// mise.toml, hk.shared.pkl and .rumdl.toml read which builtins are present and change too; test/presence-templates.test.ts asserts exactly how.
-const READ_PRESENCE = ["mise.toml", "hk.shared.pkl", ".rumdl.toml"];
+// mise.toml, hk.shared.pkl, the seeded hk.pkl, .rumdl.toml and the zizmor workflow header read which builtins are present and change too; test/presence-templates.test.ts asserts exactly how.
+const READ_PRESENCE = ["mise.toml", "hk.shared.pkl", "hk.pkl", ".rumdl.toml", ".github/workflows/zizmor.yml"];
 
 test("leaving a builtin out removes what it owns, changes only dependabot.yml and the files that read presence, and adds nothing", async () => {
   const full = await render([]);

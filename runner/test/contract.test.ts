@@ -10,7 +10,7 @@ const schema = (await Bun.file(join(root, "contract.schema.json")).json()) as Sc
 const fixture = (name: string) => join(import.meta.dir, "fixtures", name, "pantheon.pkl");
 
 const base = () => ({
-  schemaVersion: 1,
+  schemaVersion: 2,
   files: [{ path: "a.txt", class: "owned", mode: "0644", content: "x\n" }],
   pins: [],
   escapeHatch: { uses: 0, constructs: 0 },
@@ -31,7 +31,7 @@ test("the pkl output of the minimal fixture satisfies the schema (contract test,
 });
 
 test("the accepted example is valid", () => expect(parseContract(base(), schema).files).toHaveLength(1));
-test("rejects an unknown schema version", () => rejects((c) => (c.schemaVersion = 2), /unsupported contract schemaVersion 2/));
+test("rejects an unknown schema version", () => rejects((c) => (c.schemaVersion = 3), /unsupported contract schemaVersion 3/));
 test("rejects a missing schema version", () => rejects((c) => delete c.schemaVersion, /unsupported contract schemaVersion undefined/));
 test("rejects an external file with content", () => rejects((c) => (c.files[0] = { path: "m.lock", class: "external", mode: "0644", content: "x" }), /external file must not carry content/));
 test("rejects an owned file without content", () => rejects((c) => delete c.files[0].content, /owned file needs content/));

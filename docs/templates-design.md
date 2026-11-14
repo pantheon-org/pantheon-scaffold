@@ -25,7 +25,7 @@ in pkl and passed in. A template holds no changeable value, and each variable ha
 
 - Version: `=3.1.0`, pinned exactly. Published 07-11-2026, which meets the 7-day cooldown in `.github/dependabot.yml`.
   Licence Apache-2.0, already allowed by `deny.toml`. Minimum Rust 1.70.
-- Features: default features off, then `builtins`, `serde`. Add `json` only when a template uses `tojson`, and
+- Features: default features off, then `builtins`, `debug` (an error shows the source line and names the variable), `serde`. Add `json` only when a template uses `tojson`, and
   `preserve_order` only when a template walks a mapping.
 - Crates it adds beyond what the runner already uses: none that are new to the tree, apart from minijinja itself
   (`serde`, `serde_json`, `indexmap`, `itoa` and `zmij` are already there through `serde_json`). To confirm with
@@ -43,6 +43,7 @@ in pkl and passed in. A template holds no changeable value, and each variable ha
 | Missing variable, inside `{{ }}` or `{% if %}` | error naming the variable, file and line |
 | Syntax error | error naming the file and line, with the source line |
 | `${#var}` in a shell script | **fails** (`{#` starts a comment): wrap in `{% raw %}` |
+| `{% endraw %}` at the end of a line | the newline after it is removed by `trim_blocks`: write `{% endraw +%}` to keep it |
 | CRLF in a template | kept as is |
 | Context number `1.90` | rendered `1.9`: pass versions as strings |
 

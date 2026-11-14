@@ -37,7 +37,7 @@ fn setup(routes: HashMap<String, String>) -> Setup {
         "#!/bin/sh\necho \"gh $*\" >> \"{calls}\"\nif [ -n \"$GH_FAIL\" ]; then echo \"no valid attestation\" >&2; exit 1; fi\nexit 0\n",
         calls = bin.path().join("calls").display()
     );
-    let pkl = "#!/bin/sh\nfor last; do :; done\nuri=$(grep -o 'package://[^\"#]*' \"$last\" | head -1)\necho \"{\\\"schemaVersion\\\":1,\\\"files\\\":[],\\\"pins\\\":[],\\\"escapeHatch\\\":{\\\"uses\\\":0,\\\"constructs\\\":0},\\\"packageUri\\\":\\\"$uri#/Config.pkl\\\"}\"\n";
+    let pkl = "#!/bin/sh\nfor last; do :; done\nuri=$(grep -o 'package://[^\"#]*' \"$last\" | head -1)\necho \"{\\\"schemaVersion\\\":2,\\\"files\\\":[],\\\"pins\\\":[],\\\"escapeHatch\\\":{\\\"uses\\\":0,\\\"constructs\\\":0},\\\"packageUri\\\":\\\"$uri#/Config.pkl\\\"}\"\n";
     for (name, body) in [("gh", gh.as_str()), ("pkl", pkl)] {
         let path = bin.path().join(name);
         std::fs::write(&path, body).unwrap();

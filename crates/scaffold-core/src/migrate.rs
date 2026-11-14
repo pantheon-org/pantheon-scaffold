@@ -332,7 +332,7 @@ mod tests {
             })
             .collect();
         parse_contract(&json!({
-            "schemaVersion": 1, "files": files, "pins": [],
+            "schemaVersion": 2, "files": files, "pins": [],
             "escapeHatch": {"uses": 0, "constructs": 0}
         }))
         .expect("a valid contract")

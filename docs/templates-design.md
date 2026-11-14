@@ -1,6 +1,6 @@
 # Builtin templates: design record
 
-Status: accepted goal, design in progress (PR B). Date: 14-11-2026.
+Status: implemented in PR B (119). Date: 14-11-2026.
 
 Every toml, yaml and json file a builtin ships, and every template that uses `@@NAME@@` today, becomes a Jinja template
 rendered by [minijinja](https://github.com/mitsuhiko/minijinja) in the Rust runner. The values come from a context built
@@ -62,3 +62,22 @@ hash). The `baseline` CI job compares against it, so each conversion commit is p
 
 A variable a template reads is always in the context, set by pkl with a default. Optional text is an empty string or a
 boolean, never an absent key.
+
+## Where the values live
+
+| Kind | File |
+| --- | --- |
+| Tool versions, runner images, mise and hk settings | `pkl/Tools.pkl` |
+| Everything else a template reads (target lists, licence lists, ignore lists, rule lists) | `pkl/Values.pkl` |
+| Action pins | `pkl/Pins.pkl` (checkout is read from it for `dist-workspace.toml`) |
+| Options a repository sets | `Config.Options` |
+
+`docs/templates-variables.md` lists every value and why it is or is not a variable. The one asset that stays plain is
+`mise-repo.toml`, a seed of comments and an empty table (`runner/test/templates.test.ts` names it). A repository changes a
+variable from a Preset with `Presets.amendContext`.
+
+## Notes found while building it
+
+- A bare `{% endraw %}` at the end of a line eats the newline: write `{% endraw +%}`.
+- Booleans print as `True` and `False`: write `{{ "true" if x else "false" }}` where toml, yaml or json needs them.
+- `pkl` reserves `unknown`: it cannot name a variable in `Shared.pkl` or `Presets.pkl`.

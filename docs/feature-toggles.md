@@ -83,3 +83,54 @@ With `binary`, the `github-actions` entry of the rendered `dependabot.yml` has a
 Known limit, not verified: whether a Dependabot `ignore` entry also stops Dependabot's security updates for these two actions. If it does, a security fix for either action has to be applied through `dist-workspace.toml` by hand. Moving the two commits into `Pins.pkl` (so the pin update workflow keeps them current) was the rejected alternative: it needs `dist` in that workflow to regenerate `release.yml` in the same pull request.
 
 Checks: `runner/test/phase5-dependabot.test.ts`, the adjusted equality test in `workflows-b.test.ts`, the mutation check in `archive/spikes/phase-5-dependabot` (5 of 5 caught) and the real-repository render.
+
+## Presence inside templates: what a left-out builtin changes in the files that stay
+
+`options.without` leaves whole builtins out ([adopting.md](adopting.md#leaving-builtins-out-optionswithout)). A few files that stay mention or pin what another builtin
+provides, so they change too. A template reads two mappings that `Shared.pkl` builds from the same `Present` value: `present["rumdl"]` (every builtin) and
+`tools["jq"]` (every tool `mise.toml` pins). The subscript form is the only one that works, because builtin names have hyphens, and a name that does not
+exist is an error, not a false.
+
+### Which builtins own which tool
+
+A tool is present if any of its owners is. An owner is a builtin that needs the tool locally, through mise. A use on a GitHub runner does not count: a
+workflow `run:` block has its own `jq` and `yq` there. `runner/test/presence-templates.test.ts` compares this table with `Shared.toolOwners` and fails when a
+script names a tool outside its comments whose builtin is not an owner.
+
+| Tool in `mise.toml` | Owners | Why |
+|---|---|---|
+| `rust` | `rust-toolchain`, `rust-ci` | the channel, and `cargo fmt`, clippy and test |
+| `actionlint` | `actionlint` | the `actionlint` hook step |
+| `zizmor` | `zizmor` | the local `zizmor` command in the workflow header |
+| `rumdl` | `rumdl` | the `rumdl` hook step and the `lint` tasks |
+| `agnix` | `agnix` | the local run of the agnix scripts |
+| `hk` | `hk` | the hooks and the `setup` and `check` tasks |
+| `yq` | `hk`, `inline-scripts` | the `yamllint` hook step, and `check-inline-scripts.sh` |
+| `shellcheck` | `actionlint`, `hk` | actionlint shells out to it, and the `shellcheck` hook step |
+| `jq` | `agnix`, `inline-scripts`, `release-automerge` | the three scripts that call it |
+| `pkl`, the runner | always | the runner starts pkl, and `scaffold-check` and `upgrade` run the runner |
+
+### Which text is conditional, and which is kept
+
+Text is conditional only when it states or instructs something that is false without the other builtin. Verbatim assets stay verbatim, and workflow
+functions that take no `options` keep their text, because making them conditional would change a signature a repository's `scaffold.pkl` calls.
+
+| Where | Names | Treatment |
+|---|---|---|
+| `mise.toml`: the `check-toolchain-version.sh` comment | `rust-ci` | conditional |
+| `mise.toml`: "like zizmor" in the actionlint comment | `zizmor` | conditional |
+| `hk.shared.pkl` and the seeded `hk.pkl`: "Tools are pinned in mise.toml" | `mise` | conditional |
+| `hk.shared.pkl`: "matching the rust-ci workflow" | `rust-ci` | conditional |
+| `.rumdl.toml`: the `mise run lint` hint | `mise` | conditional |
+| the `zizmor` workflow header: `mise exec -- zizmor` and "pinned in mise.toml" | `mise` | conditional |
+| `.rumdl.toml`: the ignore of the pull request template | `pull-request-template` | kept: it does nothing when the file is absent, and protects a repository's own template |
+| `actionlint.yaml`, `zizmor.yml`, `plumber.yaml`: ignores and notes about the cargo-dist `release.yml` | `release` | kept: harmless entries for a file that does not exist |
+| `dist-workspace.toml`: "pinned in mise.toml" | `mise` | kept: it was already untrue (cargo-dist is run with `mise x aqua:...`) |
+| the headers of `commit-types`, `conventional-commits`, `sync-labels`, `plumber` | each other, `dependabot`, `release-please` | kept: workflow functions without `options` |
+| `pull_request_template.md`, `check-toolchain-version.sh`, `auto-rebase.sh`, `release-automerge.sh`: verbatim assets | `rust-ci`, `mise`, `release-please`, `pr-auto-rebase` | kept: verbatim |
+
+### Couplings the package does not enforce
+
+These stay exceptions, like `mise` and `hk` in [adopting.md](adopting.md#leaving-builtins-out-optionswithout): `release-please` expects `release` to create the GitHub
+Release when `binary` is on, `release-automerge` merges what `release-please` opens, and `rust-ci`, `scaffold-check` and `upgrade` need a `mise.toml` that pins
+the toolchain or the runner.

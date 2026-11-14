@@ -11,8 +11,11 @@ import "../../Values.pkl"
 /// The zizmor security scan of the workflows. It reads .github/zizmor.yml when the repository has a binary (the config silences findings in the
 /// cargo-dist generated release.yml), and also scans action.yml when the repository has its own composite action.
 function workflow(opts: Config.Options): Config.Workflow =
+  let (viaMise = Shared.present(opts).has("mise"))
+  let (zizmorCmd = if (viaMise) "mise exec -- zizmor" else "zizmor")
+  let (pinned = if (viaMise) " (zizmor is pinned in mise.toml)" else "")
   let (inputs = if (opts.compositeAction) ".github action.yml" else ".github")
-  let (cmd = if (opts.binary) "  GH_TOKEN=$(gh auth token) mise exec -- zizmor --min-severity high \\\n    --config .github/zizmor.yml \(inputs)" else "  GH_TOKEN=$(gh auth token) mise exec -- zizmor --min-severity high \(inputs)")
+  let (cmd = if (opts.binary) "  GH_TOKEN=$(gh auth token) \(zizmorCmd) --min-severity high \\\n    --config .github/zizmor.yml \(inputs)" else "  GH_TOKEN=$(gh auth token) \(zizmorCmd) --min-severity high \(inputs)")
   let (scope = if (opts.compositeAction) "Scans .github (the workflows and dependabot.yml) and the repository's own\ncomposite action, action.yml. Not the whole repository: the action's default\ninput is \".\", which also reaches the skill fixtures under crates/ and skills/." else "Scans .github only: the workflows and dependabot.yml. The action's default\ninput is the whole repository, which this gate does not need to cover.")
   new {
     header = #"""
@@ -30,7 +33,7 @@ function workflow(opts: Config.Options): Config.Workflow =
 
       \#(scope)
 
-      Run it locally with the same findings (zizmor is pinned in mise.toml):
+      Run it locally with the same findings\#(pinned):
       \#(cmd)
       """#
     name = "zizmor"

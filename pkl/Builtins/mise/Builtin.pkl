@@ -5,16 +5,20 @@ module pantheon.scaffold.builtins.Mise
 import "pkl:reflect"
 import "../../Config.pkl"
 import "../../Tools.pkl"
+import "../Shared.pkl"
 
 /// mise.toml, owned by the runner, and the files around it: mise.lock (written by mise, so external) and a per-repository mise config,
 /// seeded once. mise reads both config files, the second adds tools, and for a tool listed in both mise.toml wins (decision 29, checked
 /// against real mise in mise.test.ts). The tool pins come from Tools.pkl and the runner pin from the package version.
 function files(opts: Config.Options): Mapping<String, Config.GenFile> =
+  let (p = Shared.present(opts))
   let (runner = opts.runnerVersion ?? packageVersion ?? throw("runnerVersion is not set and the package version cannot be read from a package URI: set options.runnerVersion when the package is loaded from a folder"))
     new {
       ["mise.toml"] = new Config.GenFile {
         template = read("assets/mise.toml.j2").text
         context = new Mapping {
+          ["present"] = Shared.presentFlags(p)
+          ["tools"] = Shared.toolFlags(p)
           ["toolchain"] = opts.toolchain
           ["actionlint"] = Tools.actionlint
           ["zizmor"] = Tools.zizmor

@@ -176,7 +176,7 @@ jobs:
           rustup default 1.96.1
       - name: Build the Rust runner
         run: cargo build -p scaffold-cli --locked
-      - name: Render the 55 configurations and compare them with the frozen snapshot
+      - name: Render the 61 configurations and compare them with the frozen snapshot
         run: |
           mise x -- bun runner/scripts/builtins-baseline/snapshot.ts . target/debug/pantheon-scaffold "$RUNNER_TEMP/candidate"
           mise x -- bun runner/scripts/builtins-baseline/compare.ts runner/scripts/builtins-baseline/baseline.json "$RUNNER_TEMP/candidate"

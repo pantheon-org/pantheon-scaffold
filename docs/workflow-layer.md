@@ -73,7 +73,7 @@ Decision 74 settled how the four repositories differ, so these builtins take opt
 
 ### One place for the versions
 
-`agnix.yml` pins agnix's version and SHA-256, `zizmor.yml` pins zizmor's version and `aislop.yml` pins aislop's, and `mise.toml` pins agnix and zizmor too. They now all come from `pkl/Tools.pkl`, which ends the "keep in sync with the workflow" comments the repositories carried. The SHA-256 belongs to the agnix version, so they change together.
+`agnix.yml` pins agnix's version and SHA-256, `zizmor.yml` pins zizmor's version and `aislop.yml` pins aislop's, and `mise.toml` pins agnix and zizmor too, while their builtins are present. They now all come from `pkl/Tools.pkl`, which ends the "keep in sync with the workflow" comments the repositories carried. The SHA-256 belongs to the agnix version, so they change together.
 
 ### How it is checked
 

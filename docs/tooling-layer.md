@@ -31,7 +31,7 @@ The runner never reads the git index (it calls git only for the delete guard). T
 
 | File | Class | What it is |
 |---|---|---|
-| `mise.toml` | owned | The shared tools, tasks, hooks and settings, from `pkl/Builtins/mise/assets/mise.toml.j2` with the tool versions from `Tools.pkl`. |
+| `mise.toml` | owned | The tools, tasks, hooks and settings of the builtins that are present, from `pkl/Builtins/mise/assets/mise.toml.j2` with the tool versions from `Tools.pkl`. |
 | `mise.lock` | external | Written by mise, listed in the manifest and never written, hashed or deleted by the runner. |
 | `.mise/conf.d/repo.toml` | seed | Written once, empty `[tools]`, for the tools one repository needs on top. |
 
@@ -61,7 +61,7 @@ None of the four repositories has a `mise.lock` or a `.mise/` folder today, so a
 
 | File | Class | What it is |
 |---|---|---|
-| `hk.shared.pkl` | owned | The steps every repository shares, as two functions, `preCommit()` and `prePush()`. Rendered by the runner. Do not edit it. |
+| `hk.shared.pkl` | owned | The steps of the builtins that are present, as two functions, `preCommit()` and `prePush()`. Rendered by the runner. Do not edit it. |
 | `hk.pkl` | seed | Written once. Amends the hk config package, imports `hk.shared.pkl` and holds only the hooks. Yours to edit. |
 
 The steps are copied by script from the `hk.pkl` of `pantheon-adr` at `1e2fd46`, and tests compare them byte for byte with it. A spike (`archive/spikes/phase-3-hk-spike/spike.sh`) showed first that hk 2.10.0 accepts a seeded `hk.pkl` that imports a rendered local file and still merges the repository's own steps.

@@ -119,6 +119,29 @@ mod tests {
     }
 
     #[test]
+    fn a_missing_key_in_a_nested_mapping_is_an_error_in_a_condition() {
+        let c = ctx(json!({"present": {"rumdl": true}}));
+        assert_eq!(
+            render("n", "{% if present[\"rumdl\"] %}y{% endif %}", &c).unwrap(),
+            "y"
+        );
+        let e = render("n", "{% if present[\"rumdl-typo\"] %}y{% endif %}", &c)
+            .unwrap_err()
+            .to_string();
+        assert!(e.contains("undefined value"), "{e}");
+    }
+
+    #[test]
+    fn a_hyphenated_name_needs_the_subscript_form() {
+        let c = ctx(json!({"present": {"rust-ci": true}}));
+        assert_eq!(
+            render("h", "{{ present[\"rust-ci\"] }}\n", &c).unwrap(),
+            "True\n"
+        );
+        assert!(render("h", "{{ present.rust-ci }}\n", &c).is_err());
+    }
+
+    #[test]
     fn a_syntax_error_names_the_file_and_line() {
         let e = render("g.toml", "ok\nbad {% if %}\n", &ctx(json!({})))
             .unwrap_err()

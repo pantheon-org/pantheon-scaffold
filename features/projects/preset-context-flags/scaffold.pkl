@@ -1,0 +1,9 @@
+amends "@PACKAGE@/Config.pkl"
+import "@PACKAGE@/Builtins.pkl"
+import "presets/flags.pkl" as flags
+
+options { toolchain = "1.96.1"; runnerVersion = "0.1.9"; skills = false; binary = false }
+
+presets { "presets/flags.pkl" }
+
+files = flags.apply(Builtins.miseFiles(options))

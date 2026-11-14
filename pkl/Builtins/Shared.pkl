@@ -166,3 +166,32 @@ function present(opts: Config.Options): Present =
     throw(violations.map((r) -> "options.without leaves out \"\(r.needs)\", which \"\(r.dependent)\" needs: \(r.reason). Leave \"\(r.dependent)\" out too (options.without), or keep \"\(r.needs)\".").join("\n"))
   else
     new Present { without = names }
+
+/// The tools `mise.toml` pins, and the builtins that need each one locally, through mise. A tool is present if any of its owners is. A use on a
+/// GitHub runner does not count, because a workflow `run:` block has its own `jq` and `yq` there. `pkl` and the runner are in `alwaysTools`: the runner
+/// starts pkl and `scaffold-check` and `upgrade` run the runner. docs/feature-toggles.md shows the table with the reason for each row, and a test
+/// fails when a script or template names a tool whose builtin is not an owner here.
+const toolOwners: Map<String, List<String>> = Map(
+  "rust", List("rust-toolchain", "rust-ci"),
+  "actionlint", List("actionlint"),
+  "zizmor", List("zizmor"),
+  "rumdl", List("rumdl"),
+  "agnix", List("agnix"),
+  "hk", List("hk"),
+  "yq", List("hk", "inline-scripts"),
+  "shellcheck", List("actionlint", "hk"),
+  "jq", List("agnix", "inline-scripts", "release-automerge")
+)
+
+const alwaysTools: List<String> = List("pkl", "runner")
+
+/// Every builtin name to whether it is present, for a template to read as `present["rumdl"]`. The subscript form, because names have hyphens.
+function presentFlags(p: Present): Mapping<String, Boolean> = new Mapping<String, Boolean> {
+  for (name in builtinNames) { [name] = p.has(name) }
+}
+
+/// Every tool `mise.toml` can pin to whether it is present, for a template to read as `tools["jq"]`.
+function toolFlags(p: Present): Mapping<String, Boolean> = new Mapping<String, Boolean> {
+  for (tool in alwaysTools) { [tool] = true }
+  for (tool, owners in toolOwners) { [tool] = owners.any((o) -> p.has(o)) }
+}

@@ -1593,20 +1593,20 @@
    ".github/workflows/inline-scripts.yml 644 0d83b92d7e271e287ab3ca091589225544b03caac4834c5c1d0589eb7bbe93f9",
    ".github/workflows/plumber.yml 644 e542bf273c92464292050c0e31ca1d8e226362dc1752cb79379a00cefde0c399",
    ".github/workflows/pr-auto-rebase.yml 644 80eb78ca8c515218160e347eac91c3e82299a40c98c018a3f3f8a8483c9e3282",
-   ".github/workflows/release-automerge.yml 644 ba335d7da9381e46bc28b45c5a917331288f49060bb135dc5fffc8f4d200a472",
-   ".github/workflows/release-please.yml 644 3ed3604ecee96fa09d57f306991c76a73064ac9e91c8f2a0d6b3f940e69d96ed",
+   ".github/workflows/release-automerge.yml 644 5a956c1d8094320899b82d2b27887ea632cbeeebaf759852d13c6aa93d73d069",
+   ".github/workflows/release-please.yml 644 e7710a83e13edae5578950c85a9f28de984132fdececf114a56924df7eabf2d9",
    ".github/workflows/rust-ci.yml 644 5e5bfe90cc10bf99390c161672426a61a7b62f730ac6146f0d42490e6813e434",
    ".github/workflows/scaffold-check.yml 644 043f674103a0ad5e604bd22d02667f83ed811d422666fa5db3f9983125d1c78b",
    ".github/workflows/sync-labels.yml 644 646694213615c3e61d5af1b254d34339fa26246c1f7d7608ea0178f7658fc76c",
    ".github/workflows/zizmor.yml 644 d8dd9a2ed59f79088903dea9455395aa4ca9af2fa5759d5da0a1fbc3be21ebd3",
    ".gitignore 644 8e706228cc7d147e69966814304cd5cd1b8483472e270c609ff7b2c1a48bf1be",
-   ".pkl-gen/manifest.json 644 68944d3534d3b5305cedf210314dd70927bab92e0c9c4f8369970b098892621e",
+   ".pkl-gen/manifest.json 644 d79a2837ad8e803fb1694a4bbff3ecfa521b05ed51a5ecc17e77725142efc6c5",
    ".plumber.yaml 644 151bde3704f31000d8c13fcb16f05345a63c84bc85e69d6e0ebcaed585d027a9",
    ".rumdl.toml 644 08038a4e8c256f89e4bd54a9e253727342549e1f369005e5726d3c8d550f0490",
    "SECURITY.md 644 3cb548c5f656fd6024014b61efab8d18b5cc9265d2d4d01cadf1ccb9fa710352",
    "rust-toolchain.toml 644 4d0674575b116a100c7d0ad754308dc6dea178b4808c760afc43136db967c7a6"
   ],
-  "manifest": "68944d3534d3b5305cedf210314dd70927bab92e0c9c4f8369970b098892621e"
+  "manifest": "d79a2837ad8e803fb1694a4bbff3ecfa521b05ed51a5ecc17e77725142efc6c5"
  },
  "w-hk-and-mise": {
   "codes": [

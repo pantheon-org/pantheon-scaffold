@@ -103,11 +103,11 @@
     },
     ".github/workflows/release-automerge.yml": {
       "class": "owned",
-      "hash": "ba335d7da9381e46bc28b45c5a917331288f49060bb135dc5fffc8f4d200a472"
+      "hash": "5a956c1d8094320899b82d2b27887ea632cbeeebaf759852d13c6aa93d73d069"
     },
     ".github/workflows/release-please.yml": {
       "class": "owned",
-      "hash": "3ed3604ecee96fa09d57f306991c76a73064ac9e91c8f2a0d6b3f940e69d96ed"
+      "hash": "e7710a83e13edae5578950c85a9f28de984132fdececf114a56924df7eabf2d9"
     },
     ".github/workflows/rust-ci.yml": {
       "class": "owned",
@@ -147,9 +147,10 @@
     }
   },
   "presets": {
-    "presets/gitignore.pkl": "c005d0d7051ed017888166f482cf3b181d4ca262e9eb9ed238c9eb7a873fb4dc",
-    "presets/own-deny.pkl": "97a203bf01d15bb4d0829dd257781909796cc34faa4a8afa8ee59e949543751c",
-    "presets/rust-ci.pkl": "8aba8052614e85d391ffe30d578fc5a3d15377c09a8c8ff5611a9b791976a845",
-    "presets/scaffold-check.pkl": "070fbe9ecb8677c6136e202afc70ebc2d94ef43335caeade5cbacd373ee6652b"
+    "presets/gitignore.pkl": "e36b192e64a22677deebd8b23fe715244bf495455a6db4c503882baeeaee7ea4",
+    "presets/own-deny.pkl": "d38d4d58785dc046fb7ebb4a9eb0d8fcf9a7b7b31d584befbd893f65d8f0d2e9",
+    "presets/release-automerge.pkl": "c3266d20a3ebef0344c83f729a4dbb79d6288b6b7ca4ef213248a8b42cb7e83b",
+    "presets/rust-ci.pkl": "906c03a06a8f40148b0e34b7a7751c79595e08d4a3e7d12808df1082d78b15b7",
+    "presets/scaffold-check.pkl": "542c0c97a66c87113c388d47067fef6c08502a092d28ff6f86e869ffa4f81aa4"
   }
 }

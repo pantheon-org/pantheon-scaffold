@@ -1,9 +1,9 @@
-# Keeps one rolling release PR up to date on every push to main (version bump in
-# both crates and Cargo.lock, plus CHANGELOG.md, from conventional commits). When
-# that PR is merged the same run creates the vX.Y.Z tag and the GitHub Release.
-# Consumers pin pahdk-core and pahdk-install by that tag, so the tag is the release.
-# There is no cargo-dist here, so release-please may create the GitHub Release.
-# Ported from pantheon-org/tekhne.
+# Keeps one rolling release PR up to date on every push to main (version in pkl/PklProject,
+# CHANGELOG.md and the manifest, from conventional commits). When that PR is merged the same
+# run creates the vX.Y.Z tag and a DRAFT release (draft and force-tag-creation in
+# release-please-config.json). The tag starts release.yml, which builds the assets and
+# publishes the draft as a pre-release (docs/release-process.md).
+# Ported from pantheon-org/tekhne and changed for this repository.
 #
 # Uses the pantheon-ai-bot App token because a tag created with GITHUB_TOKEN does not
 # trigger other workflows. Needs the org secret GH_APP_PRIVATE_KEY.

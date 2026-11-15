@@ -88,10 +88,50 @@ test("the attestation is made only on a real release, and covers the assets", ()
 });
 
 test("the tag is checked against PklProject before anything is built", () => {
-  expect(wf.jobs.prepare.steps.some((s) => s.run?.includes("release-assets.ts check-tag"))).toBe(true);
-  const after: Record<string, string> = { package: "prepare", build: "prepare", smoke: "build", release: "smoke" };
+  expect(wf.jobs.prepare.steps.some((s) => s.run?.includes("release-assets check-tag"))).toBe(true);
+  const after: Record<string, string> = { prepare: "tool", package: "prepare", build: "prepare", smoke: "build", release: "smoke" };
   for (const [name, needs] of Object.entries(after)) expect([wf.jobs[name].needs].flat(), name).toContain(needs);
   expect([wf.jobs.release.needs].flat()).toContain("package");
+});
+
+// Phase 1 of docs/ts-tooling-rust-port.md: the release-assets step is the Rust tool crates/scaffold-release. Building it runs the build
+// scripts of every crate it depends on, so it is built in a job that cannot write and has no token, and the jobs that can write (or that
+// hold the token to read releases) only download the finished binary and check its checksum before they run it.
+test("the release tool is built in a job that cannot write and holds no token, and prepare and release only download it", () => {
+  const tool = wf.jobs.tool as Job & { env?: Record<string, string> };
+  expect(tool.permissions).toEqual({ contents: "read" });
+  expect(tool.env).toBeUndefined();
+  for (const s of tool.steps) expect(JSON.stringify(s), s.name ?? s.uses).not.toMatch(/github\.token|secrets\./);
+  expect(tool.steps.some((s) => s.run?.includes("cargo build --release --locked -p scaffold-release"))).toBe(true);
+  expect(tool.steps.find((s) => s.uses?.startsWith("actions/upload-artifact@"))?.with?.name).toBe("scaffold-release");
+  for (const name of ["prepare", "release"]) {
+    const job = wf.jobs[name];
+    expect([job.needs].flat(), name).toContain("tool");
+    const download = job.steps.findIndex((s) => s.uses?.startsWith("actions/download-artifact@") && s.with?.name === "scaffold-release");
+    expect(download, `${name} downloads the tool`).toBeGreaterThanOrEqual(0);
+    const verify = job.steps.findIndex((s) => s.run?.includes("sha256sum --check --strict"));
+    expect(verify, `${name} checks its checksum`).toBeGreaterThan(download);
+    const firstRun = job.steps.findIndex((s) => s.run?.includes("tool/scaffold-release release-assets"));
+    expect(firstRun, `${name} runs it`).toBeGreaterThan(verify);
+  }
+});
+
+test("no job that can write runs cargo", () => {
+  for (const [name, j] of jobs) {
+    const writes = Object.values(j.permissions ?? {}).some((v) => v === "write");
+    const runsCargo = j.steps.some((s) => /\bcargo\b/.test(s.run ?? ""));
+    expect(writes && runsCargo, `job ${name}`).toBe(false);
+  }
+});
+
+test("prepare and release have no job-wide token in their environment, so the tool runs without one", () => {
+  for (const name of ["prepare", "release"]) expect((wf.jobs[name] as Job & { env?: Record<string, string> }).env?.GITHUB_TOKEN, name).toBeUndefined();
+});
+
+test("a dry run also checks the tag this version would get, so check-tag is exercised before a real tag", () => {
+  const step = wf.jobs.prepare.steps.find((s) => s.run?.includes('release-assets check-tag "v$VERSION"'));
+  expect(step?.if).toBe("github.ref_type != 'tag'");
+  expect(step?.env?.VERSION).toBe("${{ steps.version.outputs.version }}");
 });
 
 // Task 2.5: the runner is the Rust one, built natively on each target by the same script ci.yml runs.
@@ -171,12 +211,13 @@ test("the package is built on its own and uploaded as package-files", () => {
 test("smoke tests the binary built for its own target, and the release gets the package and all three binaries into one folder", () => {
   const smoke = wf.jobs.smoke.steps.find((s) => s.uses?.startsWith("actions/download-artifact@"));
   expect(smoke?.with?.name).toBe("binary-${{ matrix.target }}");
-  const downloads = wf.jobs.release.steps.filter((s) => s.uses?.startsWith("actions/download-artifact@"));
+  // The release tool is downloaded into tool/, beside the files that go into dist/; only the dist/ downloads are listed here.
+  const downloads = wf.jobs.release.steps.filter((s) => s.uses?.startsWith("actions/download-artifact@") && s.with?.name !== "scaffold-release");
   expect(downloads.map((s) => s.with)).toEqual([
     { name: "package-files", path: "dist/" },
     { pattern: "binary-*", "merge-multiple": true, path: "dist/" },
   ]);
-  const checksums = wf.jobs.release.steps.findIndex((s) => s.run?.includes("release-assets.ts checksums"));
+  const checksums = wf.jobs.release.steps.findIndex((s) => s.run?.includes("release-assets checksums"));
   expect(checksums).toBeGreaterThan(wf.jobs.release.steps.indexOf(downloads[1]));
 });
 

@@ -285,6 +285,31 @@ mod tests {
         assert!(json["files"].as_array().unwrap().len() >= 4);
     }
 
+    // The two "restricted resources" tests of runner/test/contract.test.ts. The fixture reads /etc/hosts.
+    #[test]
+    fn a_scaffold_pkl_cannot_read_arbitrary_files() {
+        let fixture = root().join("runner/test/fixtures/read-file/scaffold.pkl");
+        let error = eval_contract_json(&fixture, &root(), &EvalOptions::default()).unwrap_err();
+        assert!(
+            error.to_string().contains("Refusing to read resource"),
+            "{error}"
+        );
+    }
+
+    #[test]
+    fn allowing_files_under_the_package_folder_does_not_open_the_rest_of_the_disk() {
+        let fixture = root().join("runner/test/fixtures/read-file/scaffold.pkl");
+        let opts = EvalOptions {
+            allow_files_under: vec![root().join("pkl")],
+            ..EvalOptions::default()
+        };
+        let error = eval_contract_json(&fixture, &root(), &opts).unwrap_err();
+        assert!(
+            error.to_string().contains("Refusing to read resource"),
+            "{error}"
+        );
+    }
+
     #[test]
     fn a_path_with_non_ascii_characters_evaluates() {
         let dir = tempfile::tempdir().unwrap();

@@ -1,6 +1,6 @@
 # Plan: port the remaining TypeScript tooling to Rust
 
-**Status (15-11-2026): draft 2, revised after a three-lens review (Technical, Strategic, Risk). Not accepted by the owner.** Written against `origin/main` at `8eae6ad`. Nothing in this plan has been started.
+**Status (15-11-2026): draft 2, revised after a three-lens review (Technical, Strategic, Risk). The owner chose to port (D0 and D1, see "Decisions for the owner"). Phase 0 is done; Phase 1 has not started and waits for the owner's yes.** Written against `origin/main` at `8eae6ad`.
 
 ## Why, and the case against
 
@@ -64,6 +64,19 @@ Three more facts that shape the work:
 
 ## Decisions for the owner
 
+**Recorded on 15-11-2026.** The owner said "I want Rust instead of TypeScript" and "proceed", and accepted the Phase 0 goal that listed these settings. D0 and D1 follow from that. D2 to D5 are the plan's recommended defaults, set by the person writing the plan, and the owner may change any of them. D5 still needs a named person.
+
+| Decision | Setting |
+|---|---|
+| D0 | Port (option B): bun leaves the repository |
+| D1 | Port the package tests too |
+| D2 | New crate `scaffold-release`, built in an unprivileged job and passed as an artifact; reuse `scaffold-core` |
+| D3 | Add `scaffold-release` to `cargo-mutants`; `main` is not excluded |
+| D4 | Yes, this repository wants the tooling in Rust |
+| D5 | Delete the TypeScript version within 14 days of one real release and one real promotion on the Rust tools. Owner to name a person |
+
+The options and reasons behind each decision follow.
+
 - **D0, whether to do it at all.** The options table above. This plan assumes B, and the gate lets the owner stop at A.
 - **D1, the package tests (T3). Decide before the gate**, because it decides whether the headline benefit is delivered. Either port them to a cargo integration test that parses `contract --json` with `scaffold-core::contract` (bun is then gone), or keep bun as their harness (option C). Recommended default: keep bun for them unless the owner wants bun gone, because they test pkl output, not runner code, and porting them is about 2 to 3 of the days in the total.
 - **D2, where the code lives, and what runs with a token.** Recommended: one new crate `crates/scaffold-release` (`publish = false`, binary `scaffold-release`, not part of the release binaries), arguments parsed by hand as `scaffold-cli` does. It joins the workspace automatically (`members = ["crates/*"]`). **It is built in a separate job with `permissions: contents: read` and no token, uploaded as an artifact, and the privileged jobs only download and run it** (see Risks). Sub-choice: reuse `scaffold-core` (shares checksums and semver, pulls the `ureq`, `ring` and `rustls` tree into the build) or a leaf crate with only `sha2` and `serde_json` (less reuse, much smaller build). Recommended: reuse `scaffold-core`, because the build job is unprivileged; revisit if Phase 0 finds a `build.rs` the owner does not want.
@@ -78,7 +91,7 @@ One pull request per phase, each from a branch cut from fast-forwarded `main`. I
 
 | Phase | Work | Done when | Estimate (guess from line counts) |
 |---|---|---|---|
-| 0 | Compare each module in the first block of the table with its Rust twin. Write `docs/ts-tooling-test-mapping.md`. A gap becomes a Rust test first. **Where the TypeScript side is the wrong one, record a deliberate difference** (known: `semver` orders `1.0.0-01` and `1.0.0-1` inconsistently in TypeScript and accepts a 20-digit major, Rust rejects it; `preflight` and `manifest` have more checks in Rust). Also the cheap probes: `cargo deny check` with a candidate HTTP crate and a TOML crate; the crates in the `scaffold-core` tree that have a `build.rs`; the time of a cold `cargo run` in a job; `gh search code 'release-assets.ts' --owner pantheon-org` for other consumers of these scripts | Every T1 test has a named Rust test, a new one, or a recorded deliberate difference; the probes are answered in the file | about 4 hours |
+| 0 | Compare each module in the first block of the table with its Rust twin. Write `docs/ts-tooling-test-mapping.md`. A gap becomes a Rust test first. **Where the TypeScript side is the wrong one, record a deliberate difference** (known: `semver` orders `1.0.0-01` and `1.0.0-1` inconsistently in TypeScript and accepts a 20-digit major, Rust rejects it; `preflight` and `manifest` have more checks in Rust). Also the cheap probes: `cargo deny check` with a candidate HTTP crate and a TOML crate; the crates in the `scaffold-core` tree that have a `build.rs`; the time of a cold `cargo run` in a job; `gh search code 'release-assets.ts' --owner pantheon-org` for other consumers of these scripts | Every T1 test has a named Rust test, a new one, or a recorded deliberate difference; the probes are answered in the file. **Done 15-11-2026**: [ts-tooling-test-mapping.md](ts-tooling-test-mapping.md) maps all 114 tests (109 already covered, 3 Rust tests added, 2 not applicable) and answers the probes | about 4 hours |
 | 1 | Create `scaffold-release` with `release-assets` (`version`, `check-tag`, `checksums`). Port `release.ts`, keep it until Phase 5. Switch the three call sites in `release.yml` | See "Verification": differential run on one fixed `dist/` directory, plus the dry-run steps below | about 1 day |
 | 2 | Port `promote` (module, script, `promote.test.ts`, `promote-workflow.test.ts`). Switch `promote.yml`. `release-workflow.test.ts` imports `stableWording`, so its Phase 2 part moves here | See "Verification": the negative dry runs and the argv test | about 1.5 days |
 | Gate | **Go or no-go.** Criteria and artefacts below | Recorded in this file by the owner | |
@@ -130,7 +143,7 @@ Every phase: `cargo fmt --all --check`, `cargo clippy --workspace --all-targets 
 |---|---|---|
 | 1 | A dry run takes the `version` branch (`release.yml:54-58`), so `check-tag` first runs on a real tag. A last-release comparison of `checksums.txt` is impossible (different source gives different hashes) | Run the TypeScript and Rust tools on the **same** dry-run `release-assets` artifact and diff their output in CI. Add `check-tag v$(version)` as a dry-run step. Negative cases: wrong version, no `v`, two version lines |
 | 2 | The `promote` job (the edit) is skipped on a dry run (`promote.yml`, `if: inputs.dry_run == false`), so `gh release edit`, `stableWording`, the post-edit check and the latest-tag check never run. A guard that always passes also reports `ok`. Guard 1 requires `refs/heads/main`, so the Rust version cannot be dry-run from the pull request branch. The only pre-releases left are v0.1.0 to v0.1.4, so a pass case needs a real release | Negative dry runs as an exit condition: a pre-release, an already-stable tag, a bogus tag, a branch dispatch (refused). Diff the TypeScript and Rust `check` reports for the same tag in one run. Put the `gh` calls behind a function and test the exact arguments. `promote` reads `known-bad.json` from the checkout and **fails closed**, unlike `knownbad.rs`, which fails open for consumers: the release tool must not reuse `load_known_bad` for this. The first real promotion after the switch keeps the TypeScript job available for that release |
-| 3 | `update-pins.yml` has no inputs, and the push trigger runs a writing job on merge with the App token, force-pushing `chore/update-pins` and `freshness` | The `dry_run` input and the dropped push trigger in Phase 3. Exit non-zero on any problem is a mutation-tested property. The freshness record is accepted only as `...Z` with no fractional seconds, so a test pins the written form |
+| 3 | `update-pins.yml` has no inputs, and the push trigger runs a writing job on merge with the workflow's token, force-pushing `chore/update-pins` and `freshness` | The `dry_run` input and the dropped push trigger in Phase 3. Exit non-zero on any problem is a mutation-tested property. The freshness record is accepted only as `...Z` with no fractional seconds, so a test pins the written form |
 | 5 | A transcription slip in the zig wrapper, the `--target` handling or a feature-unifying flag can change the shipped binary without failing smoke | The byte-identity check in the Phase 5 row |
 
 **Workflow-invariant tests.** `release-workflow.test.ts` and `promote-workflow.test.ts` are the only checks on permissions, secrets and environment. When a phase edits their literal command strings, the pull request description shows the old and new assertion side by side, and no assertion is loosened. `archive/spikes/phase-2b-wave-d/mutate.ts` is the harness that proved these tests catch 19 regressions; it targets files this plan deletes, so the plan adds an equivalent that mutates the workflow files, or states that the protection is dropped. Add a workflow test that no `cargo` step shares a job with a write permission.

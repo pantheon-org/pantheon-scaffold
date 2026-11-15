@@ -4,7 +4,7 @@
 
 ## Why, and the case against
 
-The rendering runner is already Rust (refocus plan, decision N1). What stays in TypeScript on bun is release and test tooling: 11 modules and 9 scripts under `runner/src` and `runner/scripts` (1,401 lines), and 39 test files plus helpers under `runner/test` (about 4,000 lines; `publish-release.test.ts` arrived on 15-11-2026 with #125). It uses only `node:fs`, `node:path`, `node:os` and `node:crypto`, with no third-party packages.
+The rendering runner is already Rust (refocus plan, decision N1). What stays in TypeScript on bun is release and test tooling: 11 modules and 9 scripts under `runner/src` and `runner/scripts` (1,401 lines), and 41 test files plus helpers under `runner/test` (about 4,250 lines; counts as of `main` at `3a02910`, 15-11-2026, and still growing: `publish-release.test.ts` arrived with #125, and `release-bump.test.ts` and `release-automerge.test.ts` with #126). It uses only `node:fs`, `node:path`, `node:os` and `node:crypto`, with no third-party packages.
 
 **This plan reverses a decision of two days ago.** [runner-file-sort.md](runner-file-sort.md) (13-11-2026) sorted `release.ts`, `promote.ts`, `pinupdate.ts`, the scripts that CI runs, and their tests as **Keep**. Nothing in the repository has changed since to make that wrong. The only new input is the owner's question of 15-11-2026, whether a better language exists for them.
 
@@ -53,7 +53,7 @@ The Rust crates have a module with the same name as most of the TypeScript modul
 | Group | Files | Lines | What happens |
 |---|---|---|---|
 | T1: module tests with a Rust counterpart | 8: checksums, contract, freshness, knownbad, manifest, preflight, schema, semver. Plus `equality` (it tests `support/equality.ts`, which uses `Bun.YAML`, and `equality.rs` is its counterpart) | about 720 | Deleted in Phase 6, each only when a named Rust test covers the same case. Evidence in a mapping file |
-| T2: release tooling tests | 9: release, promote, pinupdate, build-rust, release-workflow, promote-workflow, update-pins-script, update-pins-workflow, publish-release | about 1,100 | Ported with the module they test (see "Order of work" for the files that span phases). `publish-release.test.ts` runs the new shell script `.github/scripts/publish-release.sh` (release-please, #125) through bun: the script stays Bash, and the test becomes a Rust test that spawns it, in Phase 1 with the `release.yml` change |
+| T2: release tooling tests | 11: release, promote, pinupdate, build-rust, release-workflow, promote-workflow, update-pins-script, update-pins-workflow, publish-release, release-bump, release-automerge | about 1,350 | Ported with the module they test (see "Order of work" for the files that span phases). `publish-release.test.ts` and `release-bump.test.ts` run the shell scripts `.github/scripts/publish-release.sh` and `release-bump.sh` (release-please, #125 and #126) through bun, and `release-automerge.test.ts` reads a workflow: the scripts stay Bash, and each test becomes a Rust test that spawns the script or reads the workflow, in Phase 1 with the `release.yml` change |
 | T3: package tests | 21: builtins, config-name, consumer-check, hk, mise, mode-index, package-render, package-uri, phase5-* (5), presence, presence-templates, smoke-fixtures, templates, tooling, workflows-a, -b, -c | about 2,100 | **D1.** These test what the pkl package renders, read through `pantheon-scaffold contract --json`. `package-uri` also imports `pklProjectVersion` from `release.ts`. `smoke-fixtures` uses the harness `support/contract.ts` |
 
 Three more facts that shape the work:
@@ -162,6 +162,7 @@ Every phase: `cargo fmt --all --check`, `cargo clippy --workspace --all-targets 
 | The HTTP-server and TOML crates may fail `cargo-deny` | medium, low | Phase 0 probe. A standard-library server is the fallback |
 | Mutation testing time grows | medium, low | Pull requests mutate only the diff, as today |
 | No user-visible gain | high, medium | The gate, and option A |
+| A moving target: three release pull requests landed on `main` in one day (#124 to #126), and two added bun tests. Every new release test written in TypeScript is more to port | high, medium | Each phase starts with a fresh inventory of `runner/test` and `runner/scripts`. Recommended: write new release tests in Rust from now on, so the port does not grow while it is under way. The owner decides |
 
 ## Rollback, by phase
 

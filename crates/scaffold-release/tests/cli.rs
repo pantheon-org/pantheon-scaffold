@@ -69,3 +69,60 @@ fn no_command_exits_2_and_prints_the_usage_on_stderr() {
         "{err}"
     );
 }
+
+fn run_promote(root: &Path, git_ref: &str, args: &[&str]) -> (Option<i32>, String, String) {
+    let output = Command::new(env!("CARGO_BIN_EXE_scaffold-release"))
+        .arg("promote")
+        .args(args)
+        .env("GITHUB_REF", git_ref)
+        .env_remove("GH_REPO")
+        .current_dir(root)
+        .output()
+        .unwrap();
+    (
+        output.status.code(),
+        String::from_utf8(output.stdout).unwrap(),
+        String::from_utf8(output.stderr).unwrap(),
+    )
+}
+
+#[test]
+fn promote_from_a_branch_is_refused_before_anything_is_asked_of_gh() {
+    let root = project("0.2.0");
+    let (code, out, err) = run_promote(root.path(), "refs/heads/feat/x", &["check", "v0.2.0"]);
+    assert_eq!(code, Some(1));
+    assert_eq!(
+        out,
+        "FAIL  run from main: the workflow ran on \"refs/heads/feat/x\", a promotion runs only from refs/heads/main\n"
+    );
+    assert_eq!(
+        err,
+        "refused: run from main: the workflow ran on \"refs/heads/feat/x\", a promotion runs only from refs/heads/main\n"
+    );
+}
+
+#[test]
+fn promote_with_a_bogus_tag_is_refused_at_the_tag_shape() {
+    let root = project("0.2.0");
+    let (code, out, err) = run_promote(root.path(), "refs/heads/main", &["promote", "latest"]);
+    assert_eq!(code, Some(1));
+    assert!(
+        out.starts_with("ok    run from main: refs/heads/main\nFAIL  tag shape: "),
+        "{out}"
+    );
+    assert!(
+        err.starts_with("refused: tag shape: \"latest\" is not a release tag"),
+        "{err}"
+    );
+}
+
+#[test]
+fn promote_with_no_tag_exits_2_and_prints_its_usage() {
+    let root = project("0.2.0");
+    let (code, out, err) = run_promote(root.path(), "refs/heads/main", &["check"]);
+    assert_eq!((code, out.as_str()), (Some(2), ""));
+    assert_eq!(
+        err,
+        "usage: scaffold-release promote check <tag> | promote <tag>\n"
+    );
+}

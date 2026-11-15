@@ -973,3 +973,63 @@ fn check_with_a_bad_api_is_a_usage_error() {
     assert_eq!(code, 2);
     assert_eq!(err, "--api must be old or new\n");
 }
+
+#[test]
+fn the_packaged_command_is_reached_and_fails_with_exit_1_on_a_tree_with_no_package() {
+    let (tree, work) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+    let (tree_text, work_text) = (
+        tree.path().to_string_lossy().into_owned(),
+        work.path().join("w").to_string_lossy().into_owned(),
+    );
+    let (code, _, err) = run(|o, e| {
+        command(
+            &["packaged", &tree_text, "/bin/runner", &work_text],
+            Path::new("/"),
+            o,
+            e,
+        )
+    });
+    assert_eq!(code, 1, "{err}");
+    assert!(!err.starts_with("usage:"), "{err}");
+}
+
+#[test]
+fn an_api_right_after_the_binary_is_not_taken_for_the_work_folder_and_an_empty_one_is_no_folder() {
+    let (tree, work) = (mini_tree(), tempfile::tempdir().unwrap());
+    let runner = fake_runner(work.path(), false);
+    let snap = work.path().join("snap");
+    assert_eq!(snapshot_of(tree.path(), &runner, &snap, &[]).0, 0);
+    let baseline = work.path().join("baseline.json");
+    std::fs::write(&baseline, freeze::freeze_text(&snap).unwrap()).unwrap();
+    let (baseline_text, runner_text) = (
+        baseline.to_string_lossy().into_owned(),
+        runner.to_string_lossy().into_owned(),
+    );
+    let (code, _, _) = run(|o, e| {
+        command(
+            &["check", &baseline_text, &runner_text, "--api", "old"],
+            tree.path(),
+            o,
+            e,
+        )
+    });
+    assert_eq!(code, 0);
+    assert!(
+        !tree.path().join("--api").exists(),
+        "--api is not a work folder"
+    );
+    assert!(!tree.path().join("old").exists());
+    let (code, _, _) = run(|o, e| {
+        command(
+            &["check", &baseline_text, &runner_text, ""],
+            tree.path(),
+            o,
+            e,
+        )
+    });
+    assert_eq!(code, 0);
+    assert!(
+        !tree.path().join("candidate").exists(),
+        "an empty work folder is no folder: the current directory is left alone"
+    );
+}

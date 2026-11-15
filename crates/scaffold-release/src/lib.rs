@@ -586,6 +586,26 @@ mod tests {
     }
 
     #[test]
+    fn the_baseline_and_smoke_commands_are_reached_through_run() {
+        let root = project("0.2.0");
+        let (code, out, err) = run_in(root.path(), &["baseline"]);
+        assert_eq!((code, out.as_str()), (2, ""));
+        assert!(
+            err.starts_with("usage: scaffold-release baseline snapshot"),
+            "{err}"
+        );
+        let (code, out, err) = run_in(root.path(), &["smoke"]);
+        assert_eq!((code, out.as_str()), (2, ""));
+        assert_eq!(err, format!("{}\n", smoke::USAGE));
+        let (code, _, err) = run_in(root.path(), &["baseline", "compare", "one"]);
+        assert_eq!(code, 2);
+        assert!(
+            err.starts_with("usage: scaffold-release baseline compare"),
+            "{err}"
+        );
+    }
+
+    #[test]
     fn a_command_line_that_names_no_command_prints_both_usages() {
         let root = project("0.2.0");
         for args in [&[][..], &["something-else", "version"][..]] {

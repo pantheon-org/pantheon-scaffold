@@ -551,3 +551,70 @@ mod tests {
         assert_eq!(show(&r), "exit 3\nstdout: o\nstderr: e");
     }
 }
+
+#[cfg(test)]
+mod more_tests {
+    use super::*;
+
+    fn smoke_of(repo: &str) -> Smoke<'_> {
+        Smoke {
+            binary: Path::new("b"),
+            repo: Path::new(repo),
+            base: PathBuf::new(),
+            failures: 0,
+            out: Box::leak(Box::new(Vec::new())),
+        }
+    }
+
+    #[test]
+    fn the_package_and_a_fixture_are_under_the_checkout() {
+        let s = smoke_of("/r");
+        assert_eq!(s.package(), "/r/pkl");
+        assert_eq!(
+            s.fixture("minimal"),
+            "/r/runner/test/fixtures/minimal/scaffold.pkl"
+        );
+    }
+
+    #[test]
+    fn a_runner_that_is_killed_has_no_exit_code_and_is_reported_as_exit_minus_1() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let script = dir.path().join("runner");
+        std::fs::write(&script, "#!/bin/sh\nkill -9 $$\n").unwrap();
+        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let mut out = Vec::new();
+        let s = Smoke {
+            binary: &script,
+            repo: Path::new("/r"),
+            base: dir.path().to_path_buf(),
+            failures: 0,
+            out: &mut out,
+        };
+        let result = s.run(&["--version"]).unwrap();
+        assert_eq!(show(&result), "exit -1\nstdout: \nstderr: ");
+    }
+
+    #[test]
+    fn the_runner_gets_the_environment_of_this_process_without_the_git_variables() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let script = dir.path().join("runner");
+        std::fs::write(
+            &script,
+            "#!/bin/sh\nenv | grep -c '^GIT_' || true\nenv | grep -c '^PATH=' || true\n",
+        )
+        .unwrap();
+        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let mut out = Vec::new();
+        let s = Smoke {
+            binary: &script,
+            repo: Path::new("/r"),
+            base: dir.path().to_path_buf(),
+            failures: 0,
+            out: &mut out,
+        };
+        let result = s.run(&[]).unwrap();
+        assert_eq!(result.out, "0\n1");
+    }
+}

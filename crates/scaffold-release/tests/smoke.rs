@@ -158,3 +158,33 @@ fn a_binary_that_cannot_be_run_is_an_error_and_no_binary_is_a_usage_error() {
         "usage: scaffold-release smoke <binary> [--version <x.y.z>] [--repo <checkout>]\n"
     );
 }
+
+#[test]
+fn a_scenario_whose_setup_fails_is_one_failed_check_named_after_it_and_the_others_still_run() {
+    let output = Command::new(env!("CARGO_BIN_EXE_scaffold-release"))
+        .args(["smoke"])
+        .arg(runner())
+        .args(["--version", "0.0.0", "--repo", "/no/such/checkout"])
+        .output()
+        .unwrap();
+    let out = String::from_utf8_lossy(&output.stdout);
+    assert_eq!(output.status.code(), Some(1), "{out}");
+    let failed = names(&out, "FAIL");
+    assert!(
+        failed.contains(&"orphan deletion in a clean git repository".to_owned()),
+        "{out}"
+    );
+    assert!(
+        failed.contains(&"a dirty tracked tree refuses the deletion".to_owned()),
+        "{out}"
+    );
+    assert!(
+        out.contains("      setup render of smoke-orphan-a failed: exit "),
+        "{out}"
+    );
+    assert!(
+        names(&out, "PASS")
+            .contains(&"--version prints the version the binary was built for".to_owned()),
+        "the checks that need no fixture still pass: {out}"
+    );
+}

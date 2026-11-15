@@ -1,0 +1,45 @@
+# After a release run that published and verified a plain vX.Y.Z tag, opens a pull request that sets
+# the version in pkl/PklProject to the next patch, and squash-merges it once its checks are
+# green. Without it the first change after a release would fail the build, because a published version
+# cannot be rebuilt with different contents. It runs from main, never checks out or runs code from a
+# pull request, and stops with a visible notice when there is nothing to do. A failed release gets no bump.
+# Needs the org secret GH_APP_PRIVATE_KEY.
+name: release-bump
+'on': # zizmor: ignore[dangerous-triggers] runs from main only, on the release workflow's own tag run, and executes nothing from a pull request
+  workflow_run:
+    workflows:
+    - release
+    types:
+    - completed
+permissions: {}
+concurrency:
+  group: release-bump
+  cancel-in-progress: false
+jobs:
+  bump:
+    name: Bump the version after a release
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    permissions:
+      contents: read
+    timeout-minutes: 45
+    steps:
+    - name: Mint pantheon-ai-bot token
+      id: app-token
+      uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+      with:
+        client-id: Iv23ligzn16vkDCWfHgc
+        private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+        permission-contents: write
+        permission-pull-requests: write
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        ref: main
+        persist-credentials: false
+    - name: Open and merge the version bump
+      run: bash .github/scripts/release-bump.sh
+      env:
+        GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        GH_REPO: ${{ github.repository }}
+        TAG: ${{ github.event.workflow_run.head_branch }}
+        TAG_SHA: ${{ github.event.workflow_run.head_sha }}

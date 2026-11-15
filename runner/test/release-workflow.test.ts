@@ -270,7 +270,8 @@ test("verify-release imports Builtins from the same package URI, with the same c
 // The notes of a release are the only text a consumer sees on the release page, so they link the Upgrading section, and promote must keep that
 // sentence: it rewrites only the leading "Pre-release of".
 test("the release notes start with the pre-release wording, link the Upgrading section, and keep the link when promoted", () => {
-  const notes = publishScript.match(/^notes="([^"]*)"/m)![1]!;
+  const step = allSteps.find((s) => s.run?.includes("publish-release.sh"))!;
+  const notes = String(step.env?.RELEASE_NOTES).replaceAll("${{ github.repository }}", "$GH_REPO").replaceAll("${{ github.ref_name }}", "$TAG");
   expect(notes.startsWith("Pre-release of ")).toBe(true);
   expect(notes).toContain("https://github.com/$GH_REPO/blob/$TAG/docs/adopting.md#upgrading");
   expect(notes).not.toMatch(/[`]|\$\(|\$\{/);

@@ -1,9 +1,10 @@
-# Squash-merges the open release-please PR under the pantheon-ai-bot App token, so the push
-# to main fires release-please.yml, which then tags the version. Merging the release PR is
-# the go for a release, so this runs only by hand (Run workflow) unless the repository
-# variable RELEASE_AUTOMERGE_SCHEDULE is set to true: then the Monday schedule merges the
-# release PR when there is one, which is only when there are releasable commits. Without the
-# variable a scheduled run is skipped. Needs the org secret GH_APP_PRIVATE_KEY.
+# Squash-merges the open release-please PR under the pantheon-ai-bot App token, so the
+# push to main fires release-please.yml, which then tags the version. Merging the
+# release PR is the go for a release, so this runs only by hand (Run workflow) unless
+# the repository variable RELEASE_AUTOMERGE_SCHEDULE is set to true: then the
+# Monday schedule merges the release PR when there is one, which is only when there are
+# releasable commits. A scheduled run with the variable off ends with a notice in the
+# run summary and merges nothing. Needs the org secret GH_APP_PRIVATE_KEY.
 name: Release Auto-merge
 'on':
   schedule:
@@ -18,12 +19,25 @@ jobs:
   automerge:
     name: Merge open release PR
     runs-on: ubuntu-latest
-    if: github.event_name != 'schedule' || vars.RELEASE_AUTOMERGE_SCHEDULE == 'true'
     timeout-minutes: 5
     steps:
+    - name: Decide whether to run
+      id: gate
+      run: |-
+        if [ "$EVENT_NAME" = schedule ] && [ "$SCHEDULE_SWITCH" != true ]; then
+          echo "run=false" >> "$GITHUB_OUTPUT"
+          echo "::notice::Scheduled run skipped: set the repository variable RELEASE_AUTOMERGE_SCHEDULE to true to merge release PRs on Mondays."
+          echo "Scheduled run skipped: set the repository variable RELEASE_AUTOMERGE_SCHEDULE to true to merge release PRs on Mondays." >> "$GITHUB_STEP_SUMMARY"
+        else
+          echo "run=true" >> "$GITHUB_OUTPUT"
+        fi
+      env:
+        EVENT_NAME: ${{ github.event_name }}
+        SCHEDULE_SWITCH: ${{ vars.RELEASE_AUTOMERGE_SCHEDULE }}
     - name: Mint pantheon-ai-bot token
       id: app-token
       uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+      if: steps.gate.outputs.run == 'true'
       with:
         client-id: Iv23ligzn16vkDCWfHgc
         private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
@@ -31,10 +45,12 @@ jobs:
         permission-pull-requests: write
     - name: Checkout scripts
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      if: steps.gate.outputs.run == 'true'
       with:
         persist-credentials: false
         sparse-checkout: .github/scripts
     - name: Merge open release-please PR
+      if: steps.gate.outputs.run == 'true'
       run: bash .github/scripts/release-automerge.sh
       env:
         GH_TOKEN: ${{ steps.app-token.outputs.token }}

@@ -1,9 +1,11 @@
-# Keeps one rolling release PR up to date on every push to main (version in pkl/PklProject,
-# CHANGELOG.md and the manifest, from conventional commits). When that PR is merged the same
-# run creates the vX.Y.Z tag and a DRAFT release (draft and force-tag-creation in
-# release-please-config.json). The tag starts release.yml, which builds the assets and
-# publishes the draft as a pre-release (docs/release-process.md).
-# Ported from pantheon-org/tekhne and changed for this repository.
+# Keeps one rolling release PR up to date on every push to main (the version, plus
+# CHANGELOG.md and the manifest, from conventional commits). When that PR is merged
+# the same run creates the vX.Y.Z tag and a DRAFT release (draft and force-tag-creation
+# in release-please-config.json). The tag starts the release workflow of the repository,
+# which builds the assets and publishes the draft as a pre-release with
+# .github/scripts/publish-release.sh.
+# The version line of pkl/PklProject is updated through the x-release-please-version
+# comment on it.
 #
 # Uses the pantheon-ai-bot App token because a tag created with GITHUB_TOKEN does not
 # trigger other workflows. Needs the org secret GH_APP_PRIVATE_KEY.

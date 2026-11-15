@@ -19,7 +19,7 @@
     },
     ".github/dependabot.yml": {
       "class": "owned",
-      "hash": "bfbaab5046637176e7e15faebc5275f83d365104d8b7edf7afb91e9f97e581e8"
+      "hash": "45396451f086f447ac4c89923375b04160e59bb95cbe7da87a983ae141b016c0"
     },
     ".github/labels.txt": {
       "class": "owned",
@@ -61,9 +61,17 @@
       "class": "owned",
       "hash": "7eefdca1e9a032710087ab3e50c5195c45d0144cea7768d185164dafa5996feb"
     },
+    ".github/scripts/publish-release.sh": {
+      "class": "owned",
+      "hash": "07501b39efac842a00bebe3241c1b1453c6033c3633b5c4563dd3d49bb3931a5"
+    },
     ".github/scripts/release-automerge.sh": {
       "class": "owned",
       "hash": "52ae1d1cce62ec2c2e2bd6ae72a6cc39995f7ca0df0d6135c3407cc012477709"
+    },
+    ".github/scripts/release-bump.sh": {
+      "class": "owned",
+      "hash": "f12a043766c4d7b15496618af6130ae222e0a4d45312d09a85fb61ea05535bfb"
     },
     ".github/scripts/sync-labels.sh": {
       "class": "owned",
@@ -103,11 +111,15 @@
     },
     ".github/workflows/release-automerge.yml": {
       "class": "owned",
-      "hash": "5a956c1d8094320899b82d2b27887ea632cbeeebaf759852d13c6aa93d73d069"
+      "hash": "772c8e92a247cb13f4e1764df593fa4f66c634c151d37a12ce995f9af29ec9dc"
+    },
+    ".github/workflows/release-bump.yml": {
+      "class": "owned",
+      "hash": "18fca36e14ecc81688217a3bbdcf4c729bc1c5ae6710b0750af56a587ef2994d"
     },
     ".github/workflows/release-please.yml": {
       "class": "owned",
-      "hash": "e7710a83e13edae5578950c85a9f28de984132fdececf114a56924df7eabf2d9"
+      "hash": "b15b3bab2c07de90f86e2c9578751b0c4cdea9bbc1468442d01a612e82d7f04a"
     },
     ".github/workflows/rust-ci.yml": {
       "class": "owned",
@@ -133,6 +145,10 @@
       "class": "owned",
       "hash": "151bde3704f31000d8c13fcb16f05345a63c84bc85e69d6e0ebcaed585d027a9"
     },
+    ".release-please-manifest.json": {
+      "class": "seed",
+      "hash": "1c565d961ba3c4994d0febd549d766f013e85181d5b65278f7c8a6d42adaebe5"
+    },
     ".rumdl.toml": {
       "class": "owned",
       "hash": "08038a4e8c256f89e4bd54a9e253727342549e1f369005e5726d3c8d550f0490"
@@ -140,6 +156,10 @@
     "SECURITY.md": {
       "class": "seed",
       "hash": "3cb548c5f656fd6024014b61efab8d18b5cc9265d2d4d01cadf1ccb9fa710352"
+    },
+    "release-please-config.json": {
+      "class": "seed",
+      "hash": "a55806ded9141ec0d51a7ef98be7c17a7265f0632ac762012f6a41d2899f07da"
     },
     "rust-toolchain.toml": {
       "class": "owned",
@@ -149,7 +169,6 @@
   "presets": {
     "presets/gitignore.pkl": "e36b192e64a22677deebd8b23fe715244bf495455a6db4c503882baeeaee7ea4",
     "presets/own-deny.pkl": "d38d4d58785dc046fb7ebb4a9eb0d8fcf9a7b7b31d584befbd893f65d8f0d2e9",
-    "presets/release-automerge.pkl": "c3266d20a3ebef0344c83f729a4dbb79d6288b6b7ca4ef213248a8b42cb7e83b",
     "presets/rust-ci.pkl": "906c03a06a8f40148b0e34b7a7751c79595e08d4a3e7d12808df1082d78b15b7",
     "presets/scaffold-check.pkl": "542c0c97a66c87113c388d47067fef6c08502a092d28ff6f86e869ffa4f81aa4"
   }

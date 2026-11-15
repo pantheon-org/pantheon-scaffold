@@ -4,7 +4,7 @@
 
 ## Why, and the case against
 
-The rendering runner is already Rust (refocus plan, decision N1). What stays in TypeScript on bun is release and test tooling: 11 modules and 9 scripts under `runner/src` and `runner/scripts` (1,401 lines), and 38 test files plus helpers under `runner/test` (about 3,900 lines). It uses only `node:fs`, `node:path`, `node:os` and `node:crypto`, with no third-party packages.
+The rendering runner is already Rust (refocus plan, decision N1). What stays in TypeScript on bun is release and test tooling: 11 modules and 9 scripts under `runner/src` and `runner/scripts` (1,401 lines), and 39 test files plus helpers under `runner/test` (about 4,000 lines; `publish-release.test.ts` arrived on 15-11-2026 with #125). It uses only `node:fs`, `node:path`, `node:os` and `node:crypto`, with no third-party packages.
 
 **This plan reverses a decision of two days ago.** [runner-file-sort.md](runner-file-sort.md) (13-11-2026) sorted `release.ts`, `promote.ts`, `pinupdate.ts`, the scripts that CI runs, and their tests as **Keep**. Nothing in the repository has changed since to make that wrong. The only new input is the owner's question of 15-11-2026, whether a better language exists for them.
 
@@ -53,7 +53,7 @@ The Rust crates have a module with the same name as most of the TypeScript modul
 | Group | Files | Lines | What happens |
 |---|---|---|---|
 | T1: module tests with a Rust counterpart | 8: checksums, contract, freshness, knownbad, manifest, preflight, schema, semver. Plus `equality` (it tests `support/equality.ts`, which uses `Bun.YAML`, and `equality.rs` is its counterpart) | about 720 | Deleted in Phase 6, each only when a named Rust test covers the same case. Evidence in a mapping file |
-| T2: release tooling tests | 8: release, promote, pinupdate, build-rust, release-workflow, promote-workflow, update-pins-script, update-pins-workflow | about 1,030 | Ported with the module they test (see "Order of work" for the files that span phases) |
+| T2: release tooling tests | 9: release, promote, pinupdate, build-rust, release-workflow, promote-workflow, update-pins-script, update-pins-workflow, publish-release | about 1,100 | Ported with the module they test (see "Order of work" for the files that span phases). `publish-release.test.ts` runs the new shell script `.github/scripts/publish-release.sh` (release-please, #125) through bun: the script stays Bash, and the test becomes a Rust test that spawns it, in Phase 1 with the `release.yml` change |
 | T3: package tests | 21: builtins, config-name, consumer-check, hk, mise, mode-index, package-render, package-uri, phase5-* (5), presence, presence-templates, smoke-fixtures, templates, tooling, workflows-a, -b, -c | about 2,100 | **D1.** These test what the pkl package renders, read through `pantheon-scaffold contract --json`. `package-uri` also imports `pklProjectVersion` from `release.ts`. `smoke-fixtures` uses the harness `support/contract.ts` |
 
 Three more facts that shape the work:
@@ -183,6 +183,7 @@ A revert pull request restores the repository. It does not undo what a workflow 
 
 ## Not checked
 
+- The release flow changed on `main` while this plan was written: release-please (#125) now owns the version, the tag and a draft release, and `release.yml` publishes through `.github/scripts/publish-release.sh`. The review of the release path (dry-run limits, rollback, the order of Phase 1 and 2) was done on the flow before #125 and must be re-read against `docs/release-process.md` before Phase 1 starts.
 - Behavioural parity of the Rust twins beyond what the review found (Phase 0).
 - Whether `cargo-deny` accepts an HTTP or a TOML crate, and which crates have a `build.rs` (Phase 0).
 - Whether other `pantheon-org` repositories call these scripts. A search of the local checkouts found nothing; the organisation-wide search is Phase 0.

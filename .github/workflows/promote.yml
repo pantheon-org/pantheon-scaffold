@@ -6,6 +6,11 @@ name: promote
 # removes the pre-release flag, and checks that the assets and checksums.txt did not change. The environment has no
 # protection rules while the repository has one contributor (decision 91), so it records the run and does not gate it:
 # see "Before onboarding a contributor" in docs/release-process.md.
+#
+# Phase 2 of docs/ts-tooling-rust-port.md: the tool is the Rust one (crates/scaffold-release). It is built in a job of its own that can
+# read the repository and nothing else, and the two jobs below download it and check its checksum. Until the TypeScript version is
+# deleted the guards job also runs it and fails if the two disagree, and the promote job can run it instead of the Rust tool
+# (the "implementation" input), so the step that makes a release stable keeps a way back.
 on:
   workflow_dispatch:
     inputs:
@@ -17,6 +22,13 @@ on:
         description: Run every guard and edit nothing
         type: boolean
         default: true
+      implementation:
+        description: Which tool edits the release. The guards job runs both whatever this says
+        type: choice
+        options:
+          - rust
+          - typescript
+        default: rust
 
 permissions: {}
 
@@ -29,8 +41,41 @@ env:
   MISE_DISABLE_TOOLS: rust
 
 jobs:
+  # The release tool is built here, in a job that can read the repository and nothing else: no write permission and no token in its
+  # environment. A build runs the build scripts of every crate it depends on, and that must never happen next to a token that can
+  # write. guards and promote only download the finished binary and check its checksum.
+  tool:
+    name: Build the release tool
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      sha256: ${{ steps.build.outputs.sha256 }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # rustup is preinstalled on GitHub-hosted runners. The version must match rust-toolchain.toml.
+      - name: Install the Rust toolchain
+        run: |
+          rustup toolchain install 1.96.1 --profile minimal
+          rustup default 1.96.1
+      - name: Build the release tool
+        id: build
+        run: |
+          cargo build --release --locked -p scaffold-release
+          echo "sha256=$(sha256sum target/release/scaffold-release | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: scaffold-release
+          path: target/release/scaffold-release
+          retention-days: 7
+          if-no-files-found: error
+
   guards:
     name: Check every guard
+    needs: tool
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -39,6 +84,16 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: scaffold-release
+          path: tool/
+      - name: Check that the release tool is the one that was built
+        env:
+          EXPECTED: ${{ needs.tool.outputs.sha256 }}
+        run: |
+          echo "$EXPECTED  tool/scaffold-release" | sha256sum --check --strict -
+          chmod +x tool/scaffold-release
       - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
         with:
           version: 2026.10.25
@@ -46,17 +101,32 @@ jobs:
           cache: false
       - name: Install the pinned tools from the lock file
         run: mise install --locked
-      - name: Run every guard, edit nothing
+      # Both tools run, the Rust one is the answer, and a difference between them fails the job. The TypeScript tool goes when
+      # Phase 6 of docs/ts-tooling-rust-port.md deletes it.
+      - name: Run every guard with both tools, edit nothing
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           GITHUB_REF: ${{ github.ref }}
           TAG: ${{ inputs.tag }}
-        run: mise x -- bun runner/scripts/promote.ts check "$TAG"
+        run: |
+          rust_code=0
+          tool/scaffold-release promote check "$TAG" > "$RUNNER_TEMP/rust.out" 2> "$RUNNER_TEMP/rust.err" || rust_code=$?
+          ts_code=0
+          mise x -- bun runner/scripts/promote.ts check "$TAG" > "$RUNNER_TEMP/ts.out" 2> "$RUNNER_TEMP/ts.err" || ts_code=$?
+          cat "$RUNNER_TEMP/rust.out"
+          cat "$RUNNER_TEMP/rust.err" >&2
+          if [ "$rust_code" != "$ts_code" ] || ! cmp -s "$RUNNER_TEMP/rust.out" "$RUNNER_TEMP/ts.out" || ! cmp -s "$RUNNER_TEMP/rust.err" "$RUNNER_TEMP/ts.err"; then
+            echo "The Rust and the TypeScript tool disagree (exit $rust_code and $ts_code). The TypeScript tool printed:" >&2
+            cat "$RUNNER_TEMP/ts.out" >&2
+            cat "$RUNNER_TEMP/ts.err" >&2
+            exit 1
+          fi
+          exit "$rust_code"
 
   promote:
     name: Promote the release
-    needs: guards
+    needs: [tool, guards]
     if: inputs.dry_run == false
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -67,14 +137,36 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: scaffold-release
+          path: tool/
+      - name: Check that the release tool is the one that was built
+        env:
+          EXPECTED: ${{ needs.tool.outputs.sha256 }}
+        run: |
+          echo "$EXPECTED  tool/scaffold-release" | sha256sum --check --strict -
+          chmod +x tool/scaffold-release
+      - name: Run every guard again, remove the pre-release flag, and check the result
+        if: inputs.implementation == 'rust'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          GITHUB_REF: ${{ github.ref }}
+          TAG: ${{ inputs.tag }}
+        run: tool/scaffold-release promote promote "$TAG"
+      # The way back: the TypeScript tool, as before Phase 2. It needs the pinned tools, which the Rust path does not.
       - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
+        if: inputs.implementation == 'typescript'
         with:
           version: 2026.10.25
           install: false
           cache: false
       - name: Install the pinned tools from the lock file
+        if: inputs.implementation == 'typescript'
         run: mise install --locked
-      - name: Run every guard again, remove the pre-release flag, and check the result
+      - name: Run every guard again, remove the pre-release flag, and check the result (TypeScript)
+        if: inputs.implementation == 'typescript'
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}

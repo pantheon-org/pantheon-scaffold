@@ -4,6 +4,8 @@
 //! The command is `scaffold-release release-assets <version | check-tag <tag> | checksums <dir> <version>>`. It reads
 //! `pkl/PklProject` under the directory it is run from, so the workflow runs it from the checkout root.
 
+pub mod promote;
+
 use std::io::Write;
 use std::path::Path;
 
@@ -50,25 +52,28 @@ pub fn pkl_project_version(text: &str) -> Result<String, String> {
     }
 }
 
-fn json(text: &str) -> String {
+pub(crate) fn json(text: &str) -> String {
     serde_json::to_string(text).expect("a string serialises")
+}
+
+/// The version of a release tag `v<version>`, when what follows the `v` is a version.
+pub(crate) fn tag_version(tag: &str) -> Option<String> {
+    static TAG: std::sync::LazyLock<regex::Regex> =
+        std::sync::LazyLock::new(|| regex::Regex::new(r"^v([0-9A-Za-z.-]+)$").expect("valid"));
+    TAG.captures(tag)
+        .map(|m| m[1].to_owned())
+        .filter(|v| parse_semver(v).is_some())
 }
 
 /// A release is cut from a tag `v<version>`, and the version must be the one in `pkl/PklProject`, because the package URI is
 /// built from it.
 pub fn check_tag(tag: &str, pkl_project: &str) -> Result<String, String> {
-    static TAG: std::sync::LazyLock<regex::Regex> =
-        std::sync::LazyLock::new(|| regex::Regex::new(r"^v([0-9A-Za-z.-]+)$").expect("valid"));
-    let version = TAG
-        .captures(tag)
-        .map(|m| m[1].to_owned())
-        .filter(|v| parse_semver(v).is_some())
-        .ok_or_else(|| {
-            format!(
-                "{} is not a release tag (expected v<major>.<minor>.<patch>[-pre-release])",
-                json(tag)
-            )
-        })?;
+    let version = tag_version(tag).ok_or_else(|| {
+        format!(
+            "{} is not a release tag (expected v<major>.<minor>.<patch>[-pre-release])",
+            json(tag)
+        )
+    })?;
     let declared = pkl_project_version(pkl_project)?;
     if declared != version {
         return Err(format!(
@@ -78,7 +83,7 @@ pub fn check_tag(tag: &str, pkl_project: &str) -> Result<String, String> {
     Ok(version)
 }
 
-fn sha256(bytes: &[u8]) -> String {
+pub(crate) fn sha256(bytes: &[u8]) -> String {
     Sha256::digest(bytes)
         .iter()
         .map(|b| format!("{b:02x}"))
@@ -185,12 +190,19 @@ fn release_assets(args: &[&str], root: &Path, out: &mut dyn Write) -> Result<(),
     }
 }
 
+/// Both commands, for a command line that names neither.
+const ALL_USAGE: &str = "usage: scaffold-release release-assets check-tag <tag> | version | checksums <dir> <version>\n       scaffold-release promote check <tag> | promote <tag>";
+
 /// Runs the command. Exit 0 on success, 1 for a refusal (its message on `err`), 2 for a usage error.
 pub fn run(args: &[String], root: &Path, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
-    let Some(("release-assets", rest)) = args.split_first().map(|(c, r)| (*c, r)) else {
-        let _ = writeln!(err, "{USAGE}");
-        return 2;
+    let rest = match args.split_first() {
+        Some((&"release-assets", rest)) => rest,
+        Some((&"promote", rest)) => return promote::command(rest, root, out, err),
+        _ => {
+            let _ = writeln!(err, "{ALL_USAGE}");
+            return 2;
+        }
     };
     match release_assets(rest, root, out) {
         Ok(()) => 0,
@@ -553,18 +565,42 @@ mod tests {
     fn a_usage_error_exits_2_with_the_usage_line() {
         let root = project("0.2.0");
         for args in [
-            &[][..],
             &["release-assets"][..],
             &["release-assets", "checksums", "only-one-arg"][..],
             &["release-assets", "check-tag"][..],
             &["release-assets", "version", "extra"][..],
             &["release-assets", "nope"][..],
-            &["something-else", "version"][..],
         ] {
             let (code, out, err) = run_in(root.path(), args);
             assert_eq!(code, 2, "{args:?}");
             assert_eq!(out, "", "{args:?}");
             assert_eq!(err, format!("{USAGE}\n"), "{args:?}");
+        }
+    }
+
+    #[test]
+    fn a_command_line_that_names_no_command_prints_both_usages() {
+        let root = project("0.2.0");
+        for args in [&[][..], &["something-else", "version"][..]] {
+            let (code, out, err) = run_in(root.path(), args);
+            assert_eq!((code, out.as_str()), (2, ""), "{args:?}");
+            assert_eq!(err, format!("{ALL_USAGE}\n"), "{args:?}");
+            assert!(err.contains("release-assets") && err.contains("promote"));
+        }
+    }
+
+    #[test]
+    fn a_promote_usage_error_exits_2_with_its_own_usage_line() {
+        let root = project("0.2.0");
+        for args in [
+            &["promote"][..],
+            &["promote", "check"][..],
+            &["promote", "nope", "v0.2.0"][..],
+            &["promote", "check", "v0.2.0", "extra"][..],
+        ] {
+            let (code, out, err) = run_in(root.path(), args);
+            assert_eq!((code, out.as_str()), (2, ""), "{args:?}");
+            assert_eq!(err, format!("{}\n", promote::USAGE), "{args:?}");
         }
     }
 }

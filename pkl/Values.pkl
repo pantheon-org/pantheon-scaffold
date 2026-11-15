@@ -3,6 +3,17 @@
 @ModuleInfo { minPklVersion = "0.32.0" }
 module pantheon.scaffold.Values
 
+/// The repository variable that switches on the Monday schedule of release-automerge.yml (`options.releaseAutomerge = "variable"`).
+const releaseAutomergeVariable: String = "RELEASE_AUTOMERGE_SCHEDULE"
+
+/// The `name:` of the release workflow that release-bump.yml waits for, by release shape. The workflow cargo-dist generates is called `Release`; the
+/// release workflow of a repository that publishes a release-please draft is called `release` (only the `draft` shape uses release-bump).
+const releaseWorkflowName: Mapping<String, String> = new { ["cargo-dist"] = "Release"; ["published"] = "release"; ["draft"] = "release" }
+
+/// How long release-bump.sh waits for the checks of its pull request, in minutes. The script polls every 30 seconds for this long, and the
+/// workflow's timeout is this plus 15 minutes, so the two cannot drift.
+const releaseBumpWaitMinutes: Int = 30
+
 /// The workflow cargo-dist generates. Three tool configs name it, so the name is defined once.
 const releaseWorkflow: String = "release.yml"
 

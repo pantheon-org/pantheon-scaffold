@@ -120,6 +120,10 @@ Commit the result, including `.pkl-gen/manifest.json` (what the runner knows it 
 | `binary` | `true`, needs `crateName` | adds `dist-workspace.toml`, `dist-check.yml`, `tag-release.sh`, the dist lint config, and the artifact-action ignore in `dependabot.yml` |
 | `features` | `"default"` | `"all"` builds and tests with `--all-features` |
 | `compositeAction` | `false` | the repository's own `action.yml` is audited and scanned |
+| `releaseShape` | follows `binary` (`"cargo-dist"` with a binary, otherwise `"published"`) | how a release is made: `"draft"` makes release-please create a draft that your own release workflow publishes (see [Releasing with release-please](#releasing-with-release-please)); it cannot be used with `binary` |
+| `releaseAutomerge` | `"variable"` | `"variable"`: the Monday merge of the release PR only runs when the repository variable `RELEASE_AUTOMERGE_SCHEDULE` is `true`; `"always"`: the schedule always runs |
+| `versionFile`, `versionCommitScope` | unset | adds the release-bump workflow, which sets the `version = "x.y.z"` line of that file to the next patch after a release (needs `releaseShape = "draft"`) |
+| `seedReleaseConfig` | `true` | seeds `release-please-config.json` and `.release-please-manifest.json` once; `false` when your release-please configuration is elsewhere |
 | `without` | empty | builtins left out, by name (next section) |
 
 A toggle that needs a name and has none stops the render with an error that names the option. Details and what each toggle removes: [feature-toggles.md](feature-toggles.md).
@@ -212,7 +216,23 @@ It verifies the new release's attestation first, then rewrites the `amends` line
 
 **From 0.3.0 the workflow classes live in plural modules.** A Preset or `scaffold.pkl` that names `Config.Step`, `Config.Job`, `Config.Workflow` or `Config.GenFile`, or a bare `new GenFile`, no longer resolves. Import the module (`import "PKG#/Steps.pkl"`) and write `Steps.Step`, `Jobs.Job`, `Workflows.Workflow` and `GenFiles.GenFile`. `Presets.amendJob`, `amendStep` and `insertStepsBefore` are methods now: `w.amendJob(key, change)`, `j.amendStep(name, change)` and `j.insertStepsBefore(name, steps)`. An unchanged config renders the same files as 0.2.0 (`docs/presets.md` has the new spellings).
 
+**From 0.4.0 `release-automerge` is manual by default.** The Monday merge of the release pull request used to run unconditionally. It now runs only when the repository variable `RELEASE_AUTOMERGE_SCHEDULE` is `true` (Settings, Secrets and variables, Actions, Variables); a scheduled run with the variable off writes a notice to the run summary and merges nothing. A repository that relied on the Monday merge sets the variable once, or sets `options.releaseAutomerge = "always"` in `scaffold.pkl` to render today's unconditional schedule again. Without either, releases stop merging on their own and pile up. The same upgrade seeds `release-please-config.json` and `.release-please-manifest.json` where they do not exist (an existing file is never replaced; `options.seedReleaseConfig = false` leaves them alone) and renders `release-please.yml` with a header that says how the release is made.
+
 Releases before 0.1.5 had two `upgrade` bugs, and they are on the known-bad list. If you are on 0.1.3 or earlier, the old runner moves only the `amends` line: edit the `Builtins.pkl` import to the new version by hand before the first `upgrade`. If you are on 0.1.2, 0.1.3 or 0.1.4, the render at the end of `upgrade` is refused for `mise.toml` (exit 3), because the old runner did not record its pin edit: read the refusal, check that the only difference is the runner pin, and run `render --force`.
+
+## Releasing with release-please
+
+`release-please.yml` keeps one release pull request up to date; what happens after you merge it depends on `options.releaseShape`.
+
+| Shape | Who makes the GitHub Release | What the repository provides |
+|---|---|---|
+| `cargo-dist` (the default with `binary`) | cargo-dist, from its generated `release.yml`; release-please only tags (`tag-release.sh`) | `release-please-config.json` with `skip-github-release` |
+| `published` (the default without `binary`) | release-please, as a published release | nothing more |
+| `draft` | release-please makes the tag and a **draft** release; your own release workflow publishes the draft | a release workflow, named as below |
+
+The `draft` shape renders `.github/scripts/publish-release.sh` and nothing that calls it, because how a repository builds its assets is its own. The contract for your release workflow: it runs on the tag push `v[0-9]*` that release-please's App token makes, builds and attests the assets into one folder (`DIST_DIR`, default `dist`), and then runs `bash .github/scripts/publish-release.sh` with `GH_TOKEN` (`contents: write`), `GH_REPO` and `TAG` in its environment and optionally `RELEASE_NOTES` for the text above the changelog. The script uploads the assets to the draft and publishes it as a pre-release; with no draft it creates the pre-release; with a published release it stops. The config needs `draft`, `force-tag-creation` and `include-component-in-tag: false`, which the seeded file has. `options.versionFile` adds `release-bump.yml`, which waits for a workflow whose `name:` is `release`; it needs the version in exactly one line `version = "x.y.z"` and the comment `x-release-please-version` on that line for release-please.
+
+Seeded files are starters. Change them freely; the runner never rewrites a seed.
 
 ## Rolling back
 
@@ -221,6 +241,8 @@ mise x -- pantheon-scaffold upgrade OLDVERSION --force   # moves the pins; its r
 mise x -- pantheon-scaffold render scaffold.pkl --force  # renders the older package
 mise x -- pantheon-scaffold check scaffold.pkl
 ```
+
+Going back across 0.4.0 does not remove what the upgrade wrote: the seeded release-please files stay (delete them by hand if you do not want them), and the older `release-automerge.yml` returns with its unconditional Monday schedule.
 
 Rolling back is two steps on purpose: the runner refuses to render an older package than the one that last rendered, and `upgrade` does not pass `--force` on, because that would also overwrite hand edits. A release that turns out to be bad is superseded by the next patch version and listed in `known-bad.json`. It is never deleted or re-published.
 

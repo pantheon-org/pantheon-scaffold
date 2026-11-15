@@ -6,7 +6,6 @@ amends "pkl/Config.pkl"
 import "pkl/Builtins.pkl"
 import "presets/gitignore.pkl" as gitignore
 import "presets/own-deny.pkl" as ownDeny
-import "presets/release-automerge.pkl" as releaseAutomerge
 import "presets/rust-ci.pkl" as rustCi
 import "presets/scaffold-check.pkl" as scaffoldCheck
 
@@ -15,17 +14,20 @@ options {
   skills = false
   binary = false
   crateName = "pantheon-scaffold"
+  // Released as a draft by release-please and published by release.yml (docs/release-process.md); the version in pkl/PklProject is bumped after a release.
+  releaseShape = "draft"
+  versionFile = "pkl/PklProject"
+  versionCommitScope = "pkl"
 }
 
 presets {
   "presets/gitignore.pkl"
   "presets/own-deny.pkl"
-  "presets/release-automerge.pkl"
   "presets/rust-ci.pkl"
   "presets/scaffold-check.pkl"
 }
 
-workflows = releaseAutomerge.apply(scaffoldCheck.apply(rustCi.apply(Builtins.standardWorkflows(options))))
+workflows = scaffoldCheck.apply(rustCi.apply(Builtins.standardWorkflows(options)))
 
 // standardFiles does not render the scripts that the workflows run: baseFiles has those of rust-ci, cargo-deny and inline-scripts (and
 // deny.toml and rust-toolchain.toml), toolingFiles the others (and .rumdl.toml and the Claude Code settings).

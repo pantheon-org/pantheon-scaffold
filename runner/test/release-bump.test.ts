@@ -39,11 +39,15 @@ test("it checks out main without credentials, pins every action by SHA, and pass
 
 type Outcome = { code: number; calls: string; stderr: string };
 
-function runScript(o: { tag: string; tagSha?: string; headSha?: string; fileVersion: string; checks?: string; openPr?: boolean }): Outcome {
+function runScript(o: { tag: string; tagSha?: string; headSha?: string; fileVersion: string; checks?: string; openPr?: boolean; path?: string; fileText?: string; failPrCreate?: boolean }): Outcome {
   const dir = mkdtempSync(join(tmpdir(), "release-bump-"));
-  mkdirSync(join(dir, "pkl"));
-  const file = `@ModuleInfo { minPklVersion = "0.32.0" }\npackage {\n  version = "${o.fileVersion}" // x-release-please-version\n}\n`;
-  writeFileSync(join(dir, "pkl/PklProject"), file);
+  const path = o.path ?? "pkl/PklProject";
+  mkdirSync(join(dir, path, ".."), { recursive: true });
+  const file = o.fileText ?? `@ModuleInfo { minPklVersion = "0.32.0" }\npackage {\n  version = "${o.fileVersion}" // x-release-please-version\n}\n`;
+  writeFileSync(join(dir, path), file);
+  // The script is rendered for pkl/PklProject; a test of another path renders it again with that path.
+  const scriptPath = o.path ? join(dir, "release-bump.sh") : script;
+  if (o.path) writeFileSync(scriptPath, readFileSync(script, "utf8").replace("version_file='pkl/PklProject'", `version_file='${o.path}'`));
   const log = join(dir, "calls.log");
   const b64 = Buffer.from(file).toString("base64");
   const gh = join(dir, "gh");
@@ -54,17 +58,17 @@ echo "$*" >> "${log}"
 case "$1 $2" in
   "api repos/o/r/git/ref/tags/"*) echo '{"object":{"sha":"${o.tagSha ?? "abc123"}","type":"commit"}}' ;;
   "api repos/o/r/git/ref/heads/main") echo "mainsha" ;;
-  "api repos/o/r/contents/pkl/PklProject?ref="*) echo '{"sha":"blob1","content":"${b64}"}' ;;
+  "api repos/o/r/contents/"*"?ref="*) echo '{"sha":"blob1","content":"${b64}"}' ;;
   "pr list") ${o.openPr ? "echo 41" : "true"} ;;
-  "pr create") echo "https://github.com/o/r/pull/50" ;;
+  "pr create") ${o.failPrCreate ? "exit 1" : 'echo "https://github.com/o/r/pull/50"'} ;;
   "pr checks") echo '${o.checks ?? '["pass","pass"]'}' ;;
 esac
 exit 0
 `,
   );
   chmodSync(gh, 0o755);
-  const p = Bun.spawnSync(["bash", script], {
-    env: { PATH: `${dir}:${process.env.PATH}`, GH_REPO: "o/r", TAG: o.tag, TAG_SHA: o.headSha ?? "abc123", POLL_SECONDS: "0", GITHUB_STEP_SUMMARY: join(dir, "summary") },
+  const p = Bun.spawnSync(["bash", scriptPath], {
+    env: { PATH: `${dir}:${process.env.PATH}`, GH_REPO: "o/r", TAG: o.tag, TAG_SHA: o.headSha ?? "abc123", POLL_SECONDS: "0", MAX_POLLS: "3", GITHUB_STEP_SUMMARY: join(dir, "summary") },
     cwd: dir,
   });
   let calls = "";
@@ -129,4 +133,34 @@ test("an open pull request for the same branch is not duplicated", () => {
   const r = runScript({ tag: "v0.3.0", fileVersion: "0.3.0", openPr: true });
   expect(r.code).toBe(0);
   expect(r.calls).not.toContain("pr create");
+});
+
+test("a version file with a space and regex characters in its path is read, fetched and written with the path encoded", () => {
+  const r = runScript({ tag: "v0.3.0", fileVersion: "0.3.0", path: "a b/v[1].(x)+.toml" });
+  expect(r.stderr).toBe("");
+  expect(r.code).toBe(0);
+  expect(r.calls).toContain("contents/a%20b/v%5B1%5D.%28x%29%2B.toml?ref=chore/start-0.3.1");
+  const put = r.calls.split("\n").find((c) => c.includes("--method PUT"))!;
+  expect(Buffer.from(put.match(/content=(\S+)/)![1]!, "base64").toString()).toContain('version = "0.3.1"');
+});
+
+test("a version file with no version line, or with two, is refused before anything is created", () => {
+  for (const fileText of ["package {\n  name = \"x\"\n}\n", 'a {\n  version = "0.3.0"\n}\nb {\n  version = "0.3.0"\n}\n']) {
+    const r = runScript({ tag: "v0.3.0", fileVersion: "0.3.0", fileText });
+    expect(r.code, fileText).toBe(1);
+    expect(r.stderr).toContain("exactly one line");
+    expect(r.calls, fileText).not.toContain("git/refs");
+  }
+});
+
+test("a failure after the branch is made and before the pull request is open deletes the branch again", () => {
+  const r = runScript({ tag: "v0.3.0", fileVersion: "0.3.0", failPrCreate: true });
+  expect(r.code).not.toBe(0);
+  expect(r.calls).toContain("--method DELETE repos/o/r/git/refs/heads/chore/start-0.3.1");
+});
+
+test("a failure after the pull request is open leaves the branch alone", () => {
+  const r = runScript({ tag: "v0.3.0", fileVersion: "0.3.0", checks: '["fail"]' });
+  expect(r.code).toBe(1);
+  expect(r.calls).not.toContain("--method DELETE");
 });

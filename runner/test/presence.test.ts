@@ -48,7 +48,7 @@ test("the registry of builtin names in Shared.pkl is the list of folders under p
   const r = Bun.spawnSync(["pkl", "eval", "-f", "json", "--allowed-resources", "file:,prop:", f], { stdout: "pipe", stderr: "pipe" });
   expect(r.stderr.toString()).toBe("");
   expect([...(JSON.parse(r.stdout.toString()).names as string[])].sort()).toEqual(folders);
-  expect(folders).toHaveLength(28);
+  expect(folders).toHaveLength(29);
 });
 
 // What leaving each builtin out removes from the full render (skills and binary on), read from the render and checked against what the builtin
@@ -77,7 +77,9 @@ const EXPECTED: Record<string, { also?: string[]; removed: string[]; dependabot:
   "pull-request-template": { removed: [".github/pull_request_template.md"], dependabot: false },
   release: { removed: [`${WF}dist-check.yml`, `${WF}release.yml`, "dist-workspace.toml"], dependabot: true },
   "release-automerge": { removed: [`${SC}release-automerge.sh`, `${WF}release-automerge.yml`], dependabot: true },
-  "release-please": { removed: [`${SC}tag-release.sh`, `${WF}release-please.yml`], dependabot: true },
+  // Not rendered unless options.versionFile is set (the full render here does not set it), so leaving it out changes nothing; release-builtins.test.ts renders it.
+  "release-bump": { removed: [], dependabot: false },
+  "release-please": { removed: [`${SC}tag-release.sh`, `${WF}release-please.yml`, ".release-please-manifest.json", "release-please-config.json"], dependabot: true },
   rumdl: { removed: [".rumdl.toml"], dependabot: false },
   "rust-ci": { removed: [`${SC}check-toolchain-version.sh`, `${WF}rust-ci.yml`], dependabot: true },
   "rust-toolchain": { also: ["rust-ci"], removed: [`${SC}check-toolchain-version.sh`, `${WF}rust-ci.yml`, "rust-toolchain.toml"], dependabot: true },
@@ -98,7 +100,7 @@ const READ_PRESENCE = ["mise.toml", "hk.shared.pkl", "hk.pkl", ".rumdl.toml", ".
 
 test("leaving a builtin out removes what it owns, changes only dependabot.yml and the files that read presence, and adds nothing", async () => {
   const full = await render([]);
-  expect(full.size).toBe(49);
+  expect(full.size).toBe(51);
   for (const name of folders) {
     const { also = [], removed, dependabot } = EXPECTED[name]!;
     const r = await render([name, ...also]);

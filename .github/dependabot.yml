@@ -43,6 +43,7 @@ updates:
   - .github/workflows/sync-labels.yml
   - .github/workflows/pr-auto-rebase.yml
   - .github/workflows/release-automerge.yml
+  - .github/workflows/release-bump.yml
   - .github/workflows/commit-types.yml
   - .github/workflows/conventional-commits.yml
   - .github/workflows/release-please.yml

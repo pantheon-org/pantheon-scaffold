@@ -35,6 +35,7 @@ import "Builtins/release-please/Builtin.pkl" as releasePleaseBuiltin
 import "Builtins/commit-types/Builtin.pkl" as commitTypesBuiltin
 import "Builtins/conventional-commits/Builtin.pkl" as conventionalCommitsBuiltin
 import "Builtins/release-automerge/Builtin.pkl" as releaseAutomergeBuiltin
+import "Builtins/release-bump/Builtin.pkl" as releaseBumpBuiltin
 import "Builtins/pr-auto-rebase/Builtin.pkl" as prAutoRebaseBuiltin
 import "Builtins/sync-labels/Builtin.pkl" as syncLabelsBuiltin
 import "Builtins/inline-scripts/Builtin.pkl" as inlineScriptsBuiltin
@@ -101,6 +102,9 @@ function prAutoRebase(opts: Config.Options): Workflows.Workflow = prAutoRebaseBu
 
 /// Mondays: squash-merges the open release-please pull request, under the App token so the push to main starts release-please.
 function releaseAutomerge(opts: Config.Options): Workflows.Workflow = releaseAutomergeBuiltin.workflow(opts)
+
+/// After a verified release, bumps the version in `options.versionFile` through a pull request that the App token opens and merges. Needs `versionFile`.
+function releaseBump(opts: Config.Options): Workflows.Workflow = releaseBumpBuiltin.workflow(opts)
 
 /// Fails when the commit types copied into the title gate drift from .github/commit-types.txt.
 function commitTypes(): Workflows.Workflow = commitTypesBuiltin.workflow()
@@ -178,6 +182,7 @@ function parameterisedFiles(opts: Config.Options): Mapping<String, GenFiles.GenF
     when (p.has("coderabbit")) { ...coderabbitBuiltin.parameterisedFiles(opts) }
     when (p.has("security")) { ...securityBuiltin.parameterisedFiles(opts) }
     when (p.has("release-please")) { ...releasePleaseBuiltin.parameterisedFiles(opts) }
+    when (opts.versionFile != null && p.has("release-bump")) { ...releaseBumpBuiltin.parameterisedFiles(opts) }
   }
 
 /// Every workflow of the workflow layer for a repository with these options: the thirteen that every repository has, and `audit-skill` when
@@ -189,6 +194,7 @@ function standardWorkflows(opts: Config.Options): Mapping<String, Workflows.Work
     when (p.has("sync-labels")) { ["sync-labels"] = syncLabels() }
     when (p.has("pr-auto-rebase")) { ["pr-auto-rebase"] = prAutoRebase(opts) }
     when (p.has("release-automerge")) { ["release-automerge"] = releaseAutomerge(opts) }
+    when (opts.versionFile != null && p.has("release-bump")) { ["release-bump"] = releaseBump(opts) }
     when (p.has("commit-types")) { ["commit-types"] = commitTypes() }
     when (p.has("conventional-commits")) { ["conventional-commits"] = conventionalCommits() }
     when (p.has("release-please")) { ["release-please"] = releasePlease(opts) }

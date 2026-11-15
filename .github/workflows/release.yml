@@ -293,6 +293,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           TAG: ${{ github.ref_name }}
+          RELEASE_NOTES: "Pre-release of the package and the runner, released together. checksums.txt lists every file and carries a build provenance attestation: gh attestation verify checksums.txt --repo ${{ github.repository }}. What breaks when you upgrade, and the order to change it in, is under Upgrading: https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/docs/adopting.md#upgrading"
         run: bash .github/scripts/publish-release.sh
 
   verify-release:

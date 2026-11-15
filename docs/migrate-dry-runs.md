@@ -29,7 +29,7 @@ Every run exited 0 and gave the same output when run twice.
 
 **`new`** is the same in the three binary repositories: `scaffold-check.yml`, `.mise/conf.d/repo.toml`, `hk.shared.pkl` and `dist-check.yml`. The dev-kit has no binary, so no `dist-check.yml`.
 
-**`per-repo`** is what the standard set does not render: `release-please-config.json`, `.release-please-manifest.json`, `Cargo.toml`, `Cargo.lock`, `README.md`, `LICENSE`, plus `CLAUDE.md` (the three binary repositories), `action.yml` (skill-auditor) and `CHANGELOG.md` (dev-kit).
+**`per-repo`** is what the standard set does not render: `release-please-config.json` and `.release-please-manifest.json` (from 0.4.0 the standard set seeds starters when they do not exist, and never replaces an existing file), `Cargo.toml`, `Cargo.lock`, `README.md`, `LICENSE`, plus `CLAUDE.md` (the three binary repositories), `action.yml` (skill-auditor) and `CHANGELOG.md` (dev-kit).
 
 ## The drifted files, by cause
 

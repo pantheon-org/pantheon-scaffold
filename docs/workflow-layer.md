@@ -62,7 +62,8 @@ Decision 74 settled how the four repositories differ, so these builtins take opt
 
 | Builtin | Renders | What varies |
 |---|---|---|
-| `Builtins.releasePlease(options)` | `release-please.yml` | `binary`: with a binary it also checks out and runs `tag-release.sh`. `crateName` appears in the header comment only. |
+| `Builtins.releasePlease(options)` | `release-please.yml` | `binary`: with a binary it also checks out and runs `tag-release.sh`. `releaseShape` selects the header; `draft` also renders `publish-release.sh`; the seeds `release-please-config.json` and `.release-please-manifest.json` are rendered once (`seedReleaseConfig`). `crateName` appears in the header and in the cargo-dist seed. |
+| `Builtins.releaseBump(options)` | `release-bump.yml` | only with `versionFile` (and `releaseShape = "draft"`): sets the version in that file to the next patch after a verified release, through a pull request the App token opens and merges. Its script `release-bump.sh` is rendered from a template. |
 | `Builtins.zizmor(options)` | `zizmor.yml` | `binary`: reads `.github/zizmor.yml`. `compositeAction`: also scans `action.yml`. The command in the header follows both. |
 | `Builtins.agnix(options)` | `agnix.yml` | `skills`: the first sentence of the header. |
 | `Builtins.aislop()` | `aislop.yml` | nothing |

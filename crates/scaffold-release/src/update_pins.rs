@@ -432,6 +432,12 @@ pub fn execute(
     }
 }
 
+/// The token to send: `GITHUB_TOKEN` if it is set, otherwise `GH_TOKEN`, and none when what is chosen is empty. A `GITHUB_TOKEN` that is
+/// set but empty is chosen and so ends the search, like `??` in the TypeScript, which does not fall through on an empty string.
+pub fn token_from(github_token: Option<String>, gh_token: Option<String>) -> Option<String> {
+    github_token.or(gh_token).filter(|token| !token.is_empty())
+}
+
 /// `update-pins [options]`, with the real GitHub. Reads `GITHUB_TOKEN` (then `GH_TOKEN`) and `PANTHEON_SCAFFOLD_GITHUB_API`, which
 /// replaces the API address for tests, and `pkl/Pins.pkl` under `root` unless `--pins` names another file.
 pub fn command(args: &[&str], root: &Path, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
@@ -442,9 +448,10 @@ pub fn command(args: &[&str], root: &Path, out: &mut dyn Write, err: &mut dyn Wr
             return 2;
         }
     };
-    let token = std::env::var("GITHUB_TOKEN")
-        .or_else(|_| std::env::var("GH_TOKEN"))
-        .ok();
+    let token = token_from(
+        std::env::var("GITHUB_TOKEN").ok(),
+        std::env::var("GH_TOKEN").ok(),
+    );
     let base = std::env::var("PANTHEON_SCAFFOLD_GITHUB_API")
         .unwrap_or_else(|_| "https://api.github.com".to_owned());
     let api = GithubApi::new(&base, token, Duration::from_secs(2));

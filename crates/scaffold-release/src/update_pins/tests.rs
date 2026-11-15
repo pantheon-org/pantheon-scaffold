@@ -919,3 +919,15 @@ fn the_whole_update_runs_against_a_server_standing_in_for_github() {
         ]
     );
 }
+
+#[test]
+fn the_token_is_github_token_then_gh_token_and_an_empty_one_is_no_token() {
+    let some = |t: &str| Some(t.to_owned());
+    assert_eq!(token_from(some("a"), some("b")), some("a"));
+    assert_eq!(token_from(None, some("b")), some("b"));
+    assert_eq!(token_from(None, None), None);
+    // Empty but set: chosen, so it ends the search (like ?? in the TypeScript), and then it is no token.
+    assert_eq!(token_from(some(""), some("b")), None);
+    assert_eq!(token_from(None, some("")), None);
+    assert_eq!(token_from(some("a"), some("")), some("a"));
+}

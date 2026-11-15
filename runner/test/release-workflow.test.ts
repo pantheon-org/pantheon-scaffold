@@ -51,12 +51,32 @@ test("no run script interpolates text a pusher controls: tags, refs and inputs g
   }
 });
 
-test("only the release job creates a release, as a pre-release, and never on a dry run", () => {
-  const creators = allSteps.filter((s) => s.run?.includes("gh release create"));
-  expect(creators.map((s) => s.job)).toEqual(["release"]);
-  expect(creators[0].run).toContain("--prerelease");
-  expect(creators[0].run).toContain("--verify-tag");
-  expect(creators[0].if).toBe("github.event_name == 'push'");
+const publishScriptPath = join(import.meta.dir, "../../.github/scripts/publish-release.sh");
+const publishScript = readFileSync(publishScriptPath, "utf8");
+
+test("only the release job publishes, through publish-release.sh, and never on a dry run", () => {
+  const publishers = allSteps.filter((s) => s.run?.includes("publish-release.sh"));
+  expect(publishers.map((s) => s.job)).toEqual(["release"]);
+  expect(publishers[0].if).toBe("github.event_name == 'push'");
+  // No other step creates, edits or uploads to a release.
+  for (const s of allSteps.filter((s) => !s.run?.includes("publish-release.sh") && s.run)) {
+    expect(s.run, `${s.job}: ${s.name}`).not.toMatch(/gh release (create|edit|upload)|releases\/\$/);
+  }
+});
+
+test("publish-release.sh makes a pre-release, adopts only a draft for the tag, and never re-publishes", () => {
+  const creates = publishScript.split("\n").filter((l) => l.includes("gh release create"));
+  expect(creates).toHaveLength(1);
+  expect(creates[0]).toContain("--prerelease");
+  expect(creates[0]).toContain("--verify-tag");
+  // A draft is published only as a pre-release.
+  expect(publishScript).toMatch(/-F draft=false -F prerelease=true/);
+  expect(publishScript).toContain('select(.draft and .tag_name == \\"$TAG\\")');
+  // A published release stops it, and more than one draft stops it.
+  expect(publishScript).toMatch(/elif gh release view "\$TAG"[^\n]*\n[^\n]*never re-published[^\n]*\n\s*exit 1/);
+  expect(publishScript).toMatch(/-gt 1 \]; then[\s\S]*exit 1/);
+  expect(publishScript).not.toMatch(/--clobber|--draft=false/);
+  expect(publishScript).not.toContain("gh release delete");
 });
 
 test("the attestation is made only on a real release, and covers the assets", () => {
@@ -209,8 +229,7 @@ test("verify-release imports Builtins from the same package URI, with the same c
 // The notes of a release are the only text a consumer sees on the release page, so they link the Upgrading section, and promote must keep that
 // sentence: it rewrites only the leading "Pre-release of".
 test("the release notes start with the pre-release wording, link the Upgrading section, and keep the link when promoted", () => {
-  const text = readFileSync(path, "utf8");
-  const notes = text.match(/--notes "([^"]*)"/)![1]!;
+  const notes = publishScript.match(/^notes="([^"]*)"/m)![1]!;
   expect(notes.startsWith("Pre-release of ")).toBe(true);
   expect(notes).toContain("https://github.com/$GH_REPO/blob/$TAG/docs/adopting.md#upgrading");
   expect(notes).not.toMatch(/[`]|\$\(|\$\{/);

@@ -45,6 +45,8 @@ The four toggles are options of `scaffold.pkl`: `skills`, `binary`, `features` a
 | `features` | none | `default` | `all` changes `rust-ci.yml` only (and the hook steps, which are not part of the standard files) |
 | `compositeAction` | none | `false` | `true` changes `audit-skill.yml` (the repository's own action), `zizmor.yml` and `.github/zizmor.yml` (which also scan `action.yml`) |
 
+The release options are not toggles, and they remove nothing: `releaseShape` (`cargo-dist`, `published` or `draft`, default from `binary`), `releaseAutomerge` (`variable` or `always`), `versionFile` with `versionCommitScope`, and `seedReleaseConfig`. `releaseShape` selects the header of `release-please.yml`, `draft` adds `publish-release.sh`, `versionFile` adds `release-bump.yml` and `release-bump.sh` (the `release-bump` builtin; it needs `releaseShape = "draft"`), and the seeds `release-please-config.json` and `.release-please-manifest.json` come with `release-please` unless `seedReleaseConfig` is false. An option combination that cannot work stops the render with an error that names the options, whichever builtin is rendered. See [adopting.md](adopting.md#releasing-with-release-please).
+
 A toggle that needs a name and does not get one stops the render with an error that names the option and the way out: `options.skillName is required when options.skills is true ... Set skillName, or set skills = false.` Turning `skills` or `binary` off needs no name.
 
 A toggle stays inside the builtins it switches: `binary` off does not leave `actionlint` out of `mise.toml` or the hook steps, and `skills` off does not leave `agnix` out. `options.without` is separate: it names whole builtins ([adopting.md](adopting.md#leaving-builtins-out-optionswithout)). A name that a toggle already removes (`audit-skill` with `skills = false`, `release` with `binary = false`) is allowed and changes nothing.
@@ -107,7 +109,7 @@ script names a tool outside its comments whose builtin is not an owner.
 | `hk` | `hk` | the hooks and the `setup` and `check` tasks |
 | `yq` | `hk`, `inline-scripts` | the `yamllint` hook step, and `check-inline-scripts.sh` |
 | `shellcheck` | `actionlint`, `hk` | actionlint shells out to it, and the `shellcheck` hook step |
-| `jq` | `agnix`, `inline-scripts`, `release-automerge` | the three scripts that call it |
+| `jq` | `agnix`, `inline-scripts`, `release-automerge`, `release-bump`, `release-please` | the scripts that call it |
 | `pkl`, the runner | always | the runner starts pkl, and `scaffold-check` and `upgrade` run the runner |
 
 ### Which text is conditional, and which is kept

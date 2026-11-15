@@ -184,7 +184,7 @@ A revert pull request restores the repository. It does not undo what a workflow 
 
 ## Not checked
 
-- The release flow changed on `main` while this plan was written: release-please (#125) now owns the version, the tag and a draft release, and `release.yml` publishes through `.github/scripts/publish-release.sh`. The review of the release path (dry-run limits, rollback, the order of Phase 1 and 2) was done on the flow before #125 and must be re-read against `docs/release-process.md` before Phase 1 starts.
+- The release flow changed on `main` while this plan was written: release-please (#125) now owns the version, the tag and a draft release, and `release.yml` publishes through `.github/scripts/publish-release.sh` (from 0.4.0 rendered from the `release-please` Builtin for the `draft` shape, with `RELEASE_NOTES` and `DIST_DIR` in the environment). The review of the release path (dry-run limits, rollback, the order of Phase 1 and 2) was done on the flow before #125 and must be re-read against `docs/release-process.md` before Phase 1 starts.
 - Behavioural parity of the Rust twins beyond what the review found (Phase 0).
 - Whether `cargo-deny` accepts an HTTP or a TOML crate, and which crates have a `build.rs` (Phase 0).
 - Whether other `pantheon-org` repositories call these scripts. A search of the local checkouts found nothing; the organisation-wide search is Phase 0.

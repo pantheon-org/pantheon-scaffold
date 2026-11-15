@@ -2,17 +2,20 @@
 #
 # publish-release.sh
 #
-# Publishes the pre-release for a tag. Run by the release job of release.yml on a tag push,
-# after the assets are attested.
-#   - release-please made a draft for the tag: upload the assets to it, then publish it as a
-#     pre-release, keeping the draft's changelog body under the usual notes.
-#   - nothing exists for the tag (a tag pushed by hand): create the pre-release, as before.
+# Publishes the pre-release for a tag. Run by the repository's own release workflow on a tag push, after it has built
+# and attested the assets in DIST_DIR (the "draft" release shape of the release-please builtin; docs/adopting.md says how
+# to wire it).
+#   - release-please made a draft for the tag: upload the assets to it, then publish it as a pre-release, keeping the
+#     draft's changelog body under RELEASE_NOTES.
+#   - nothing exists for the tag (a tag pushed by hand): create the pre-release.
 #   - a published release already exists: stop. A published version is never re-published.
-# Env: GH_TOKEN (needs contents: write), GH_REPO (owner/name), TAG (the pushed tag)
+# Env: GH_TOKEN (needs contents: write), GH_REPO (owner/name), TAG (the pushed tag),
+#      DIST_DIR (the folder with the assets, default dist), RELEASE_NOTES (the text above the changelog, optional)
 
 set -euo pipefail
 
-notes="Pre-release of the package and the runner, released together. checksums.txt lists every file and carries a build provenance attestation: gh attestation verify checksums.txt --repo $GH_REPO. What breaks when you upgrade, and the order to change it in, is under Upgrading: https://github.com/$GH_REPO/blob/$TAG/docs/adopting.md#upgrading"
+dist_dir="${DIST_DIR:-dist}"
+notes="${RELEASE_NOTES:-Pre-release $TAG of $GH_REPO.}"
 title="$TAG (pre-release)"
 
 # The draft is looked up by tag in the list of releases and then used by its id.
@@ -25,12 +28,12 @@ fi
 
 if [ "$count" -eq 1 ]; then
   body="$(gh api "repos/$GH_REPO/releases/$ids" --jq .body)"
-  gh release upload "$TAG" dist/*
+  gh release upload "$TAG" "$dist_dir"/*
   gh api --method PATCH "repos/$GH_REPO/releases/$ids" -F draft=false -F prerelease=true -f name="$title" -f body="$notes"$'\n\n'"$body" > /dev/null
   echo "Published the release-please draft for $TAG as a pre-release." >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
 elif gh release view "$TAG" > /dev/null 2>&1; then
   echo "A release for $TAG already exists. A published version is never re-published: use a new patch version." >&2
   exit 1
 else
-  gh release create "$TAG" dist/* --verify-tag --prerelease --title "$title" --notes "$notes"
+  gh release create "$TAG" "$dist_dir"/* --verify-tag --prerelease --title "$title" --notes "$notes"
 fi

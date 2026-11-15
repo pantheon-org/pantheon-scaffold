@@ -1,0 +1,80 @@
+/// The release-bump builtin. `Builtins.pkl` re-exports it; import `Builtins.pkl`, not this file.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.builtins.ReleaseBump
+
+import "../../Config.pkl"
+import "../../GenFiles.pkl"
+import "../../Pins.pkl"
+import "../../Steps.pkl"
+import "../../Values.pkl"
+import "../../Workflows.pkl"
+import "../Shared.pkl"
+
+/// After a release run that published and verified a plain vX.Y.Z tag, opens a pull request that sets the version in `options.versionFile` to the
+/// next patch, and squash-merges it once its checks are green. Present only when `options.versionFile` is set (docs/release-process.md). It runs
+/// from main, never checks out or runs code from a pull request, and stops with a visible notice when there is nothing to do. A failed release
+/// gets no bump.
+function workflow(opts: Config.Options): Workflows.Workflow = new {
+  header = #"""
+    After a release run that published and verified a plain vX.Y.Z tag, opens a pull request that sets
+    the version in \#(opts.versionFile) to the next patch, and squash-merges it once its checks are
+    green. Without it the first change after a release would fail the build, because a published version
+    cannot be rebuilt with different contents. It runs from main, never checks out or runs code from a
+    pull request, and stops with a visible notice when there is nothing to do. A failed release gets no bump.
+    Needs the org secret GH_APP_PRIVATE_KEY.
+    """#
+  onComment = "zizmor: ignore[dangerous-triggers] runs from main only, on the release workflow's own tag run, and executes nothing from a pull request"
+  name = "release-bump"
+  on = new Mapping<String, Any?> {
+    ["workflow_run"] = new Mapping {
+      ["workflows"] = new Listing { Values.releaseWorkflowName[opts.resolvedReleaseShape()] }
+      ["types"] = new Listing { "completed" }
+    }
+  }
+  permissions = new Mapping {}
+  concurrency = new Mapping {
+    ["group"] = "release-bump"
+    ["cancel-in-progress"] = false
+  }
+  jobs {
+    ["bump"] {
+      name = "Bump the version after a release"
+      `if` = "github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'"
+      `timeout-minutes` = Values.releaseBumpWaitMinutes + 15
+      permissions = Shared.readOnly
+      steps {
+        Shared.mintToken(opts)
+        new {
+          uses = Pins.checkout
+          `with` = new Mapping {
+            ["ref"] = "main"
+            ["persist-credentials"] = false
+          }
+        }
+        new {
+          name = "Open and merge the version bump"
+          env = new Mapping {
+            ["GH_TOKEN"] = "${{ steps.app-token.outputs.token }}"
+            ["GH_REPO"] = "${{ github.repository }}"
+            ["TAG"] = "${{ github.event.workflow_run.head_branch }}"
+            ["TAG_SHA"] = "${{ github.event.workflow_run.head_sha }}"
+          }
+          run = "bash .github/scripts/release-bump.sh"
+        }
+      }
+    }
+  }
+}
+
+/// The script the workflow runs, with the version file, the commit type and scope, and the waiting time filled in. Owned by the runner.
+function parameterisedFiles(opts: Config.Options): Mapping<String, GenFiles.GenFile> = new {
+  [".github/scripts/release-bump.sh"] = new GenFiles.GenFile {
+    template = read("assets/release-bump.sh.j2").text
+    context = new Mapping {
+      ["version_file"] = opts.versionFile
+      ["type_scope"] = if (opts.versionCommitScope != null) "chore(\(opts.versionCommitScope))" else "chore"
+      ["wait_minutes"] = Values.releaseBumpWaitMinutes
+    }
+    executable = true
+  }
+}

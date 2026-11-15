@@ -4,46 +4,82 @@ module pantheon.scaffold.builtins.ReleaseAutomerge
 
 import "../../Config.pkl"
 import "../../GenFiles.pkl"
+import "../../Steps.pkl"
+import "../../Values.pkl"
 import "../../Workflows.pkl"
 import "../Shared.pkl"
 
-/// Mondays: squash-merges the open release-please pull request, under the App token so the push to main starts release-please.
-function workflow(opts: Config.Options): Workflows.Workflow = new {
-  header = #"""
-    Mondays: squash-merges the open release-please PR so a release lands without a
-    human clicking merge. The merge runs under the pantheon-ai-bot App token so the
-    push to main fires release-please.yml, which then tags the version.
-    Ported from pantheon-org/tekhne. Needs the org secret GH_APP_PRIVATE_KEY.
-    """#
-  name = "Release Auto-merge"
-  on = new Mapping<String, Any?> {
-    ["schedule"] = new Listing { new Mapping { ["cron"] = "37 8 * * 1" } }
-    ["workflow_dispatch"] = new Mapping {}
-  }
-  permissions = Shared.readOnly
-  concurrency = new Mapping {
-    ["group"] = "release-automerge"
-    ["cancel-in-progress"] = false
-  }
-  jobs {
-    ["automerge"] {
-      name = "Merge open release PR"
-      `timeout-minutes` = 5
-      steps {
-        Shared.mintToken(opts)
-        Shared.checkoutScripts
-        new {
-          name = "Merge open release-please PR"
-          env = new Mapping {
-            ["GH_TOKEN"] = "${{ steps.app-token.outputs.token }}"
-            ["GH_REPO"] = "${{ github.repository }}"
+/// Squash-merges the open release-please pull request, under the App token so the push to main starts release-please. By default
+/// (`options.releaseAutomerge = "variable"`) it runs by hand, and the Monday schedule only when the repository variable is `true`; with `"always"`
+/// the schedule always runs.
+function workflow(opts: Config.Options): Workflows.Workflow =
+  let (scheduled = opts.releaseAutomerge == "variable")
+  let (gate = (s: Steps.Step) -> if (scheduled) (s) { `if` = "steps.gate.outputs.run == 'true'" } else s)
+  new {
+    header =
+      if (scheduled) #"""
+        Squash-merges the open release-please PR under the pantheon-ai-bot App token, so the
+        push to main fires release-please.yml, which then tags the version. Merging the
+        release PR is the go for a release, so this runs only by hand (Run workflow) unless
+        the repository variable \#(Values.releaseAutomergeVariable) is set to true: then the
+        Monday schedule merges the release PR when there is one, which is only when there are
+        releasable commits. A scheduled run with the variable off ends with a notice in the
+        run summary and merges nothing. Needs the org secret GH_APP_PRIVATE_KEY.
+        """#
+      else #"""
+        Mondays: squash-merges the open release-please PR so a release lands without a
+        human clicking merge. The merge runs under the pantheon-ai-bot App token so the
+        push to main fires release-please.yml, which then tags the version.
+        Ported from pantheon-org/tekhne. Needs the org secret GH_APP_PRIVATE_KEY.
+        """#
+    name = "Release Auto-merge"
+    on = new Mapping<String, Any?> {
+      ["schedule"] = new Listing { new Mapping { ["cron"] = "37 8 * * 1" } }
+      ["workflow_dispatch"] = new Mapping {}
+    }
+    permissions = Shared.readOnly
+    concurrency = new Mapping {
+      ["group"] = "release-automerge"
+      ["cancel-in-progress"] = false
+    }
+    jobs {
+      ["automerge"] {
+        name = "Merge open release PR"
+        `timeout-minutes` = 5
+        steps {
+          when (scheduled) {
+            new {
+              name = "Decide whether to run"
+              id = "gate"
+              env = new Mapping {
+                ["EVENT_NAME"] = "${{ github.event_name }}"
+                ["SCHEDULE_SWITCH"] = "${{ vars.\(Values.releaseAutomergeVariable) }}"
+              }
+              run = #"""
+                if [ "$EVENT_NAME" = schedule ] && [ "$SCHEDULE_SWITCH" != true ]; then
+                  echo "run=false" >> "$GITHUB_OUTPUT"
+                  echo "::notice::Scheduled run skipped: set the repository variable \#(Values.releaseAutomergeVariable) to true to merge release PRs on Mondays."
+                  echo "Scheduled run skipped: set the repository variable \#(Values.releaseAutomergeVariable) to true to merge release PRs on Mondays." >> "$GITHUB_STEP_SUMMARY"
+                else
+                  echo "run=true" >> "$GITHUB_OUTPUT"
+                fi
+                """#
+            }
           }
-          run = "bash .github/scripts/release-automerge.sh"
+          gate.apply(Shared.mintToken(opts))
+          gate.apply(Shared.checkoutScripts)
+          gate.apply(new Steps.Step {
+            name = "Merge open release-please PR"
+            env = new Mapping {
+              ["GH_TOKEN"] = "${{ steps.app-token.outputs.token }}"
+              ["GH_REPO"] = "${{ github.repository }}"
+            }
+            run = "bash .github/scripts/release-automerge.sh"
+          })
         }
       }
     }
   }
-}
 
 /// The verbatim file of this builtin that `toolingFiles()` renders.
 function toolingFiles(): Mapping<String, GenFiles.GenFile> = new {

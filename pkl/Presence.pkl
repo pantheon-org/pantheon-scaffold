@@ -28,6 +28,7 @@ const builtinNames: List<String> = List(
   "pull-request-template",
   "release",
   "release-automerge",
+  "release-bump",
   "release-please",
   "rumdl",
   "rust-ci",
@@ -80,7 +81,7 @@ const toolOwners: Map<String, List<String>> = Map(
   "hk", List("hk"),
   "yq", List("hk", "inline-scripts"),
   "shellcheck", List("actionlint", "hk"),
-  "jq", List("agnix", "inline-scripts", "release-automerge")
+  "jq", List("agnix", "inline-scripts", "release-automerge", "release-bump", "release-please")
 )
 
 const alwaysTools: List<String> = List("pkl", "runner")
@@ -125,4 +126,21 @@ class Present {
 
 /// The `Present` value for these options. Reading it fails when `options.without` is invalid (see `Present.checked`).
 function forOptions(opts: Config.Options): Present =
-  new Present { without = (new Present { without = opts.without.toList() }).checked }
+  let (checked = (new Present { without = opts.without.toList() }).checked)
+  let (problem = optionProblem(opts, checked))
+  if (problem != null) throw(problem) else new Present { without = checked }
+
+/// What is wrong with the release options, or null. They are checked here because every aggregator reads `forOptions`, and pkl only evaluates
+/// what something reads.
+local function optionProblem(opts: Config.Options, without: List<String>): String? =
+  if (opts.releaseShape == "draft" && opts.binary)
+    "options.releaseShape = \"draft\" cannot be used with options.binary = true: cargo-dist creates the GitHub Release of a repository with a binary. Use releaseShape = \"cargo-dist\" (or leave it unset), or set binary = false."
+  else if (opts.versionCommitScope != null && opts.versionFile == null)
+    "options.versionCommitScope is set but options.versionFile is not: the scope is only used by the release-bump workflow, which needs versionFile."
+  else if (opts.versionFile != null && opts.resolvedReleaseShape() != "draft")
+    "options.versionFile needs options.releaseShape = \"draft\": the release-bump workflow waits for the release workflow that publishes a release-please draft, and only that shape is supported. This repository's release shape is \"\(opts.resolvedReleaseShape())\"."
+  else if (opts.versionFile != null && (opts.versionFile.contains("'") || opts.versionFile.contains("\n") || opts.versionFile.startsWith("/") || opts.versionFile.contains("..")))
+    "options.versionFile must be a plain path inside the repository: no single quote, no newline, no leading slash and no \"..\", because the release-bump script and its API calls use it as written."
+  else if (opts.versionFile != null && without.contains("release-bump"))
+    "options.versionFile is set but options.without leaves out \"release-bump\", which is the builtin that uses it. Remove one of the two."
+  else null

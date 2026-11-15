@@ -46,7 +46,7 @@ test("a tool is present while any of its owners is, and gone when all are left o
   expect(flags(["hk"]).tools).toMatchObject({ hk: false, yq: true, shellcheck: true });
   expect(flags(["hk", "inline-scripts"]).tools).toMatchObject({ yq: false, jq: true });
   expect(flags(["hk", "actionlint"]).tools.shellcheck).toBe(false);
-  expect(flags(["agnix", "inline-scripts", "release-automerge"]).tools.jq).toBe(false);
+  expect(flags(["agnix", "inline-scripts", "release-automerge", "release-bump", "release-please"]).tools.jq).toBe(false);
 });
 
 test("pkl and the runner are always pinned", () => {
@@ -161,9 +161,10 @@ for (const c of CASES) {
   });
 }
 
-test("jq goes only when all three of its owners are left out", async () => {
+test("jq goes only when all five of its owners are left out", async () => {
   expect(toolKeys(await mise(["agnix", "inline-scripts"]))).toContain("jq");
-  expect(toolKeys(await mise(["agnix", "inline-scripts", "release-automerge"]))).not.toContain("jq");
+  expect(toolKeys(await mise(["agnix", "inline-scripts", "release-automerge"]))).toContain("jq");
+  expect(toolKeys(await mise(["agnix", "inline-scripts", "release-automerge", "release-bump", "release-please"]))).not.toContain("jq");
 });
 
 test("the rust comment names check-toolchain-version.sh only with rust-ci, and the actionlint comment names zizmor only with zizmor", async () => {

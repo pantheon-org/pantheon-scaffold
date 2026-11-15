@@ -10,12 +10,15 @@ import "../../Pins.pkl"
 import "../Shared.pkl"
 
 /// Keeps one rolling release pull request up to date and tags releases, under the App token so the tag starts the release workflow. With a
-/// binary (`options.binary`) it also tags the crate version itself when it has no tag yet (the script tag-release.sh).
+/// binary (`options.binary`) it also tags the crate version itself when it has no tag yet (the script tag-release.sh). The header says how the
+/// release is made (`options.releaseShape`).
 function workflow(opts: Config.Options): Workflows.Workflow =
   let (crate = opts.crateName ?? "crate")
+  let (shape = opts.resolvedReleaseShape())
+  let (versionNote = if (opts.versionFile != null) "\nThe version line of \(opts.versionFile) is updated through the x-release-please-version\ncomment on it." else "")
   new {
     header =
-      if (opts.binary) #"""
+      if (shape == "cargo-dist") #"""
         Keeps one rolling release PR up to date on every push to main (version bump in
         crates/\#(crate)/Cargo.toml and Cargo.lock, plus CHANGELOG.md, from conventional
         commits). Once that PR is merged, the same run tags the new version, and the tag
@@ -26,6 +29,17 @@ function workflow(opts: Config.Options): Workflows.Workflow =
         Uses the pantheon-ai-bot App token because pushes made with GITHUB_TOKEN do not
         trigger other workflows, so the tag would never start release.yml.
         Needs the org secret GH_APP_PRIVATE_KEY.
+        """#
+      else if (shape == "draft") #"""
+        Keeps one rolling release PR up to date on every push to main (the version, plus
+        CHANGELOG.md and the manifest, from conventional commits). When that PR is merged
+        the same run creates the vX.Y.Z tag and a DRAFT release (draft and force-tag-creation
+        in release-please-config.json). The tag starts the release workflow of the repository,
+        which builds the assets and publishes the draft as a pre-release with
+        .github/scripts/publish-release.sh.\#(versionNote)
+
+        Uses the pantheon-ai-bot App token because a tag created with GITHUB_TOKEN does not
+        trigger other workflows. Needs the org secret GH_APP_PRIVATE_KEY.
         """#
       else #"""
         Keeps one rolling release PR up to date on every push to main (version bump in
@@ -84,14 +98,100 @@ local function bareCheckout(stepName: String): Steps.Step = new {
   `with` = new Mapping { ["persist-credentials"] = false }
 }
 
-/// The release tagging script that `parameterisedFiles()` renders for a repository with a binary: the `release-please` workflow runs it (the step above)
-/// to tag the crate version when it has no tag yet. It names the crate.
+local json: JsonRenderer = new JsonRenderer { indent = "  " }
+
+local const schemaUrl: String = "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json"
+
+/// The starter release-please-config.json for the release shape. Seeded: written once, so a repository's own file is never replaced. The cargo-dist
+/// shape follows the four existing repositories (the crate under crates/, tagged without its name, no GitHub Release made by release-please); the
+/// draft shape is the configuration of this repository.
+local function releaseConfig(opts: Config.Options): String =
+  let (shape = opts.resolvedReleaseShape())
+  let (crate = opts.crateName)
+  let (cfg =
+    if (shape == "cargo-dist")
+      new Mapping<String, Any> {
+        ["$schema"] = schemaUrl
+        ["include-component-in-tag"] = false
+        ["bump-minor-pre-major"] = true
+        ["bump-patch-for-minor-pre-major"] = false
+        ["skip-github-release"] = true
+        ["packages"] = new Mapping {
+          ["crates/\(crate ?? "crate")"] = new Mapping {
+            ["release-type"] = "rust"
+            ["package-name"] = crate ?? "crate"
+            ["changelog-path"] = "CHANGELOG.md"
+            ["extra-files"] = new Listing {
+              new Mapping {
+                ["type"] = "toml"
+                ["path"] = "/Cargo.lock"
+                ["jsonpath"] = "$.package[?(@.name.value=='\(crate ?? "crate")')].version"
+              }
+            }
+          }
+        }
+      }
+    else if (shape == "draft")
+      new Mapping<String, Any> {
+        ["$schema"] = schemaUrl
+        ["release-type"] = "simple"
+        ["bump-minor-pre-major"] = true
+        ["bump-patch-for-minor-pre-major"] = true
+        ["draft"] = true
+        ["force-tag-creation"] = true
+        ["include-component-in-tag"] = false
+        ["packages"] = new Mapping {
+          ["."] = new Mapping {
+            when (crate != null) { ["package-name"] = crate }
+            when (opts.versionFile != null) {
+              ["extra-files"] = new Listing {
+                new Mapping {
+                  ["type"] = "generic"
+                  ["path"] = opts.versionFile
+                }
+              }
+            }
+          }
+        }
+      }
+    else
+      new Mapping<String, Any> {
+        ["$schema"] = schemaUrl
+        ["include-component-in-tag"] = false
+        ["bump-minor-pre-major"] = true
+        ["bump-patch-for-minor-pre-major"] = false
+        ["packages"] = new Mapping {
+          ["."] = new Mapping {
+            ["release-type"] = "simple"
+            ["changelog-path"] = "CHANGELOG.md"
+          }
+        }
+      })
+  json.renderValue(cfg) + "\n"
+
+/// The files of this builtin that `parameterisedFiles()` of Builtins.pkl renders: the release tagging script for a repository with a binary (the
+/// `release-please` workflow runs it to tag the crate version when it has no tag yet; it names the crate), `publish-release.sh` for the draft shape
+/// (the repository's release workflow runs it on the tag), and the seeded starter files release-please-config.json and
+/// .release-please-manifest.json (unless `options.seedReleaseConfig` is false).
 function parameterisedFiles(opts: Config.Options): Mapping<String, GenFiles.GenFile> = new {
   when (opts.binary) {
     [".github/scripts/tag-release.sh"] = new GenFiles.GenFile {
       template = read("assets/tag-release.sh.j2").text
       context = new Mapping { ["crate"] = opts.requireCrateName() }
       executable = true
+    }
+  }
+  when (opts.resolvedReleaseShape() == "draft") {
+    [".github/scripts/publish-release.sh"] = new GenFiles.GenFile {
+      content = read("assets/publish-release.sh").text
+      executable = true
+    }
+  }
+  when (opts.seedReleaseConfig) {
+    ["release-please-config.json"] = new GenFiles.GenFile { `class` = "seed"; content = releaseConfig(opts) }
+    [".release-please-manifest.json"] = new GenFiles.GenFile {
+      `class` = "seed"
+      content = json.renderValue(new Mapping<String, String> { ["."] = "0.0.0" }) + "\n"
     }
   }
 }

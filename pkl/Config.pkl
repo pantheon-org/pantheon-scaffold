@@ -46,6 +46,25 @@ class Options {
   /// an error that names both. A name that is not a builtin, or one listed twice, is an error. Only the aggregators read it: calling a single builtin
   /// function (`rustCi(opts)`) still renders it, and not spreading an aggregator is not leaving its builtins out.
   without: Listing<String> = new {}
+  /// How a release is made, for the header of release-please.yml and for the files that go with it. `cargo-dist`: cargo-dist creates the GitHub Release
+  /// and release-please only tags (tag-release.sh). `published`: release-please publishes the release itself. `draft`: release-please makes the tag and a
+  /// draft release, and the repository's own release workflow runs `.github/scripts/publish-release.sh` on the tag to publish it. Left unset it follows
+  /// `binary`: `cargo-dist` with a binary, otherwise `published`. `draft` cannot be used with a binary.
+  releaseShape: ("cargo-dist"|"published"|"draft")?
+  /// `variable`: the Monday schedule of release-automerge.yml only runs when the repository variable RELEASE_AUTOMERGE_SCHEDULE is `true`, so a release
+  /// pull request is merged by hand unless the repository switches the schedule on. `always`: the schedule always runs, as it did before.
+  releaseAutomerge: ("variable"|"always") = "variable"
+  /// The file whose `version = "x.y.z"` line the release-bump workflow sets to the next patch after a release, for a repository that cannot rebuild a
+  /// published version (a pkl package). Needs `releaseShape = "draft"`. Unset, the release-bump builtin renders nothing.
+  versionFile: String?
+  /// The commit scope of the release-bump pull request, for example `pkl` gives `chore(pkl): start 1.2.4`. Needs `versionFile`.
+  versionCommitScope: String?
+  /// Whether release-please-config.json and .release-please-manifest.json are seeded (written once, never overwritten). Set it to false when the
+  /// repository keeps its release-please configuration somewhere else.
+  seedReleaseConfig: Boolean = true
+
+  /// `releaseShape`, or the shape that follows from `binary`.
+  function resolvedReleaseShape(): String = releaseShape ?? (if (binary) "cargo-dist" else "published")
 
   /// `skillName`, or an error that says why it is needed. Read by the builtins that name the skill folder.
   function requireSkillName(): String =

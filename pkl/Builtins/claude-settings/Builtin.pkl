@@ -2,12 +2,12 @@
 @ModuleInfo { minPklVersion = "0.32.0" }
 module pantheon.scaffold.builtins.ClaudeSettings
 
-import "../../Config.pkl"
+import "../../GenFiles.pkl"
 import "../../Values.pkl"
 
 /// The file of this builtin that `toolingFiles()` renders.
-function toolingFiles(): Mapping<String, Config.GenFile> = new {
-  [".claude/settings.json"] = new Config.GenFile {
+function toolingFiles(): Mapping<String, GenFiles.GenFile> = new {
+  [".claude/settings.json"] = new GenFiles.GenFile {
     template = read("assets/claude-settings.json.j2").text
     context = new Mapping {
       ["schemaUrl"] = Values.claudeSettingsSchemaUrl

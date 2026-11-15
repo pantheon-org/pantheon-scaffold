@@ -3,6 +3,8 @@
 module pantheon.scaffold.builtins.Agnix
 
 import "../../Config.pkl"
+import "../../GenFiles.pkl"
+import "../../Workflows.pkl"
 import "../../Values.pkl"
 import "../../Pins.pkl"
 import "../../Tools.pkl"
@@ -10,7 +12,7 @@ import "../Shared.pkl"
 
 /// Lints the skill (or the agent files) with agnix. The pinned release is downloaded from its public URL and checked against a pinned SHA-256.
 /// A pull request fails only on an error it introduces.
-function workflow(opts: Config.Options): Config.Workflow =
+function workflow(opts: Config.Options): Workflows.Workflow =
   let (lead = if (opts.skills) "Lints the bundled skill with agnix (https://github.com/agent-sh/agnix) against" else "Lints agent skills and agent config files with agnix (https://github.com/agent-sh/agnix) against")
   new {
     header = #"""
@@ -162,15 +164,15 @@ function workflow(opts: Config.Options): Config.Workflow =
   }
 
 /// The verbatim files of this builtin that `toolingFiles()` renders.
-function toolingFiles(): Mapping<String, Config.GenFile> = new {
-  [".github/scripts/agnix-assemble-comment.sh"] = new Config.GenFile { content = read("assets/agnix-assemble-comment.sh").text; executable = true }
-  [".github/scripts/agnix-file-issues.sh"] = new Config.GenFile { content = read("assets/agnix-file-issues.sh").text; executable = true }
-  [".github/scripts/agnix-introduced-errors.sh"] = new Config.GenFile { content = read("assets/agnix-introduced-errors.sh").text; executable = true }
+function toolingFiles(): Mapping<String, GenFiles.GenFile> = new {
+  [".github/scripts/agnix-assemble-comment.sh"] = new GenFiles.GenFile { content = read("assets/agnix-assemble-comment.sh").text; executable = true }
+  [".github/scripts/agnix-file-issues.sh"] = new GenFiles.GenFile { content = read("assets/agnix-file-issues.sh").text; executable = true }
+  [".github/scripts/agnix-introduced-errors.sh"] = new GenFiles.GenFile { content = read("assets/agnix-introduced-errors.sh").text; executable = true }
 }
 
 /// The `.agnix.toml` that `analysisFiles()` renders; the first line depends on whether the repository has a skill.
-function analysisFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
-  [".agnix.toml"] = new Config.GenFile {
+function analysisFiles(opts: Config.Options): Mapping<String, GenFiles.GenFile> = new {
+  [".agnix.toml"] = new GenFiles.GenFile {
     template = read("assets/agnix.toml.j2").text
     context = new Mapping {
       ["skills"] = opts.skills

@@ -1,0 +1,50 @@
+/// The workflow step class. `Step` is a class-as-a-function (https://pkl-lang.org/blog/class-as-a-function.html): the typed keys are the inputs, the
+/// `fixed` properties are the outputs, and amending a step (`(step) { run = "..." }`) recomputes them. Use it as `import "Steps.pkl"` and
+/// `new Steps.Step { ... }`.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.Steps
+
+import "Pins.pkl"
+
+/// Typed keys cover what the workflows use. `raw` is the escape hatch (decision 33): its keys are merged over the typed ones, and every use is
+/// counted for gate B.
+class Step {
+  name: String?
+  id: String?
+  `continue-on-error`: Boolean?
+  uses: (Pins.Pin|String)?
+  run: String?
+  `with`: Mapping<String, Any>?
+  env: Mapping<String, Any>?
+  `if`: String?
+  `working-directory`: String?
+  raw: Mapping<String, Any>?
+
+  /// `uses` as it is written in the YAML: a pin becomes `action@sha`, a plain string stays as it is.
+  fixed usesRef: String? =
+    if (uses == null) null
+    else if (uses is Pins.Pin) (uses as Pins.Pin).ref
+    else uses as String
+
+  /// The pin this step uses, or null when it uses none or a plain string.
+  fixed pin: Pins.Pin? = if (uses is Pins.Pin) uses as Pins.Pin else null
+
+  /// How many escape-hatch uses (`raw`) this step makes, for gate B.
+  fixed escapeUses: Int = if (raw != null) 1 else 0
+
+  /// The step as it goes into the YAML.
+  fixed rendered: Dynamic =
+    let (self = this)
+    new Dynamic {
+      when (self.name != null) { name = self.name }
+      when (self.id != null) { id = self.id }
+      when (self.usesRef != null) { uses = self.usesRef }
+      when (self.`if` != null) { `if` = self.`if` }
+      when (self.`continue-on-error` != null) { `continue-on-error` = self.`continue-on-error` }
+      when (self.run != null) { run = self.run }
+      when (self.`with` != null) { `with` = self.`with` }
+      when (self.env != null) { env = self.env }
+      when (self.`working-directory` != null) { `working-directory` = self.`working-directory` }
+      when (self.raw != null) { ...self.raw }
+    }
+}

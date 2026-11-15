@@ -3,15 +3,18 @@
 module pantheon.scaffold.builtins.Zizmor
 
 import "../../Config.pkl"
+import "../../GenFiles.pkl"
+import "../../Workflows.pkl"
 import "../../Pins.pkl"
 import "../../Tools.pkl"
+import "../../Presence.pkl"
 import "../Shared.pkl"
 import "../../Values.pkl"
 
 /// The zizmor security scan of the workflows. It reads .github/zizmor.yml when the repository has a binary (the config silences findings in the
 /// cargo-dist generated release.yml), and also scans action.yml when the repository has its own composite action.
-function workflow(opts: Config.Options): Config.Workflow =
-  let (viaMise = Shared.present(opts).has("mise"))
+function workflow(opts: Config.Options): Workflows.Workflow =
+  let (viaMise = Presence.forOptions(opts).has("mise"))
   let (zizmorCmd = if (viaMise) "mise exec -- zizmor" else "zizmor")
   let (pinned = if (viaMise) " (zizmor is pinned in mise.toml)" else "")
   let (inputs = if (opts.compositeAction) ".github action.yml" else ".github")
@@ -62,9 +65,9 @@ function workflow(opts: Config.Options): Config.Workflow =
   }
 
 /// The zizmor configuration that `analysisFiles()` renders, for a repository with a binary (the variant with the extra entry for action.yml when there is a composite action).
-function analysisFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
+function analysisFiles(opts: Config.Options): Mapping<String, GenFiles.GenFile> = new {
   when (opts.binary) {
-    [".github/zizmor.yml"] = new Config.GenFile {
+    [".github/zizmor.yml"] = new GenFiles.GenFile {
       template = read("assets/zizmor.yml.j2").text
       context = new Mapping {
         ["composite"] = opts.compositeAction

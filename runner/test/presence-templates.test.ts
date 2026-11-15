@@ -10,20 +10,20 @@ const root = join(import.meta.dir, "../..");
 const builtins = join(root, "pkl/Builtins");
 const folders = readdirSync(builtins, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort();
 
-/** Evaluates a pkl expression over Shared.pkl and returns the JSON it prints. */
+/** Evaluates a pkl expression over Shared.pkl and Presence.pkl and returns the JSON it prints. */
 function shared(body: string): Record<string, unknown> {
   const f = join(tempRepo(), "shared.pkl");
-  writeFileSync(f, `import "file://${builtins}/Shared.pkl"\n${body}\n`);
+  writeFileSync(f, `import "file://${builtins}/Shared.pkl"\nimport "file://${builtins}/../Presence.pkl"\n${body}\n`);
   const r = Bun.spawnSync(["pkl", "eval", "-f", "json", "--allowed-resources", "file:,prop:", f], { stdout: "pipe", stderr: "pipe" });
   expect(r.stderr.toString()).toBe("");
   return JSON.parse(r.stdout.toString());
 }
 const flags = (without: string[]) =>
-  shared(`local p = new Shared.Present { without = List(${without.map((w) => `"${w}"`).join(", ")}) }\ntools = Shared.toolFlags(p)\npresent = Shared.presentFlags(p)`) as {
+  shared(`local p = new Presence.Present { without = List(${without.map((w) => `"${w}"`).join(", ")}) }\ntools = p.toolFlags\npresent = p.presentFlags`) as {
     tools: Record<string, boolean>;
     present: Record<string, boolean>;
   };
-const tables = () => shared("owners = Shared.toolOwners\nalways = Shared.alwaysTools") as { owners: Record<string, string[]>; always: string[] };
+const tables = () => shared("owners = Presence.toolOwners\nalways = Presence.alwaysTools") as { owners: Record<string, string[]>; always: string[] };
 
 test("the present mapping has one entry for every builtin folder, and the tools mapping one for every tool of the table", () => {
   const { tools, present } = flags([]);

@@ -3,13 +3,14 @@
 module pantheon.scaffold.builtins.Dependabot
 
 import "../../Config.pkl"
+import "../../GenFiles.pkl"
 import "../../Pins.pkl"
 
 /// The github-actions entry excludes every workflow file the package renders (`exclude-paths`): the runner owns them, so a Dependabot bump of a
 /// pin in one is drift, and `check` exits 4. Their pins move through Pins.pkl and `upgrade`. Workflows the repository writes itself are still updated.
-function file(opts: Config.Options, workflowNames: List<String>): Config.GenFile =
+function file(opts: Config.Options, workflowNames: List<String>): GenFiles.GenFile =
   let (names = opts.gitDependencyIgnore.toList().join(" and "))
-  new Config.GenFile {
+  new GenFiles.GenFile {
     content =
       commentBlock((
         if (opts.gitDependencyIgnore.isEmpty) #"""

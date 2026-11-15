@@ -257,7 +257,7 @@ fn raw_string(text: &str) -> String {
     format!("{hashes}\"\"\"\n{text}\n\"\"\"{hashes}")
 }
 
-fn preset_text(config_import: &str, target: &str, text: &str, differences: &[String]) -> String {
+fn preset_text(genfile_import: &str, target: &str, text: &str, differences: &[String]) -> String {
     let mut out = format!(
         "// Written by `pantheon-scaffold migrate` from {target}, which differed from the Builtin.\n// The whole file, kept as it was. It does not follow the Builtin when the package changes.\n"
     );
@@ -268,19 +268,19 @@ fn preset_text(config_import: &str, target: &str, text: &str, differences: &[Str
         }
     }
     out.push_str(&format!(
-        "import \"{config_import}\"\n\nfunction apply(files: Mapping<String, Config.GenFile>): Mapping<String, Config.GenFile> =\n  (files) {{\n    [\"{}\"] = new Config.GenFile {{ content = {} }}\n  }}\n",
+        "import \"{genfile_import}\"\n\nfunction apply(files: Mapping<String, GenFiles.GenFile>): Mapping<String, GenFiles.GenFile> =\n  (files) {{\n    [\"{}\"] = new GenFiles.GenFile {{ content = {} }}\n  }}\n",
         target.replace('\\', "\\\\").replace('"', "\\\""),
         raw_string(text)
     ));
     out
 }
 
-/// One Preset per drifted file, each keeping the file as it is. `config_import` is the address of the package's `Config.pkl`. A file
+/// One Preset per drifted file, each keeping the file as it is. `genfile_import` is the address of the package's `GenFiles.pkl`. A file
 /// that is not text cannot be kept this way. A Preset never takes the name of a file that is already under `presets/`.
 pub fn verbatim_presets(
     report: &Report,
     root: &Path,
-    config_import: &str,
+    genfile_import: &str,
 ) -> Result<Vec<PresetFile>, MigrateError> {
     let mut taken: BTreeSet<String> = BTreeSet::new();
     let mut out = Vec::new();
@@ -305,7 +305,7 @@ pub fn verbatim_presets(
             })?;
         taken.insert(path.clone());
         out.push(PresetFile {
-            text: preset_text(config_import, &entry.path, &text, &entry.differences),
+            text: preset_text(genfile_import, &entry.path, &text, &entry.differences),
             path,
             target: entry.path.clone(),
         });
@@ -600,7 +600,7 @@ mod tests {
             (".gitignore", "owned", "b\n"),
         ]);
         let r = classify(&c, dir.path()).unwrap();
-        let presets = verbatim_presets(&r, dir.path(), "PKG#/Config.pkl").unwrap();
+        let presets = verbatim_presets(&r, dir.path(), "PKG#/GenFiles.pkl").unwrap();
         let paths: Vec<&str> = presets.iter().map(|p| p.path.as_str()).collect();
         assert_eq!(
             paths,
@@ -619,7 +619,7 @@ mod tests {
         put(dir.path(), "a.toml", "x = 1\n");
         let c = contract(&[("a.toml", "owned", "x = 2\n")]);
         let r = classify(&c, dir.path()).unwrap();
-        let text = verbatim_presets(&r, dir.path(), "PKG#/Config.pkl")
+        let text = verbatim_presets(&r, dir.path(), "PKG#/GenFiles.pkl")
             .unwrap()
             .remove(0)
             .text;
@@ -633,10 +633,10 @@ mod tests {
             ),
             "{text}"
         );
-        assert!(text.contains("import \"PKG#/Config.pkl\"\n"), "{text}");
+        assert!(text.contains("import \"PKG#/GenFiles.pkl\"\n"), "{text}");
         assert!(
             text.contains(
-                "[\"a.toml\"] = new Config.GenFile { content = #\"\"\"\nx = 1\n\n\"\"\"# }"
+                "[\"a.toml\"] = new GenFiles.GenFile { content = #\"\"\"\nx = 1\n\n\"\"\"# }"
             ),
             "{text}"
         );
@@ -657,7 +657,7 @@ mod tests {
         std::fs::write(dir.path().join("a.bin"), [0xff, 0xfe, 0x00]).unwrap();
         let c = contract(&[("a.bin", "owned", "x\n")]);
         let r = classify(&c, dir.path()).unwrap();
-        let e = verbatim_presets(&r, dir.path(), "PKG#/Config.pkl").unwrap_err();
+        let e = verbatim_presets(&r, dir.path(), "PKG#/GenFiles.pkl").unwrap_err();
         assert_eq!(
             e.to_string(),
             "a.bin cannot be kept as a Preset: it is not UTF-8 text"

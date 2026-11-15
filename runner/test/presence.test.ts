@@ -44,7 +44,7 @@ const folders = readdirSync(join(root, "pkl/Builtins"), { withFileTypes: true })
 
 test("the registry of builtin names in Shared.pkl is the list of folders under pkl/Builtins", () => {
   const f = join(tempRepo(), "names.pkl");
-  writeFileSync(f, `import "file://${root}/pkl/Builtins/Shared.pkl"\nnames = Shared.builtinNames\n`);
+  writeFileSync(f, `import "file://${root}/pkl/Presence.pkl"\nnames = Presence.builtinNames\n`);
   const r = Bun.spawnSync(["pkl", "eval", "-f", "json", "--allowed-resources", "file:,prop:", f], { stdout: "pipe", stderr: "pipe" });
   expect(r.stderr.toString()).toBe("");
   expect([...(JSON.parse(r.stdout.toString()).names as string[])].sort()).toEqual(folders);

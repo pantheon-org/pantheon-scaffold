@@ -2,9 +2,9 @@
 @ModuleInfo { minPklVersion = "0.32.0" }
 module pantheon.scaffold.builtins.PullRequestTemplate
 
-import "../../Config.pkl"
+import "../../GenFiles.pkl"
 
 /// The verbatim file of this builtin that `workflowFiles()` renders.
-function workflowFiles(): Mapping<String, Config.GenFile> = new {
-  [".github/pull_request_template.md"] = new Config.GenFile { content = read("assets/pull_request_template.md").text }
+function workflowFiles(): Mapping<String, GenFiles.GenFile> = new {
+  [".github/pull_request_template.md"] = new GenFiles.GenFile { content = read("assets/pull_request_template.md").text }
 }

@@ -1,10 +1,9 @@
 // Adds a step before the Test step of the Rust CI job and changes what the Test step runs.
-import "@PACKAGE@/Config.pkl"
+import "@PACKAGE@/Steps.pkl"
+import "@PACKAGE@/Workflows.pkl"
 import "@PACKAGE@/Presets.pkl"
 
-function apply(workflows: Mapping<String, Config.Workflow>): Mapping<String, Config.Workflow> =
-  Presets.amendWorkflow(workflows, "rust-ci", (w) -> Presets.amendJob(w, "build-test", (j) ->
-    Presets.amendStep(
-      Presets.insertStepsBefore(j, "Test", List(new Config.Step { name = "Set up pkl"; run = "echo before" })),
-      "Test",
-      (s) -> (s) { run = "echo replaced" })))
+function apply(workflows: Mapping<String, Workflows.Workflow>): Mapping<String, Workflows.Workflow> =
+  Presets.amendWorkflow(workflows, "rust-ci", (w) -> w.amendJob("build-test", (j) ->
+    j.insertStepsBefore("Test", List(new Steps.Step { name = "Set up pkl"; run = "echo before" }))
+      .amendStep("Test", (s) -> (s) { run = "echo replaced" })))

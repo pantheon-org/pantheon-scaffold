@@ -2,7 +2,8 @@
 @ModuleInfo { minPklVersion = "0.32.0" }
 module pantheon.scaffold.builtins.Release
 
-import "../../Config.pkl"
+import "../../GenFiles.pkl"
+import "../../Workflows.pkl"
 import "../../Pins.pkl"
 import "../../Tools.pkl"
 import "../../Values.pkl"
@@ -10,7 +11,7 @@ import "../Shared.pkl"
 
 /// The drift check of the generated release.yml (`binary`). `dist generate --check` fails when release.yml is not what cargo-dist would write
 /// from dist-workspace.toml, which catches a hand edit and a Dependabot bump of an action inside the generated file (decision 85).
-function workflow(): Config.Workflow = new {
+function workflow(): Workflows.Workflow = new {
   header = #"""
     release.yml is written by `dist generate` from dist-workspace.toml and must not be
     edited by hand. This check fails when the two disagree, for example after a
@@ -56,8 +57,8 @@ local distPaths: Listing<String> = new {
 
 /// The cargo-dist configuration and the generated release workflow that `verbatimFiles()` renders for a repository with a binary. `release.yml` is
 /// external: `dist generate` writes it, and the `dist-check` workflow above verifies it against `dist-workspace.toml`.
-function verbatimFiles(): Mapping<String, Config.GenFile> = new {
-  ["dist-workspace.toml"] = new Config.GenFile {
+function verbatimFiles(): Mapping<String, GenFiles.GenFile> = new {
+  ["dist-workspace.toml"] = new GenFiles.GenFile {
     template = read("assets/dist-workspace.toml.j2").text
     context = new Mapping {
       ["dist"] = Tools.dist
@@ -69,5 +70,5 @@ function verbatimFiles(): Mapping<String, Config.GenFile> = new {
       ["downloadArtifactSha"] = Values.distDownloadArtifactSha
     }
   }
-  [".github/workflows/release.yml"] = new Config.GenFile { `class` = "external" }
+  [".github/workflows/release.yml"] = new GenFiles.GenFile { `class` = "external" }
 }

@@ -1,4 +1,4 @@
 // Gives the Rust CI job more time.
-import "@PACKAGE@/Config.pkl"
+import "@PACKAGE@/Workflows.pkl"
 
-function rustCi(base: Config.Workflow): Config.Workflow = (base) { jobs { ["build-test"] { `timeout-minutes` = 30 } } }
+function rustCi(base: Workflows.Workflow): Workflows.Workflow = (base) { jobs { ["build-test"] { `timeout-minutes` = 30 } } }

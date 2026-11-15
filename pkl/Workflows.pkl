@@ -1,0 +1,70 @@
+/// The workflow file class, as a class-as-a-function: the typed keys are the inputs, the `fixed` properties and the methods are the outputs. Use it as
+/// `import "Workflows.pkl"` and `new Workflows.Workflow { ... }`.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.Workflows
+
+import "Jobs.pkl"
+import "Pins.pkl"
+
+local const yaml = new YamlRenderer { omitNullProperties = true }
+
+/// Puts a comment on the `on:` line of the rendered YAML, where the key stands alone on its line. YamlRenderer quotes the key (`on` is a
+/// YAML 1.1 boolean), so the line is `'on':`. Fails if neither form is found, so a comment that matters is never silently dropped.
+local const function withOnComment(comment: String?, text: String): String =
+  if (comment == null) text
+  else if (text.contains("\n'on':\n")) text.replaceFirst("\n'on':\n", "\n'on': # \(comment)\n")
+  else if (text.contains("\non:\n")) text.replaceFirst("\non:\n", "\non: # \(comment)\n")
+  else throw("onComment is set but the rendered YAML has no on: line to put it on")
+
+local const function commentBlock(text: String?): String =
+  if (text == null) ""
+  else text.split("\n").map((l) -> if (l == "") "#" else "# \(l)").join("\n") + "\n"
+
+class Workflow {
+  /// Rendered as `#` comment lines above the YAML.
+  header: String?
+  /// A comment on the `on:` line. A tool can act on it (zizmor's `ignore[...]`), so it has to be in the file.
+  onComment: String?
+  /// The runner deletes this workflow on `detach` (the consumer upgrade workflow, which would fail on every run once detached).
+  removeOnDetach: Boolean = false
+  name: String
+  on: Mapping<String, Any?>
+  permissions: Mapping<String, String>?
+  concurrency: Mapping<String, Any>?
+  env: Mapping<String, Any>?
+  jobs: Mapping<String, Jobs.Job>
+  raw: Mapping<String, Any>?
+
+  local jobList: List<Jobs.Job> = jobs.toMap().values
+
+  /// Every pin used by the steps of this workflow, with repeats.
+  fixed pins: List<Pins.Pin> = jobList.flatMap((j) -> j.pins)
+
+  /// How many escape-hatch uses (`raw`) this workflow, its jobs and their steps make, for gate B.
+  fixed escapeUses: Int = (if (raw != null) 1 else 0) + jobList.map((j) -> j.escapeUses).fold(0, (a, b) -> a + b)
+
+  /// How many typed constructs this workflow, its jobs and their steps are, for gate B.
+  fixed constructs: Int = 1 + jobList.map((j) -> j.constructs).fold(0, (a, b) -> a + b)
+
+  /// The workflow file's text: the header comment, then the YAML.
+  fixed rendered: String =
+    let (self = this)
+    commentBlock(header) + withOnComment(onComment, yaml.renderValue(new Dynamic {
+      name = self.name
+      on = self.on
+      when (self.permissions != null) { permissions = self.permissions }
+      when (self.concurrency != null) { concurrency = self.concurrency }
+      when (self.env != null) { env = self.env }
+      jobs = self.jobs.toMap().mapValues((_, j) -> j.rendered).toMapping()
+      when (self.raw != null) { ...self.raw }
+    }))
+
+  /// Applies `change` to the job `jobKey` and returns the workflow. Fails, naming the jobs there are, when it has no such job. Plain pkl does not:
+  /// amending a job that a newer package no longer has silently creates an empty one.
+  function amendJob(jobKey: String, change: (Jobs.Job) -> Jobs.Job): Workflow =
+    if (!jobs.containsKey(jobKey))
+      throw("preset: job \"\(jobKey)\" does not exist in workflow \"\(name)\". Jobs: \(jobs.keys.toList().sort().join(", "))")
+    else
+      let (current = jobs[jobKey])
+        (this) { jobs { [jobKey] = change.apply(current) } }
+}

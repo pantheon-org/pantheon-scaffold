@@ -87,14 +87,14 @@ Checks: `runner/test/phase5-dependabot.test.ts`, the adjusted equality test in `
 ## Presence inside templates: what a left-out builtin changes in the files that stay
 
 `options.without` leaves whole builtins out ([adopting.md](adopting.md#leaving-builtins-out-optionswithout)). A few files that stay mention or pin what another builtin
-provides, so they change too. A template reads two mappings that `Shared.pkl` builds from the same `Present` value: `present["rumdl"]` (every builtin) and
+provides, so they change too. A template reads two mappings that `Presence.pkl` builds from the same `Present` value: `present["rumdl"]` (every builtin) and
 `tools["jq"]` (every tool `mise.toml` pins). The subscript form is the only one that works, because builtin names have hyphens, and a name that does not
 exist is an error, not a false.
 
 ### Which builtins own which tool
 
 A tool is present if any of its owners is. An owner is a builtin that needs the tool locally, through mise. A use on a GitHub runner does not count: a
-workflow `run:` block has its own `jq` and `yq` there. `runner/test/presence-templates.test.ts` compares this table with `Shared.toolOwners` and fails when a
+workflow `run:` block has its own `jq` and `yq` there. `runner/test/presence-templates.test.ts` compares this table with `Presence.toolOwners` and fails when a
 script names a tool outside its comments whose builtin is not an owner.
 
 | Tool in `mise.toml` | Owners | Why |

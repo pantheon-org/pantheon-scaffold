@@ -1,4 +1,4 @@
 // Nothing applies this one: it is a Preset in use by no configuration.
-import "@PACKAGE@/Config.pkl"
+import "@PACKAGE@/Workflows.pkl"
 
-function rustCi(base: Config.Workflow): Config.Workflow = (base) { name = "Forgotten" }
+function rustCi(base: Workflows.Workflow): Workflows.Workflow = (base) { name = "Forgotten" }

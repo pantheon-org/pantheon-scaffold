@@ -3,10 +3,12 @@
 module pantheon.scaffold.builtins.PrAutoRebase
 
 import "../../Config.pkl"
+import "../../GenFiles.pkl"
+import "../../Workflows.pkl"
 import "../Shared.pkl"
 
 /// Rebases open pull request branches that are behind main, under the App token so the required checks run again on the new head.
-function workflow(opts: Config.Options): Config.Workflow = new {
+function workflow(opts: Config.Options): Workflows.Workflow = new {
   header = #"""
     The `main` ruleset requires linear history and a strict "branches must be up
     to date" status-check policy, so every push to `main` marks all open PRs as
@@ -49,6 +51,6 @@ function workflow(opts: Config.Options): Config.Workflow = new {
 }
 
 /// The verbatim file of this builtin that `toolingFiles()` renders.
-function toolingFiles(): Mapping<String, Config.GenFile> = new {
-  [".github/scripts/auto-rebase.sh"] = new Config.GenFile { content = read("assets/auto-rebase.sh").text; executable = true }
+function toolingFiles(): Mapping<String, GenFiles.GenFile> = new {
+  [".github/scripts/auto-rebase.sh"] = new GenFiles.GenFile { content = read("assets/auto-rebase.sh").text; executable = true }
 }

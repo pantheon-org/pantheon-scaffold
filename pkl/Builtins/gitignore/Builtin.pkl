@@ -2,9 +2,9 @@
 @ModuleInfo { minPklVersion = "0.32.0" }
 module pantheon.scaffold.builtins.Gitignore
 
-import "../../Config.pkl"
+import "../../GenFiles.pkl"
 
 /// The verbatim file of this builtin that `verbatimFiles()` renders.
-function verbatimFiles(): Mapping<String, Config.GenFile> = new {
-  [".gitignore"] = new Config.GenFile { content = read("assets/gitignore").text }
+function verbatimFiles(): Mapping<String, GenFiles.GenFile> = new {
+  [".gitignore"] = new GenFiles.GenFile { content = read("assets/gitignore").text }
 }

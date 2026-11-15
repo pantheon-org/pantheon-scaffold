@@ -80,10 +80,10 @@ variable from a Preset with `Presets.amendContext`.
 
 - A bare `{% endraw %}` at the end of a line eats the newline: write `{% endraw +%}`.
 - Booleans print as `True` and `False`: write `{{ "true" if x else "false" }}` where toml, yaml or json needs them.
-- `pkl` reserves `unknown`: it cannot name a variable in `Shared.pkl` or `Presets.pkl`.
+- `pkl` reserves `unknown`: it cannot name a variable in `Presence.pkl` or `Presets.pkl`.
 
 ## Presence in templates
 
 A template that depends on which builtins are present reads `present["name"]` (every builtin) and `tools["name"]` (every tool `mise.toml` pins), both built in
-`Shared.pkl` from `options.without`. The subscript form is the only one that works for hyphenated names, and a name that is not in the mapping is an error
+`Presence.pkl` from `options.without`. The subscript form is the only one that works for hyphenated names, and a name that is not in the mapping is an error
 (strict undefined, tested in `template.rs`). `docs/feature-toggles.md` has the owners of every tool and the list of text that is conditional.

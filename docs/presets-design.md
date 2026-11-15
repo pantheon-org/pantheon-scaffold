@@ -1,5 +1,7 @@
 # Presets: design record
 
+> **Update 14-11-2026:** `Step`, `Job` and `Workflow` moved out of `Config.pkl` into `Steps.pkl`, `Jobs.pkl` and `Workflows.pkl`, and there is no `Config.Step` any more. Read `Config.Step` below as `Steps.Step` after `import "PKG#/Steps.pkl"` (likewise `Jobs.Job`, `Workflows.Workflow`, `GenFiles.GenFile`). The experiments are kept as they were run.
+
 Written on 11-11-2026 for task 4.0 of the refocus plan. It decides how a repository customises a Builtin, before any scenario or code (tasks 4.1 to 4.4). Every claim marked **E<n>** was run with `pkl` 0.32.2 against the real `Config.pkl` and `Builtins.pkl`; the results are in the table at the end. Open question 4 was answered on 11-11-2026: Presets live in a fixed `presets/` directory.
 
 ## What a Preset is

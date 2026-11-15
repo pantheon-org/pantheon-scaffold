@@ -3,14 +3,15 @@
 module pantheon.scaffold.builtins.AuditSkill
 
 import "../../Config.pkl"
+import "../../Workflows.pkl"
 import "../../Pins.pkl"
 import "../../Tools.pkl"
 import "../Shared.pkl"
 
 /// Validates and grades the bundled skill (`skills` toggle, option `skillName`). With `compositeAction` the repository is the skill auditor
 /// itself, so it runs its own action with a bootstrap binary instead of the released action.
-function workflow(opts: Config.Options): Config.Workflow =
-  let (skill = Shared.needSkillName(opts))
+function workflow(opts: Config.Options): Workflows.Workflow =
+  let (skill = opts.requireSkillName())
   let (paths = new Listing {
     "skills/\(skill)/**"
     when (opts.compositeAction) { "action.yml" }

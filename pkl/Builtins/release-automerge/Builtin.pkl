@@ -3,10 +3,12 @@
 module pantheon.scaffold.builtins.ReleaseAutomerge
 
 import "../../Config.pkl"
+import "../../GenFiles.pkl"
+import "../../Workflows.pkl"
 import "../Shared.pkl"
 
 /// Mondays: squash-merges the open release-please pull request, under the App token so the push to main starts release-please.
-function workflow(opts: Config.Options): Config.Workflow = new {
+function workflow(opts: Config.Options): Workflows.Workflow = new {
   header = #"""
     Mondays: squash-merges the open release-please PR so a release lands without a
     human clicking merge. The merge runs under the pantheon-ai-bot App token so the
@@ -44,6 +46,6 @@ function workflow(opts: Config.Options): Config.Workflow = new {
 }
 
 /// The verbatim file of this builtin that `toolingFiles()` renders.
-function toolingFiles(): Mapping<String, Config.GenFile> = new {
-  [".github/scripts/release-automerge.sh"] = new Config.GenFile { content = read("assets/release-automerge.sh").text; executable = true }
+function toolingFiles(): Mapping<String, GenFiles.GenFile> = new {
+  [".github/scripts/release-automerge.sh"] = new GenFiles.GenFile { content = read("assets/release-automerge.sh").text; executable = true }
 }

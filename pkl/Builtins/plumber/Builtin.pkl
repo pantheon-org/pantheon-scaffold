@@ -3,13 +3,14 @@
 @ModuleInfo { minPklVersion = "0.32.0" }
 module pantheon.scaffold.builtins.Plumber
 
-import "../../Config.pkl"
+import "../../GenFiles.pkl"
+import "../../Workflows.pkl"
 import "../../Pins.pkl"
 import "../Shared.pkl"
 import "../../Values.pkl"
 
 /// The CI/CD security scan of the repository's workflows (Plumber). Only a Critical finding blocks a pull request.
-function workflow(): Config.Workflow = new {
+function workflow(): Workflows.Workflow = new {
   header = #"""
     CI/CD security scan of this repository's GitHub Actions workflows (unpinned
     actions, untrusted shell input, over-broad permissions). Findings surface in the
@@ -73,8 +74,8 @@ function workflow(): Config.Workflow = new {
 }
 
 /// The verbatim configuration the workflow reads.
-function workflowFiles(): Mapping<String, Config.GenFile> = new {
-  [".plumber.yaml"] = new Config.GenFile {
+function workflowFiles(): Mapping<String, GenFiles.GenFile> = new {
+  [".plumber.yaml"] = new GenFiles.GenFile {
     template = read("assets/plumber.yaml.j2").text
     context = new Mapping {
       ["trustedOwners"] = Values.plumberTrustedOwners

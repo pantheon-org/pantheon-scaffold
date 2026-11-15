@@ -2,14 +2,14 @@
 @ModuleInfo { minPklVersion = "0.32.0" }
 module pantheon.scaffold.builtins.Aislop
 
-import "../../Config.pkl"
+import "../../Workflows.pkl"
 import "../../Pins.pkl"
 import "../../Tools.pkl"
 import "../Shared.pkl"
 
 /// The code-quality gate (aislop), scored out of 100. aislop's version is pinned in Tools.pkl, because Dependabot does not read an inline npx
 /// version.
-function workflow(): Config.Workflow = new {
+function workflow(): Workflows.Workflow = new {
   header = #"""
     Code-quality gate (aislop): catches dead imports, duplicate logic, unsafe casts,
     narrative comments, swallowed errors, oversized functions and similar, scored

@@ -1,0 +1,28 @@
+[package]
+name = "scaffold-release"
+version = "0.0.0"
+description = "The release tooling of pantheon-scaffold: the steps of the release workflow that are code and not shell. Not shipped in the release binaries."
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lib]
+name = "scaffold_release"
+path = "src/lib.rs"
+
+[[bin]]
+name = "scaffold-release"
+path = "src/main.rs"
+
+[dependencies]
+scaffold-core = { path = "../scaffold-core" }
+regex = "1"
+serde_json = { version = "1", features = ["preserve_order"] }
+sha2 = "0.11"
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true

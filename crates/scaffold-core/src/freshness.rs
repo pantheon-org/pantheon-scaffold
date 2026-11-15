@@ -65,6 +65,16 @@ pub fn parse_freshness(text: &str) -> Result<OffsetDateTime, FreshnessError> {
         .or_else(|_| fail(format!("lastSuccessfulPinCheck {when} is not a real time")))
 }
 
+/// The text of `freshness.json` for a pin check that succeeded at `now`: the time in UTC to the second, in the shape `parse_freshness`
+/// reads. The pin update writes it, and a failed check writes nothing, so a failing check never reads as fresh.
+pub fn render_freshness(now: OffsetDateTime) -> String {
+    let when = now
+        .to_offset(time::UtcOffset::UTC)
+        .format(SECONDS)
+        .expect("a time formats");
+    format!("{{\n  \"schemaVersion\": 1,\n  \"lastSuccessfulPinCheck\": \"{when}\"\n}}\n")
+}
+
 const SECONDS: &[time::format_description::BorrowedFormatItem<'static>] =
     time::macros::format_description!("[year]-[month]-[day]T[hour]:[minute]:[second]Z");
 
@@ -164,6 +174,24 @@ mod tests {
 
     fn state(age_ms: i64) -> State {
         check(aged(age_ms), 30).unwrap().state
+    }
+
+    #[test]
+    fn the_record_the_update_writes_is_one_the_check_accepts() {
+        let text = render_freshness(NOW);
+        assert_eq!(
+            text,
+            "{\n  \"schemaVersion\": 1,\n  \"lastSuccessfulPinCheck\": \"2026-11-08T12:00:00Z\"\n}\n"
+        );
+        assert_eq!(parse_freshness(&text).unwrap(), NOW);
+    }
+
+    #[test]
+    fn the_record_is_written_in_utc_and_to_the_second() {
+        let local = datetime!(2026-11-08 14:00:00.987 +2);
+        assert!(render_freshness(local).contains("\"2026-11-08T12:00:00Z\""));
+        let late = datetime!(2026-12-31 23:59:59.999 UTC);
+        assert!(render_freshness(late).contains("\"2026-12-31T23:59:59Z\""));
     }
 
     #[test]

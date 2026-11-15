@@ -16,9 +16,32 @@ pub fn get_text_with(
     timeout: Duration,
     headers: &[(&str, &str)],
 ) -> Result<String, String> {
+    let response = get_with_status(url, timeout, headers)?;
+    if !(200..300).contains(&response.status) {
+        return Err(format!("HTTP {}", response.status));
+    }
+    Ok(response.body)
+}
+
+/// The answer to a request, whatever its status.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Response {
+    pub status: u16,
+    /// The body as text. Empty when the status is outside 200 to 299 and the body could not be read.
+    pub body: String,
+}
+
+/// Like `get_text_with`, but a status outside 200 to 299 is an answer and not an error, so a caller can tell a 404 from a 503.
+/// Anything that goes wrong before there is an answer (no connection, a timeout, a body that cannot be read after a success) is
+/// the error text of the connection.
+pub fn get_with_status(
+    url: &str,
+    timeout: Duration,
+    headers: &[(&str, &str)],
+) -> Result<Response, String> {
     let agent: ureq::Agent = ureq::Agent::config_builder()
         .timeout_global(Some(timeout))
-        // A status is reported as `HTTP <status>` below, the way the TypeScript runner reports it.
+        // A status is an answer here, and `get_text_with` turns it into `HTTP <status>`, the way the TypeScript runner reports it.
         .http_status_as_error(false)
         .build()
         .into();
@@ -28,13 +51,13 @@ pub fn get_text_with(
     }
     let mut response = request.call().map_err(|e| e.to_string())?;
     let status = response.status().as_u16();
-    if !(200..300).contains(&status) {
-        return Err(format!("HTTP {status}"));
-    }
-    response
-        .body_mut()
-        .read_to_string()
-        .map_err(|e| e.to_string())
+    let body = response.body_mut().read_to_string();
+    let body = if (200..300).contains(&status) {
+        body.map_err(|e| e.to_string())?
+    } else {
+        body.unwrap_or_default()
+    };
+    Ok(Response { status, body })
 }
 
 #[cfg(test)]
@@ -154,6 +177,49 @@ mod tests {
         assert_eq!(
             get_text(&format!("{base}/x"), Duration::from_secs(5)),
             Ok(String::new())
+        );
+    }
+
+    #[test]
+    fn a_status_outside_200_to_299_is_an_answer_with_its_body_for_a_caller_that_wants_to_tell_them_apart()
+     {
+        for status in [404u16, 429, 500, 503] {
+            let base = serve(vec![Some((status, "", "{\"message\":\"no\"}"))]);
+            assert_eq!(
+                get_with_status(&format!("{base}/x"), Duration::from_secs(5), &[]),
+                Ok(Response {
+                    status,
+                    body: "{\"message\":\"no\"}".to_owned()
+                }),
+                "{status}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_200_is_an_answer_with_its_body() {
+        let base = serve(vec![Some((200, "", "hello"))]);
+        assert_eq!(
+            get_with_status(&format!("{base}/x"), Duration::from_secs(5), &[]),
+            Ok(Response {
+                status: 200,
+                body: "hello".to_owned()
+            })
+        );
+    }
+
+    #[test]
+    fn no_answer_at_all_is_still_an_error() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        drop(listener);
+        assert!(
+            get_with_status(
+                &format!("http://127.0.0.1:{port}/x"),
+                Duration::from_secs(5),
+                &[]
+            )
+            .is_err()
         );
     }
 

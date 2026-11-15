@@ -1,6 +1,6 @@
 # Plan: port the remaining TypeScript tooling to Rust
 
-**Status (15-11-2026): draft 2, revised after a three-lens review (Technical, Strategic, Risk). The owner chose to port (D0 and D1, see "Decisions for the owner"). Phase 0 is done; Phase 1 has not started and waits for the owner's yes.** Written against `origin/main` at `8eae6ad`.
+**Status (15-11-2026): draft 2, revised after a three-lens review (Technical, Strategic, Risk). The owner chose to port everything (D0 and D1) and named themselves for D5 (see "Decisions for the owner"). Phase 0 is done; Phase 1 has not started and waits for the owner's yes.** Written against `origin/main` at `8eae6ad`.
 
 ## Why, and the case against
 
@@ -22,7 +22,7 @@ What the port would give:
 |---|---|---|
 | A. Do nothing | The tooling stays as sorted on 13-11-2026. The three release scripts changed in three commits in total, so maintenance looks cheap (`git log` on the three scripts) | A real option. Choose it if the gate below fails or D1 is "keep bun" and the owner does not value the rest |
 | B. Port the release tooling and the package tests | bun is gone from the repository | The only option that delivers the headline benefit. This plan |
-| C. Port the release tooling only, keep bun for the 20 package tests | Two toolchains for contributors, bun pin stays, new crate added | Worse than A or B for the contributor, better than A for the release job only. Allowed, but say so |
+| C. Port the release tooling only, keep bun for the 21 package tests | Two toolchains for contributors, bun pin stays, new crate added | **Dropped by the owner on 15-11-2026 (D1).** It was worse than A or B for the contributor, and better than A for the release job only |
 | D. Delete the TypeScript duplicates only | Not possible: the live TypeScript release code imports them (`promote.ts` imports checksums, semver and preflight; `knownbad.ts` imports semver, manifest and preflight; `pinupdate.ts` imports freshness) | Rejected |
 
 ## What is already in Rust, and what is not
@@ -45,7 +45,7 @@ The Rust crates have a module with the same name as most of the TypeScript modul
 | `scripts/smoke.ts` | 149 | none | Port in Phase 4 |
 | `scripts/builtins-baseline/{snapshot,compare,freeze,packaged}.ts`, `check.sh`, `baseline.json`, `README.md` | 122, 74, 24, 83, plus the shell script and data | none | Port the four scripts in Phase 4. `check.sh` calls `bun snapshot.ts` and `compare.ts`: port or delete it with them. `baseline.json` stays as data |
 | `scripts/build-rust.ts` | 117 | none | Port in Phase 5, last |
-| `test/helpers.ts`, `test/support/{contract,equality}.ts` | 78, 61, 117 | `equality.rs` for `equality.ts` | Decided by D1 |
+| `test/helpers.ts`, `test/support/{contract,equality}.ts` | 78, 61, 117 | `equality.rs` for `equality.ts` | Ported or deleted in Phase 7 (D1) |
 | `test/fixtures/**`, `test/upstream/**` | data | Rust tests read them: `scaffold-core/src/pkl.rs:282`, `scaffold-cli/src/lib.rs:1601,2186`, `scaffold-features/tests/features.rs:84` | They cannot move in Phase 7 without changing those crates |
 
 ## The tests fall into three groups
@@ -64,25 +64,25 @@ Three more facts that shape the work:
 
 ## Decisions for the owner
 
-**Recorded on 15-11-2026.** The owner said "I want Rust instead of TypeScript" and "proceed", and accepted the Phase 0 goal that listed these settings. D0 and D1 follow from that. D2 to D5 are the plan's recommended defaults, set by the person writing the plan, and the owner may change any of them. D5 still needs a named person.
+**Recorded on 15-11-2026.** The owner said "I want Rust instead of TypeScript" and "proceed", and accepted the Phase 0 goal that listed these settings. D0 follows from that. The owner then confirmed D1 ("I want typescript gone") and D5 ("I am the owner"). D2 to D4 are the plan's recommended defaults, set by the person writing the plan, and the owner may change any of them.
 
 | Decision | Setting |
 |---|---|
 | D0 | Port (option B): bun leaves the repository |
-| D1 | Port the package tests too |
+| D1 | Port the package tests too: no TypeScript and no bun left (owner, 15-11-2026) |
 | D2 | New crate `scaffold-release`, built in an unprivileged job and passed as an artifact; reuse `scaffold-core` |
 | D3 | Add `scaffold-release` to `cargo-mutants`; `main` is not excluded |
 | D4 | Yes, this repository wants the tooling in Rust |
-| D5 | Delete the TypeScript version within 14 days of one real release and one real promotion on the Rust tools. Owner to name a person |
+| D5 | Delete the TypeScript version within 14 days of one real release and one real promotion on the Rust tools. The repository owner is responsible (owner, 15-11-2026) |
 
 The options and reasons behind each decision follow.
 
 - **D0, whether to do it at all.** The options table above. This plan assumes B, and the gate lets the owner stop at A.
-- **D1, the package tests (T3). Decide before the gate**, because it decides whether the headline benefit is delivered. Either port them to a cargo integration test that parses `contract --json` with `scaffold-core::contract` (bun is then gone), or keep bun as their harness (option C). Recommended default: keep bun for them unless the owner wants bun gone, because they test pkl output, not runner code, and porting them is about 2 to 3 of the days in the total.
+- **D1, the package tests (T3). Decided by the owner on 15-11-2026: port them, so no TypeScript and no bun is left in the repository.** They become a cargo integration test that parses `contract --json` with `scaffold-core::contract`. Option C (keep bun as their harness) is dropped. They test pkl output, not runner code, and porting them is about 2 to 3 of the days in the total. This was decided before the gate, as the plan asked, so gate criterion 5 is met for D1.
 - **D2, where the code lives, and what runs with a token.** Recommended: one new crate `crates/scaffold-release` (`publish = false`, binary `scaffold-release`, not part of the release binaries), arguments parsed by hand as `scaffold-cli` does. It joins the workspace automatically (`members = ["crates/*"]`). **It is built in a separate job with `permissions: contents: read` and no token, uploaded as an artifact, and the privileged jobs only download and run it** (see Risks). Sub-choice: reuse `scaffold-core` (shares checksums and semver, pulls the `ureq`, `ring` and `rustls` tree into the build) or a leaf crate with only `sha2` and `serde_json` (less reuse, much smaller build). Recommended: reuse `scaffold-core`, because the build job is unprivileged; revisit if Phase 0 finds a `build.rs` the owner does not want.
 - **D3, mutation testing.** Add `scaffold-release` to the `cargo-mutants` set. Say up front which functions are excluded (code that shells out or calls the network), and **do not exclude `main`**: a `main` that exits 0 on a `PromoteError` must be caught.
 - **D4, does the repository want this tooling in Rust.** The owner's own convention for throwaway helper scripts is TypeScript on bun, but this is project tooling, so that convention does not decide it. The owner decides for the repository.
-- **D5, how long two implementations may coexist, and who owns removing the old one.** Recommended: one real tagged release and one real promotion on the Rust tools, then delete within 14 days. The owner names the person.
+- **D5, how long two implementations may coexist, and who owns removing the old one.** Decided by the owner on 15-11-2026: one real tagged release and one real promotion on the Rust tools, then delete within 14 days. **The owner of the repository is the person responsible**, and has asked for it to be done without further sign-off at that point, so deleting is not blocked on a review. The conditions (a real release and a real promotion made by the Rust tools) still hold.
 - **Opportunity cost.** The charter's first pass (four repositories) is not finished. The owner says whether this plan competes with that work or follows it.
 
 ## Order of work
@@ -96,15 +96,15 @@ One pull request per phase, each from a branch cut from fast-forwarded `main`. I
 | 2 | Port `promote` (module, script, `promote.test.ts`, `promote-workflow.test.ts`). Switch `promote.yml`. `release-workflow.test.ts` imports `stableWording`, so its Phase 2 part moves here | See "Verification": the negative dry runs and the argv test | about 1.5 days |
 | Gate | **Go or no-go.** Criteria and artefacts below | Recorded in this file by the owner | |
 | 3 | Fresh port of `update-pins` and `pinupdate` (see the table). Add a `dry_run` input to `update-pins.yml` in the same pull request. Update the `paths:` filter of that workflow, which lists the TypeScript files | A run with `dry_run` before merge; the merge itself does not trigger a writing run (drop the `push` trigger for that commit) | about 1.5 days |
-| 4 | Port `smoke` and the four baseline scripts with `check.sh`. Choose an HTTP server for `packaged` using the Phase 0 `cargo-deny` answer. `smoke-fixtures.test.ts` needs the D1 harness, so D1 is already decided | `smoke` and the 55-configuration baseline pass on all three platforms | about 1 day |
+| 4 | Port `smoke` and the four baseline scripts with `check.sh`. Choose an HTTP server for `packaged` using the Phase 0 `cargo-deny` answer. `smoke-fixtures.test.ts` needs the harness that Phase 7 replaces, so the Phase 7 design (a cargo test on `contract --json`) must exist before this phase ports it | `smoke` and the 55-configuration baseline pass on all three platforms | about 1 day |
 | 5 | Port `build-rust` (zig wrapper scripts, build, static-link check), and give `TARGETS` and `binaryName` a Rust home. Delete `release.ts` here, not earlier | Byte-identity: a binary built by the Rust tool equals one built by the TypeScript tool from the same commit, on all three targets (release-process.md says builds are reproducible from one commit). The `ci.yml` rust-binary job already builds and smoke-tests it on every pull request | about 1 day |
 | 6 | Delete the duplicated TypeScript modules, `known-bad.bundled.json`, and the T1 tests, with the mapping file as evidence. **Gated on one real tagged release and one real promotion made by the Rust tools** | `grep` finds no import of a deleted module | about half a day |
-| 7 | Apply D1: port T3, or shrink `runner/` to the harness. Move fixtures only with the three Rust call sites | As decided | 0 to 3 days |
+| 7 | Port T3 (D1: no TypeScript is left). The tests become a cargo integration test on `contract --json`. Move fixtures only together with the three Rust call sites that read them | No `.ts` file is left under `runner/` | 2 to 3 days |
 | 8 | If bun is gone: remove the `bun` pin from `mise.toml`, **regenerate `mise.lock`** (it carries `[[tools.bun]]` entries), delete `runner/package.json` and the `bun test` steps. Update the docs below | `grep -rn bun` finds only history | about 3 hours |
 
 **Files that span phases.** `release-workflow.test.ts` asserts on `release-assets.ts` (Phase 1), `stableWording` (Phase 2), `smoke.ts` (Phase 4) and `build-rust.ts` (Phase 5), and on `ci.yml`. It is edited in four phases, each time in the same pull request as the workflow change. `build-rust.test.ts` imports `release` and `build-rust`, so it moves in Phase 5.
 
-**Total, as a guess:** about 7 to 10 days for B (with D1 = port), about 4 to 5 days for C.
+**Total, as a guess:** about 7 to 10 days (D1 is decided: the package tests are ported too).
 
 ## The gate after Phase 2
 
@@ -114,7 +114,7 @@ Continue only if **all** of these hold, each with the artefact that proves it:
 2. Every dry run listed under "Verification" ran, with the run URLs recorded here.
 3. Time of the release `prepare` job, before and after (artifact download against a cold build). Artefact: the two job times. No-go if the `prepare` job gets more than 2 minutes slower.
 4. The count of behaviours the Rust version had to add that had no TypeScript test (the Phase 0 differences plus any new ones) is written down. It is information for the owner, not a pass mark.
-5. D1 and D5 are decided.
+5. D1 and D5 are decided (both done on 15-11-2026).
 
 **On no-go:** revert Phases 1 and 2 (their pull requests, plus the external undo in "Rollback"), and the end state is option A. Keeping them is allowed only if the owner says so in this file.
 

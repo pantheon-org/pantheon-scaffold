@@ -4,7 +4,10 @@
 //! The command is `scaffold-release release-assets <version | check-tag <tag> | checksums <dir> <version>>`. It reads
 //! `pkl/PklProject` under the directory it is run from, so the workflow runs it from the checkout root.
 
+pub mod baseline;
+pub mod json;
 pub mod promote;
+pub mod smoke;
 pub mod update_pins;
 
 use std::io::Write;
@@ -201,6 +204,8 @@ pub fn run(args: &[String], root: &Path, out: &mut dyn Write, err: &mut dyn Writ
         Some((&"release-assets", rest)) => rest,
         Some((&"promote", rest)) => return promote::command(rest, root, out, err),
         Some((&"update-pins", rest)) => return update_pins::command(rest, root, out, err),
+        Some((&"smoke", rest)) => return smoke::command(rest, root, out, err),
+        Some((&"baseline", rest)) => return baseline::command(rest, root, out, err),
         _ => {
             let _ = writeln!(err, "{ALL_USAGE}");
             return 2;

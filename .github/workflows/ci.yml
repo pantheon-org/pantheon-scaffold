@@ -61,6 +61,9 @@ jobs:
         run: cargo build -p scaffold-release --locked
       - name: Compare the Rust release tool with the TypeScript one
         run: mise x -- bash runner/scripts/release-assets-diff.sh target/debug/scaffold-release
+      # Phase 2: the same for promote, against a fake gh that records its calls (jq is preinstalled on the runner).
+      - name: Compare the Rust promote with the TypeScript one
+        run: mise x -- bash runner/scripts/promote-diff.sh target/debug/scaffold-release
       - name: Lint the consumer check sample
         run: mise x -- actionlint runner/test/fixtures/consumer-check.yml
       - name: Check the Rust formatting

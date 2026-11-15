@@ -234,7 +234,7 @@ impl GithubApi {
         if let Some(value) = &authorization {
             headers.push(("Authorization", value));
         }
-        for attempt in 1.. {
+        for attempt in 1..=ATTEMPTS {
             let response = get_with_status(&url, TIMEOUT, &headers)?;
             if response.status >= 500 && attempt < ATTEMPTS {
                 std::thread::sleep(self.delay);

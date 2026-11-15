@@ -151,6 +151,23 @@ mod tests {
         assert_eq!(cmp("0.1.0-rc.1", "0.1.0-rc.1"), Ordering::Equal);
     }
 
+    // Two deliberate differences from runner/src/semver.ts, found in the Phase 0 review of the TypeScript port plan
+    // (docs/ts-tooling-test-mapping.md). The TypeScript side is the wrong one in both.
+    #[test]
+    fn the_order_of_two_numbers_that_differ_only_in_leading_zeros_is_the_same_both_ways_round() {
+        // TypeScript returned 1 for both orders, which is not an order.
+        assert_eq!(cmp("1.0.0-01", "1.0.0-1"), Ordering::Greater);
+        assert_eq!(cmp("1.0.0-1", "1.0.0-01"), Ordering::Less);
+    }
+
+    #[test]
+    fn a_number_too_large_to_hold_is_not_a_version() {
+        // TypeScript accepted a 20-digit major as 1e20, and compared it as a float.
+        assert_eq!(parse_semver("99999999999999999999.0.0"), None);
+        assert_eq!(parse_semver("1.99999999999999999999.0"), None);
+        assert_eq!(parse_semver("1.0.99999999999999999999"), None);
+    }
+
     #[test]
     fn comparing_an_unparsable_version_is_an_error_naming_it() {
         assert_eq!(

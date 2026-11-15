@@ -239,6 +239,46 @@ mod tests {
     }
 
     #[test]
+    fn a_lifecycle_field_with_the_wrong_shape_is_refused() {
+        // The cases of "a lifecycle field with the wrong shape is rejected" in runner/test/contract.test.ts.
+        let cases: [(&str, Value, &str); 6] = [
+            ("packageUri", json!(3), "packageUri"),
+            ("requires", json!({}), "missing runner"),
+            (
+                "requires",
+                json!({ "runner": "0.1.0", "pkl": "0.32.0" }),
+                "unexpected pkl",
+            ),
+            (
+                "securityBuiltins",
+                json!([{ "name": "x" }]),
+                "missing enabled",
+            ),
+            (
+                "securityBuiltins",
+                json!([{ "name": "x", "enabled": "yes" }]),
+                "must be boolean",
+            ),
+            ("files/0/removeOnDetach", json!("yes"), "must be boolean"),
+        ];
+        for (field, value, expected) in cases {
+            let mut j = base();
+            match field.split_once('/') {
+                Some(("files", rest)) => {
+                    let (index, key) = rest.split_once('/').unwrap();
+                    j["files"][index.parse::<usize>().unwrap()][key] = value;
+                }
+                _ => j[field] = value,
+            }
+            let message = err(&j);
+            assert!(
+                message.contains(expected),
+                "{field}: expected {expected:?} in {message:?}"
+            );
+        }
+    }
+
+    #[test]
     fn a_contract_serialises_back_to_the_same_json() {
         let j = base();
         assert_eq!(

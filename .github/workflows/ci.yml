@@ -55,6 +55,12 @@ jobs:
         env:
           SCAFFOLD_BIN: ${{ github.workspace }}/target/debug/pantheon-scaffold
         run: mise x -- bun test
+      # Phase 1 of docs/ts-tooling-rust-port.md: the TypeScript release-assets tool is the reference until it is deleted. This runs it
+      # and the Rust tool on the same inputs and fails on any difference in output or exit code.
+      - name: Build the Rust release tool
+        run: cargo build -p scaffold-release --locked
+      - name: Compare the Rust release tool with the TypeScript one
+        run: mise x -- bash runner/scripts/release-assets-diff.sh target/debug/scaffold-release
       - name: Lint the consumer check sample
         run: mise x -- actionlint runner/test/fixtures/consumer-check.yml
       - name: Check the Rust formatting
@@ -102,10 +108,10 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           git diff "$BASE_SHA"...HEAD > "$RUNNER_TEMP/pr.diff"
-          mise x -- cargo mutants --package scaffold-core --package scaffold-cli --jobs 2 --in-diff "$RUNNER_TEMP/pr.diff"
+          mise x -- cargo mutants --package scaffold-core --package scaffold-cli --package scaffold-release --jobs 2 --in-diff "$RUNNER_TEMP/pr.diff"
       - name: Mutation-test the whole Rust core
         if: github.event_name != 'pull_request'
-        run: mise x -- cargo mutants --package scaffold-core --package scaffold-cli --jobs 2
+        run: mise x -- cargo mutants --package scaffold-core --package scaffold-cli --package scaffold-release --jobs 2
 
   # The features (features/*.feature), run against the Rust build: every scenario, nothing skipped. SCAFFOLD_SKIP_TAGS (see features/README.md)
   # exists for a scenario that one build cannot pass.

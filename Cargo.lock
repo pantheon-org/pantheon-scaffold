@@ -1205,6 +1205,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "scaffold-release"
+version = "0.0.0"
+dependencies = [
+ "regex",
+ "scaffold-core",
+ "serde_json",
+ "sha2",
+ "tempfile",
+]
+
+[[package]]
 name = "sealed"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

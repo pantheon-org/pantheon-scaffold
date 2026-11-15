@@ -12,7 +12,7 @@ Added in phase 2b, wave C; the build changed in phase 2, task 2.5. The runner is
 - `contract.schema.json` and the repository's `known-bad.json` are compiled in, so a binary reads nothing from the source tree.
 - `--version` sets the version the binary reports, at compile time (`SCAFFOLD_VERSION`). Built without it, a binary reports `0.0.0`. The runner and the package are released together under one version.
 - After building, the script checks its own output: the binary reports the version it was built for, and on Linux `ldd` says the binary is static. It fails the build if either is wrong.
-- `checksums.txt` is written by the release workflow (`runner/scripts/release-assets.ts checksums`), in sha256sum format, after it has the package files and the three binaries in one folder. The release pipeline attests the file, and `upgrade` reads it (see [runner-upgrade.md](runner-upgrade.md)).
+- `checksums.txt` is written by the release workflow (`scaffold-release release-assets checksums`, from `crates/scaffold-release`), in sha256sum format, after it has the package files and the three binaries in one folder. The release pipeline attests the file, and `upgrade` reads it (see [runner-upgrade.md](runner-upgrade.md)).
 
 The Rust build downloads crates, whose versions `Cargo.lock` fixes (`--locked`) and `cargo-deny` checks in CI, and downloads Zig through mise (a checksummed tarball from ziglang.org) in the release-binary jobs. Those are supply-chain inputs for any Security review of the release pipeline (task 7.5).
 

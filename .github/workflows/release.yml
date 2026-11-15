@@ -24,27 +24,61 @@ env:
   MISE_DISABLE_TOOLS: rust
 
 jobs:
+  # The release tool (crates/scaffold-release) is built here, in a job that can read the repository and nothing else: no write
+  # permission and no token in its environment. A build runs the build scripts of every crate it depends on, and that must never
+  # happen next to a token that can write. prepare and release only download the finished binary and check its checksum.
+  tool:
+    name: Build the release tool
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      sha256: ${{ steps.build.outputs.sha256 }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # rustup is preinstalled on GitHub-hosted runners. The version must match rust-toolchain.toml.
+      - name: Install the Rust toolchain
+        run: |
+          rustup toolchain install 1.96.1 --profile minimal
+          rustup default 1.96.1
+      - name: Build the release tool
+        id: build
+        run: |
+          cargo build --release --locked -p scaffold-release
+          echo "sha256=$(sha256sum target/release/scaffold-release | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: scaffold-release
+          path: target/release/scaffold-release
+          retention-days: 7
+          if-no-files-found: error
+
   prepare:
     name: Check the version
+    needs: tool
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: read
     outputs:
       version: ${{ steps.version.outputs.version }}
-    env:
-      GITHUB_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          version: 2026.10.25
-          install: false
-          cache: false
-      - name: Install the pinned tools from the lock file
-        run: mise install --locked
+          name: scaffold-release
+          path: tool/
+      - name: Check that the release tool is the one that was built
+        env:
+          EXPECTED: ${{ needs.tool.outputs.sha256 }}
+        run: |
+          echo "$EXPECTED  tool/scaffold-release" | sha256sum --check --strict -
+          chmod +x tool/scaffold-release
       - name: Check the tag against pkl/PklProject, or read the version for a dry run
         id: version
         env:
@@ -52,11 +86,17 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
         run: |
           if [ "$REF_TYPE" = tag ]; then
-            version="$(mise x -- bun runner/scripts/release-assets.ts check-tag "$REF_NAME")"
+            version="$(tool/scaffold-release release-assets check-tag "$REF_NAME")"
           else
-            version="$(mise x -- bun runner/scripts/release-assets.ts version)"
+            version="$(tool/scaffold-release release-assets version)"
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
+      # A dry run has no tag, so the check above reads the version only. This runs the tag check on the tag this version would get.
+      - name: Check that a tag for this version would pass, on a dry run
+        if: github.ref_type != 'tag'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: tool/scaffold-release release-assets check-tag "v$VERSION"
       # A draft made by release-please is not visible to this job (contents: read), and is adopted by the release job. Only a published release stops it here.
       - name: Refuse to release a version that already has a release
         if: github.event_name == 'push'
@@ -198,7 +238,7 @@ jobs:
 
   release:
     name: Attest and publish
-    needs: [prepare, package, smoke]
+    needs: [tool, prepare, package, smoke]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -206,19 +246,21 @@ jobs:
       id-token: write
       attestations: write
     env:
-      GITHUB_TOKEN: ${{ github.token }}
       VERSION: ${{ needs.prepare.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          version: 2026.10.25
-          install: false
-          cache: false
-      - name: Install the pinned tools from the lock file
-        run: mise install --locked
+          name: scaffold-release
+          path: tool/
+      - name: Check that the release tool is the one that was built
+        env:
+          EXPECTED: ${{ needs.tool.outputs.sha256 }}
+        run: |
+          echo "$EXPECTED  tool/scaffold-release" | sha256sum --check --strict -
+          chmod +x tool/scaffold-release
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: package-files
@@ -231,7 +273,7 @@ jobs:
       - name: Write checksums.txt after cross-checking the package files
         run: |
           rm -f dist/checksums.txt
-          mise x -- bun runner/scripts/release-assets.ts checksums dist "$VERSION"
+          tool/scaffold-release release-assets checksums dist "$VERSION"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-assets

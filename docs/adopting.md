@@ -224,7 +224,14 @@ mise x -- pantheon-scaffold check scaffold.pkl
 
 Rolling back is two steps on purpose: the runner refuses to render an older package than the one that last rendered, and `upgrade` does not pass `--force` on, because that would also overwrite hand edits. A release that turns out to be bad is superseded by the next patch version and listed in `known-bad.json`. It is never deleted or re-published.
 
-Going back across 0.2.0, to 0.1.9 or earlier, also undoes its three breaking changes, and you do it by hand after the pins move: run `upgrade <older> --force` (the render it ends with is refused), then rename the file back (`git mv scaffold.pkl pantheon.pkl`), take `options` out of the `toolingFiles` and `workflowFiles` calls, run `mise install` so the older runner is installed, and run that runner's `render pantheon.pkl --force`. The older runner does not know contract version 2, so it needs the older package, which `upgrade <older>` has put in the `amends` line.
+Going back across 0.2.0, to 0.1.9 or earlier, also undoes its three breaking changes. This order was proven on the published releases (0.2.0 back to 0.1.9):
+
+1. Take `options` out of the `toolingFiles` and `workflowFiles` calls (`Builtins.toolingFiles(options)` becomes `Builtins.toolingFiles()`), and keep the file name `scaffold.pkl` for now.
+2. Run `mise x -- pantheon-scaffold upgrade <older> --force`. It moves the pins and puts the older package in the `amends` line. Exit 3 is expected: the render it ends with is refused.
+3. Rename the file back: `git mv scaffold.pkl pantheon.pkl`.
+4. Run `mise install` so the older runner is installed, then that runner's `render pantheon.pkl --force` and `check pantheon.pkl`.
+
+The older runner does not know contract version 2, so it needs the older package that step 2 put in place.
 
 ## Leaving: `detach`
 

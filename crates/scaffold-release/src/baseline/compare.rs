@@ -22,6 +22,11 @@ pub fn parse_args(args: &[&str], cwd: &Path) -> Result<(PathBuf, PathBuf), Strin
     }
 }
 
+#[cfg(test)]
+pub(super) fn names_for_test(dir: &Path) -> Vec<String> {
+    names(dir).expect("the folder can be read")
+}
+
 /// The names of the `.json` files of a folder, sorted.
 fn names(dir: &Path) -> Result<Vec<String>, String> {
     let mut found: Vec<String> = std::fs::read_dir(dir)
@@ -44,7 +49,7 @@ fn load(dir: &Path, file: &str) -> Result<Value, String> {
 ///
 /// One difference from the JavaScript, harmless for text the runner prints: `$` and `.` stop at `\n` only, where JavaScript's also stop
 /// at `\r`, U+2028 and U+2029.
-fn loose(text: &str) -> String {
+pub(super) fn loose(text: &str) -> String {
     use std::sync::LazyLock;
     static PATTERNS: LazyLock<[regex::Regex; 4]> = LazyLock::new(|| {
         [

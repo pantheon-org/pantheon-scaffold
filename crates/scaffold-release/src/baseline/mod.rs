@@ -6,6 +6,9 @@ pub mod freeze;
 pub mod packaged;
 pub mod snapshot;
 
+#[cfg(test)]
+mod tests;
+
 use std::io::Write;
 use std::path::Path;
 

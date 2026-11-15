@@ -145,13 +145,138 @@ pub fn packaged(
     }
 }
 
-fn run(tree: &Path, work: &Path, out: &mut dyn Write, err: &mut dyn Write) -> Result<bool, String> {
-    let io = |path: &Path| {
-        let path = path.to_owned();
-        move |e: std::io::Error| format!("{}: {e}", path.display())
+fn io_error(path: &Path) -> impl Fn(std::io::Error) -> String {
+    let path = path.to_owned();
+    move |e| format!("{}: {e}", path.display())
+}
+
+fn say(out: &mut dyn Write, line: String) -> Result<(), String> {
+    writeln!(out, "{line}").map_err(|e| e.to_string())
+}
+
+/// (1) The zip lists every file of `pkl/`. Prints what it found, and returns whether a file is missing from the zip.
+fn check_zip(tree: &Path, zip: &Path, out: &mut dyn Write) -> Result<bool, String> {
+    let mut on_disk: Vec<String> = walk(&tree.join("pkl"), &tree.join("pkl"))
+        .into_iter()
+        .filter(|p| p != "PklProject" && p != "PklProject.deps.json")
+        .collect();
+    sort_like_javascript(&mut on_disk);
+    let listing = Command::new("unzip")
+        .arg("-Z1")
+        .arg(zip)
+        .output()
+        .map_err(|e| format!("unzip: {e}"))?;
+    let mut listed: Vec<String> = String::from_utf8_lossy(&listing.stdout)
+        .split('\n')
+        .filter(|l| !l.is_empty() && !l.ends_with('/'))
+        .map(str::to_owned)
+        .collect();
+    sort_like_javascript(&mut listed);
+    let missing: Vec<&str> = on_disk
+        .iter()
+        .filter(|p| !listed.contains(p))
+        .map(String::as_str)
+        .collect();
+    let extra = listed.iter().filter(|p| !on_disk.contains(p)).count();
+    say(
+        out,
+        format!(
+            "zip: {} entries, {} files on disk, {} missing from the zip, {extra} extra",
+            listed.len(),
+            on_disk.len(),
+            missing.len()
+        ),
+    )?;
+    if !missing.is_empty() {
+        say(out, format!("  missing: {}", missing.join(", ")))?;
+    }
+    Ok(!missing.is_empty())
+}
+
+/// What one option set is rendered with: the package through its URI and the folder, to be compared.
+struct Set<'a> {
+    name: &'a str,
+    body: &'a str,
+    base: &'a str,
+    port: u16,
+}
+
+/// (2) Renders one option set through the package and through the folder, and says whether the contracts are the same. Returns whether
+/// there is a problem.
+fn compare_set(tree: &Path, work: &Path, set: &Set, out: &mut dyn Write) -> Result<bool, String> {
+    let Set {
+        name,
+        body,
+        base,
+        port,
+    } = set;
+    let dir = work.join(name);
+    std::fs::create_dir_all(&dir).map_err(io_error(&dir))?;
+    let common = format!("toolchain = \"1.96.1\"\n  runnerVersion = \"0.1.9\"\n  {body}");
+    let composition = "workflows { ...Builtins.standardWorkflows(options) }\nfiles {\n  ...Builtins.standardFiles(options)\n  ...Builtins.baseFiles(options)\n  ...Builtins.toolingFiles(options)\n  ...Builtins.miseFiles(options)\n  ...Builtins.hkFiles(options)\n}\n";
+    let tree_text = tree.display();
+    std::fs::write(dir.join("scaffold.pkl"), format!("amends \"{base}#/Config.pkl\"\nimport \"{base}#/Builtins.pkl\"\noptions {{\n  {common}\n}}\n{composition}")).map_err(io_error(&dir))?;
+    std::fs::write(dir.join("folder.pkl"), format!("amends \"file://{tree_text}/pkl/Config.pkl\"\nimport \"file://{tree_text}/pkl/Builtins.pkl\"\noptions {{\n  {common}\n}}\n{composition}")).map_err(io_error(&dir))?;
+    let packaged = Command::new("pkl")
+        .args(["eval", "-f", "json", "--cache-dir"])
+        .arg(dir.join("cache"))
+        .args([
+            "--http-rewrite",
+            &format!("https://github.com/=http://localhost:{port}/"),
+            "--allowed-resources",
+            "package:,https:,http:",
+        ])
+        .arg(dir.join("scaffold.pkl"))
+        .output()
+        .map_err(|e| format!("pkl: {e}"))?;
+    if !packaged.status.success() {
+        say(
+            out,
+            format!(
+                "{name}: packaged render FAILED\n{}",
+                String::from_utf8_lossy(&packaged.stderr)
+            ),
+        )?;
+        return Ok(true);
+    }
+    let folder = Command::new("pkl")
+        .args(["eval", "-f", "json", "--allowed-resources", "file:"])
+        .arg(dir.join("folder.pkl"))
+        .output()
+        .map_err(|e| format!("pkl: {e}"))?;
+    if !folder.status.success() {
+        say(
+            out,
+            format!(
+                "{name}: folder render FAILED\n{}",
+                String::from_utf8_lossy(&folder.stderr)
+            ),
+        )?;
+        return Ok(true);
+    }
+    let parse = |bytes: &[u8]| -> Result<Value, String> {
+        let mut value: Value = serde_json::from_slice(bytes).map_err(|e| e.to_string())?;
+        if let Some(object) = value.as_object_mut() {
+            object.shift_remove("packageUri");
+        }
+        Ok(value)
     };
+    let (a, b) = (parse(&packaged.stdout)?, parse(&folder.stdout)?);
+    let same = serde_json::to_string(&a).ok() == serde_json::to_string(&b).ok();
+    say(
+        out,
+        format!(
+            "{name}: packaged contract {} the folder contract {}",
+            if same { "equals" } else { "DIFFERS from" },
+            describe(&a)
+        ),
+    )?;
+    Ok(!same)
+}
+
+fn run(tree: &Path, work: &Path, out: &mut dyn Write, err: &mut dyn Write) -> Result<bool, String> {
     let _ = std::fs::remove_dir_all(work);
-    std::fs::create_dir_all(work).map_err(io(work))?;
+    std::fs::create_dir_all(work).map_err(io_error(work))?;
     let build = Command::new("pkl")
         .args(["project", "package"])
         .arg(tree.join("pkl"))
@@ -164,7 +289,7 @@ fn run(tree: &Path, work: &Path, out: &mut dyn Write, err: &mut dyn Write) -> Re
         return Ok(true);
     }
     let project_path = tree.join("pkl/PklProject");
-    let project = std::fs::read_to_string(&project_path).map_err(io(&project_path))?;
+    let project = std::fs::read_to_string(&project_path).map_err(io_error(&project_path))?;
     let version = regex::Regex::new(r#"version = "([^"]+)""#)
         .expect("valid")
         .captures(&project)
@@ -173,52 +298,8 @@ fn run(tree: &Path, work: &Path, out: &mut dyn Write, err: &mut dyn Write) -> Re
     let zip = work
         .join("pkg")
         .join(format!("pantheon-scaffold@{version}.zip"));
+    let mut problems = check_zip(tree, &zip, out)?;
 
-    // (1) The zip lists every file of pkl/.
-    let mut on_disk: Vec<String> = walk(&tree.join("pkl"), &tree.join("pkl"))
-        .into_iter()
-        .filter(|p| p != "PklProject" && p != "PklProject.deps.json")
-        .collect();
-    sort_like_javascript(&mut on_disk);
-    let listing = Command::new("unzip")
-        .arg("-Z1")
-        .arg(&zip)
-        .output()
-        .map_err(|e| format!("unzip: {e}"))?;
-    let mut listed: Vec<String> = String::from_utf8_lossy(&listing.stdout)
-        .split('\n')
-        .filter(|l| !l.is_empty() && !l.ends_with('/'))
-        .map(str::to_owned)
-        .collect();
-    sort_like_javascript(&mut listed);
-    let missing: Vec<&String> = on_disk.iter().filter(|p| !listed.contains(p)).collect();
-    let extra = listed.iter().filter(|p| !on_disk.contains(p)).count();
-    let say =
-        |out: &mut dyn Write, line: String| writeln!(out, "{line}").map_err(|e| e.to_string());
-    say(
-        out,
-        format!(
-            "zip: {} entries, {} files on disk, {} missing from the zip, {extra} extra",
-            listed.len(),
-            on_disk.len(),
-            missing.len()
-        ),
-    )?;
-    if !missing.is_empty() {
-        say(
-            out,
-            format!(
-                "  missing: {}",
-                missing
-                    .iter()
-                    .map(|s| s.as_str())
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ),
-        )?;
-    }
-
-    // (2) Packaged contract equals folder contract.
     let base = format!(
         "package://github.com/pantheon-org/pantheon-scaffold/releases/download/v{version}/pantheon-scaffold@{version}"
     );
@@ -230,74 +311,20 @@ fn run(tree: &Path, work: &Path, out: &mut dyn Write, err: &mut dyn Write) -> Re
         ),
         ("library", "skills = false\n  binary = false"),
     ];
-    let mut problems = false;
     for (name, body) in sets {
-        let dir = work.join(name);
-        std::fs::create_dir_all(&dir).map_err(io(&dir))?;
-        let common = format!("toolchain = \"1.96.1\"\n  runnerVersion = \"0.1.9\"\n  {body}");
-        let composition = "workflows { ...Builtins.standardWorkflows(options) }\nfiles {\n  ...Builtins.standardFiles(options)\n  ...Builtins.baseFiles(options)\n  ...Builtins.toolingFiles(options)\n  ...Builtins.miseFiles(options)\n  ...Builtins.hkFiles(options)\n}\n";
-        let tree_text = tree.display();
-        std::fs::write(dir.join("scaffold.pkl"), format!("amends \"{base}#/Config.pkl\"\nimport \"{base}#/Builtins.pkl\"\noptions {{\n  {common}\n}}\n{composition}")).map_err(io(&dir))?;
-        std::fs::write(dir.join("folder.pkl"), format!("amends \"file://{tree_text}/pkl/Config.pkl\"\nimport \"file://{tree_text}/pkl/Builtins.pkl\"\noptions {{\n  {common}\n}}\n{composition}")).map_err(io(&dir))?;
-        let packaged = Command::new("pkl")
-            .args(["eval", "-f", "json", "--cache-dir"])
-            .arg(dir.join("cache"))
-            .args([
-                "--http-rewrite",
-                &format!("https://github.com/=http://localhost:{port}/"),
-                "--allowed-resources",
-                "package:,https:,http:",
-            ])
-            .arg(dir.join("scaffold.pkl"))
-            .output()
-            .map_err(|e| format!("pkl: {e}"))?;
-        if !packaged.status.success() {
-            say(
-                out,
-                format!(
-                    "{name}: packaged render FAILED\n{}",
-                    String::from_utf8_lossy(&packaged.stderr)
-                ),
-            )?;
-            problems = true;
-            continue;
-        }
-        let folder = Command::new("pkl")
-            .args(["eval", "-f", "json", "--allowed-resources", "file:"])
-            .arg(dir.join("folder.pkl"))
-            .output()
-            .map_err(|e| format!("pkl: {e}"))?;
-        if !folder.status.success() {
-            say(
-                out,
-                format!(
-                    "{name}: folder render FAILED\n{}",
-                    String::from_utf8_lossy(&folder.stderr)
-                ),
-            )?;
-            problems = true;
-            continue;
-        }
-        let parse = |bytes: &[u8]| -> Result<Value, String> {
-            let mut value: Value = serde_json::from_slice(bytes).map_err(|e| e.to_string())?;
-            if let Some(object) = value.as_object_mut() {
-                object.shift_remove("packageUri");
-            }
-            Ok(value)
-        };
-        let (a, b) = (parse(&packaged.stdout)?, parse(&folder.stdout)?);
-        let same = serde_json::to_string(&a).ok() == serde_json::to_string(&b).ok();
-        say(
+        problems |= compare_set(
+            tree,
+            work,
+            &Set {
+                name,
+                body,
+                base: &base,
+                port,
+            },
             out,
-            format!(
-                "{name}: packaged contract {} the folder contract {}",
-                if same { "equals" } else { "DIFFERS from" },
-                describe(&a)
-            ),
         )?;
-        problems |= !same;
     }
-    Ok(!missing.is_empty() || problems)
+    Ok(problems)
 }
 
 #[cfg(test)]

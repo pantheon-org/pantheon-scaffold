@@ -269,6 +269,35 @@ fn matrix_config(opts: &Opts, tree: &Path, api: Api) -> String {
     )
 }
 
+#[cfg(test)]
+pub(super) fn matrix_names() -> Vec<String> {
+    matrix().into_iter().map(|(name, _)| name).collect()
+}
+
+#[cfg(test)]
+pub(super) fn matrix_text(name: &str, tree: &Path, api: Api) -> String {
+    let (_, opts) = matrix()
+        .into_iter()
+        .find(|(n, _)| n == name)
+        .expect("a configuration of that name");
+    matrix_config(&opts, tree, api)
+}
+
+#[cfg(test)]
+pub(super) fn files_for_test(dir: &Path) -> Vec<String> {
+    files(dir).expect("the files can be listed")
+}
+
+#[cfg(test)]
+pub(super) fn placeholders_for_test(text: &str) -> String {
+    Placeholders {
+        dir: Path::new("/t/out/dir"),
+        out: Path::new("/t/out"),
+        tree: Path::new("/t/tree"),
+    }
+    .apply(text)
+}
+
 /// Renders every configuration and writes the snapshot. Returns the exit code.
 pub fn snapshot(args: &Args, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     match snapshot_inner(args, out) {

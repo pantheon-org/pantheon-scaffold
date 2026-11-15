@@ -273,6 +273,13 @@ pub fn smoke(args: &Args, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     i32::from(s.failures > 0)
 }
 
+/// A scenario whose setup can fail: a failure is one failed check named after it, and the other scenarios still run.
+fn scenario(s: &mut Smoke, name: &str, body: fn(&mut Smoke) -> Result<(), String>) {
+    if let Err(message) = body(s) {
+        s.failed_setup(name, &message);
+    }
+}
+
 fn suite(s: &mut Smoke, expected_version: &str) -> Result<(), String> {
     // Case-sensitive or not: write one name and look for it in another case.
     let probe = s.fresh("probe")?;
@@ -289,164 +296,165 @@ fn suite(s: &mut Smoke, expected_version: &str) -> Result<(), String> {
         },
         platform()
     );
-    let package = s.package();
+    basics(s, expected_version)?;
+    render_flow(s)?;
+    lock_flow(s)?;
+    case_flow(s)?;
+    scenario(s, "orphan deletion in a clean git repository", orphan_clean);
+    scenario(s, "a dirty tracked tree refuses the deletion", orphan_dirty);
+    Ok(())
+}
 
-    {
-        let r = s.run(&["--version"])?;
-        s.ok(
-            "--version prints the version the binary was built for",
-            r.code == 0 && r.out == expected_version,
-            &show(&r),
-        );
-        let u = s.run(&["nope"])?;
-        s.ok(
-            "an unknown command is a usage error (exit 2)",
-            u.code == 2 && u.err.contains("usage"),
-            &show(&u),
-        );
-        let minimal = s.fixture("minimal");
-        let c = s.run(&["contract", &minimal, "--allow-local-package", &package])?;
-        s.ok(
-            "contract works from an unrelated directory, so the schema is inside the binary",
-            c.code == 0 && c.out.starts_with("contract ok: 4 files"),
-            &show(&c),
-        );
-    }
+fn basics(s: &mut Smoke, expected_version: &str) -> Result<(), String> {
+    let r = s.run(&["--version"])?;
+    s.ok(
+        "--version prints the version the binary was built for",
+        r.code == 0 && r.out == expected_version,
+        &show(&r),
+    );
+    let u = s.run(&["nope"])?;
+    s.ok(
+        "an unknown command is a usage error (exit 2)",
+        u.code == 2 && u.err.contains("usage"),
+        &show(&u),
+    );
+    let (minimal, package) = (s.fixture("minimal"), s.package());
+    let c = s.run(&["contract", &minimal, "--allow-local-package", &package])?;
+    s.ok(
+        "contract works from an unrelated directory, so the schema is inside the binary",
+        c.code == 0 && c.out.starts_with("contract ok: 4 files"),
+        &show(&c),
+    );
+    Ok(())
+}
 
-    {
-        let repo = s.fresh("render")?;
-        let r = s.render("minimal", &repo, &[])?;
-        s.ok(
-            "render writes the files",
-            r.code == 0
-                && repo.join("rust-toolchain.toml").exists()
-                && repo.join(".pkl-gen/manifest.json").exists(),
-            &show(&r),
-        );
-        let hello = repo.join(".github/scripts/hello.sh");
-        let hello_mode = if hello.exists() {
-            mode(&hello)?
-        } else {
-            "file missing".to_owned()
-        };
-        s.ok(
-            "the executable bit is set from the contract",
-            hello.exists() && hello_mode == "755",
-            &hello_mode,
-        );
-        let again = s.render("minimal", &repo, &[])?;
-        s.ok(
-            "a second render writes and deletes nothing",
-            again.code == 0 && again.out.contains("written 0 file(s), deleted 0"),
-            &show(&again),
-        );
-        let c = s.check("minimal", &repo)?;
-        s.ok("check finds no drift", c.code == 0, &show(&c));
-        std::fs::write(repo.join("rust-toolchain.toml"), "# mine\n").map_err(|e| e.to_string())?;
-        let drift = s.check("minimal", &repo)?;
-        s.ok(
-            "check reports a hand edit as drift (exit 4)",
-            drift.code == 4,
-            &show(&drift),
-        );
-        let refused = s.render("minimal", &repo, &[])?;
-        s.ok(
-            "render refuses to overwrite a hand edit (exit 3) and leaves it",
-            refused.code == 3 && read(&repo.join("rust-toolchain.toml")) == "# mine\n",
-            &show(&refused),
-        );
-        let forced = s.render("minimal", &repo, &["--force"])?;
-        s.ok(
-            "--force overwrites it",
-            forced.code == 0 && read(&repo.join("rust-toolchain.toml")) != "# mine\n",
-            &show(&forced),
-        );
-        let root = repo.to_string_lossy().into_owned();
-        let d = s.run(&["detach", "--root", &root])?;
-        s.ok(
-            "detach removes .pkl-gen and leaves the files",
-            d.code == 0
-                && !repo.join(".pkl-gen").exists()
-                && repo.join("rust-toolchain.toml").exists(),
-            &show(&d),
-        );
-    }
+fn render_flow(s: &mut Smoke) -> Result<(), String> {
+    let repo = s.fresh("render")?;
+    let r = s.render("minimal", &repo, &[])?;
+    s.ok(
+        "render writes the files",
+        r.code == 0
+            && repo.join("rust-toolchain.toml").exists()
+            && repo.join(".pkl-gen/manifest.json").exists(),
+        &show(&r),
+    );
+    let hello = repo.join(".github/scripts/hello.sh");
+    let hello_mode = if hello.exists() {
+        mode(&hello)?
+    } else {
+        "file missing".to_owned()
+    };
+    s.ok(
+        "the executable bit is set from the contract",
+        hello.exists() && hello_mode == "755",
+        &hello_mode,
+    );
+    let again = s.render("minimal", &repo, &[])?;
+    s.ok(
+        "a second render writes and deletes nothing",
+        again.code == 0 && again.out.contains("written 0 file(s), deleted 0"),
+        &show(&again),
+    );
+    let c = s.check("minimal", &repo)?;
+    s.ok("check finds no drift", c.code == 0, &show(&c));
+    std::fs::write(repo.join("rust-toolchain.toml"), "# mine\n").map_err(|e| e.to_string())?;
+    let drift = s.check("minimal", &repo)?;
+    s.ok(
+        "check reports a hand edit as drift (exit 4)",
+        drift.code == 4,
+        &show(&drift),
+    );
+    let refused = s.render("minimal", &repo, &[])?;
+    s.ok(
+        "render refuses to overwrite a hand edit (exit 3) and leaves it",
+        refused.code == 3 && read(&repo.join("rust-toolchain.toml")) == "# mine\n",
+        &show(&refused),
+    );
+    let forced = s.render("minimal", &repo, &["--force"])?;
+    s.ok(
+        "--force overwrites it",
+        forced.code == 0 && read(&repo.join("rust-toolchain.toml")) != "# mine\n",
+        &show(&forced),
+    );
+    let root = repo.to_string_lossy().into_owned();
+    let d = s.run(&["detach", "--root", &root])?;
+    s.ok(
+        "detach removes .pkl-gen and leaves the files",
+        d.code == 0 && !repo.join(".pkl-gen").exists() && repo.join("rust-toolchain.toml").exists(),
+        &show(&d),
+    );
+    Ok(())
+}
 
-    {
-        let repo = s.fresh("locked")?;
-        std::fs::create_dir(repo.join(".pkl-gen")).map_err(|e| e.to_string())?;
-        let lock = format!(
-            "{{\"pid\":{},\"started\":\"{}\"}}",
-            std::process::id(),
-            iso_now()
-        );
-        std::fs::write(repo.join(".pkl-gen/lock"), lock).map_err(|e| e.to_string())?;
-        let r = s.render("minimal", &repo, &[])?;
-        s.ok(
-            "a render while the lock is held fails (exit 1) and writes nothing",
-            r.code == 1 && r.err.contains("is held") && !repo.join("rust-toolchain.toml").exists(),
-            &show(&r),
-        );
-    }
+fn lock_flow(s: &mut Smoke) -> Result<(), String> {
+    let repo = s.fresh("locked")?;
+    std::fs::create_dir(repo.join(".pkl-gen")).map_err(|e| e.to_string())?;
+    let lock = format!(
+        "{{\"pid\":{},\"started\":\"{}\"}}",
+        std::process::id(),
+        iso_now()
+    );
+    std::fs::write(repo.join(".pkl-gen/lock"), lock).map_err(|e| e.to_string())?;
+    let r = s.render("minimal", &repo, &[])?;
+    s.ok(
+        "a render while the lock is held fails (exit 1) and writes nothing",
+        r.code == 1 && r.err.contains("is held") && !repo.join("rust-toolchain.toml").exists(),
+        &show(&r),
+    );
+    Ok(())
+}
 
-    {
-        let collision = s.fresh("collision")?;
-        let r = s.render("smoke-case-collision", &collision, &[])?;
-        s.ok(
-            "two paths that differ only by case are refused on any filesystem (exit 1)",
-            r.code == 1 && r.err.contains("differ only by case"),
-            &show(&r),
-        );
-        let repo = s.fresh("rename")?;
-        s.render("smoke-case-a", &repo, &[])?;
-        let rn = s.render("smoke-case-b", &repo, &[])?;
-        s.ok(
-            "a case-only rename is refused (exit 3) and the old file is kept",
-            rn.code == 3
-                && rn.err.contains("differ only by case")
-                && read(&repo.join("readme.md")) == "one\n",
-            &show(&rn),
-        );
-    }
+fn case_flow(s: &mut Smoke) -> Result<(), String> {
+    let collision = s.fresh("collision")?;
+    let r = s.render("smoke-case-collision", &collision, &[])?;
+    s.ok(
+        "two paths that differ only by case are refused on any filesystem (exit 1)",
+        r.code == 1 && r.err.contains("differ only by case"),
+        &show(&r),
+    );
+    let repo = s.fresh("rename")?;
+    s.render("smoke-case-a", &repo, &[])?;
+    let rn = s.render("smoke-case-b", &repo, &[])?;
+    s.ok(
+        "a case-only rename is refused (exit 3) and the old file is kept",
+        rn.code == 3
+            && rn.err.contains("differ only by case")
+            && read(&repo.join("readme.md")) == "one\n",
+        &show(&rn),
+    );
+    Ok(())
+}
 
-    let outcome = (|| -> Result<(), String> {
-        let repo = s.fresh("orphan")?;
-        git(&repo, &["init", "-q", "-b", "main"])?;
-        s.must_render("smoke-orphan-a", &repo)?;
-        commit_all(&repo)?;
-        let r = s.render("smoke-orphan-b", &repo, &[])?;
-        s.ok(
-            "an orphan is deleted in a clean git repository, so git works inside the binary",
-            r.code == 0
-                && r.out.contains("deleted 1")
-                && !repo.join("b.txt").exists()
-                && repo.join("a.txt").exists(),
-            &show(&r),
-        );
-        Ok(())
-    })();
-    if let Err(message) = outcome {
-        s.failed_setup("orphan deletion in a clean git repository", &message);
-    }
+fn orphan_clean(s: &mut Smoke) -> Result<(), String> {
+    let repo = s.fresh("orphan")?;
+    git(&repo, &["init", "-q", "-b", "main"])?;
+    s.must_render("smoke-orphan-a", &repo)?;
+    commit_all(&repo)?;
+    let r = s.render("smoke-orphan-b", &repo, &[])?;
+    s.ok(
+        "an orphan is deleted in a clean git repository, so git works inside the binary",
+        r.code == 0
+            && r.out.contains("deleted 1")
+            && !repo.join("b.txt").exists()
+            && repo.join("a.txt").exists(),
+        &show(&r),
+    );
+    Ok(())
+}
 
-    let outcome = (|| -> Result<(), String> {
-        let dirty = s.fresh("orphan-dirty")?;
-        git(&dirty, &["init", "-q", "-b", "main"])?;
-        s.must_render("smoke-orphan-a", &dirty)?;
-        std::fs::write(dirty.join("notes.md"), "n\n").map_err(|e| e.to_string())?;
-        commit_all(&dirty)?;
-        std::fs::write(dirty.join("notes.md"), "changed\n").map_err(|e| e.to_string())?;
-        let d = s.render("smoke-orphan-b", &dirty, &[])?;
-        s.ok(
-            "a dirty tracked tree refuses the deletion (exit 3) and keeps the file",
-            d.code == 3 && d.err.contains("not clean") && dirty.join("b.txt").exists(),
-            &show(&d),
-        );
-        Ok(())
-    })();
-    if let Err(message) = outcome {
-        s.failed_setup("a dirty tracked tree refuses the deletion", &message);
-    }
+fn orphan_dirty(s: &mut Smoke) -> Result<(), String> {
+    let dirty = s.fresh("orphan-dirty")?;
+    git(&dirty, &["init", "-q", "-b", "main"])?;
+    s.must_render("smoke-orphan-a", &dirty)?;
+    std::fs::write(dirty.join("notes.md"), "n\n").map_err(|e| e.to_string())?;
+    commit_all(&dirty)?;
+    std::fs::write(dirty.join("notes.md"), "changed\n").map_err(|e| e.to_string())?;
+    let d = s.render("smoke-orphan-b", &dirty, &[])?;
+    s.ok(
+        "a dirty tracked tree refuses the deletion (exit 3) and keeps the file",
+        d.code == 3 && d.err.contains("not clean") && dirty.join("b.txt").exists(),
+        &show(&d),
+    );
     Ok(())
 }
 

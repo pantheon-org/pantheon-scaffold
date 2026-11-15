@@ -1,6 +1,6 @@
 # Plan: port the remaining TypeScript tooling to Rust
 
-**Status (15-11-2026): draft 2, revised after a three-lens review (Technical, Strategic, Risk). The owner chose to port everything (D0 and D1) and named themselves for D5 (see "Decisions for the owner"). Phase 0 is done; Phase 1 has not started and waits for the owner's yes.** Written against `origin/main` at `8eae6ad`.
+**Status (15-11-2026): draft 2, revised after a three-lens review (Technical, Strategic, Risk). The owner chose to port everything (D0 and D1) and named themselves for D5 (see "Decisions for the owner"). Phases 0 to 2 are done and merged; the gate after Phase 2 was decided go on 15-11-2026 (see "The gate after Phase 2"). Phase 3 is in progress.** Written against `origin/main` at `8eae6ad`.
 
 ## Why, and the case against
 
@@ -117,6 +117,20 @@ Continue only if **all** of these hold, each with the artefact that proves it:
 5. D1 and D5 are decided (both done on 15-11-2026).
 
 **On no-go:** revert Phases 1 and 2 (their pull requests, plus the external undo in "Rollback"), and the end state is option A. Keeping them is allowed only if the owner says so in this file.
+
+### The decision (15-11-2026): go
+
+The owner decided **go** on 15-11-2026, after Phases 1 and 2 were merged (#130 and #132) and this evidence was reported:
+
+| # | Result |
+|---|---|
+| 1 | Met. The release differential (142 comparisons) and the promote differential (36) found 0 differences. In every real dry run of `promote.yml` the guards job ran both tools and printed no "disagree" |
+| 2 | Met with one substitution. `v0.3.0` was meant to be the pass case, but the owner had promoted it at 21:20 with the TypeScript tool, before #132 merged. `v0.1.4`, a real pre-release, was run instead: the Rust tool and the TypeScript tool both passed the assets, attestation and digest guards with real downloads and `gh attestation verify`, and both refused at the known-bad guard. Also run: a dispatch from a branch (refused), `v0.2.0` (already stable, refused), `v9.9.9` (no such release, refused). The three refusals and the pass up to the known-bad guard were identical from both tools |
+| 3 | Met. The first report said it was not met (+167 s), because that run waited about 104 s behind the real `v0.3.0` release run (the workflow's concurrency group). Re-measured from the job times: the new `tool` job takes 70 s (toolchain 8 s, build 54 s) and `prepare` 6 s, against 12 s before, so +64 s, under the 2 minute limit. The owner chose not to spend time on a faster build, and not to cache it (a cache the build job restores could swap the binary in, and the checksum check cannot catch that because the same job produces both) |
+| 4 | Information. Phase 0 added 3 Rust tests and pinned 2 semver differences and 1 wording difference. Phase 2 mutation testing found 3 survivors (an unused function and the exit code of a killed `gh`), which were fixed |
+| 5 | Met on 15-11-2026 |
+
+**Still unproven:** the Rust tool has never made a real edit of a release. Its edit path is covered by a fake `gh`, by a test of the exact arguments, and by the `typescript` input of `promote.yml`, which is the way back for the next real promotion.
 
 ## CI call sites that change
 

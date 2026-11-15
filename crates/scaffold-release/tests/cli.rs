@@ -126,3 +126,58 @@ fn promote_with_no_tag_exits_2_and_prints_its_usage() {
         "usage: scaffold-release promote check <tag> | promote <tag>\n"
     );
 }
+
+fn run_update_pins(root: &Path, args: &[&str], api: &str) -> (Option<i32>, String, String) {
+    let output = Command::new(env!("CARGO_BIN_EXE_scaffold-release"))
+        .arg("update-pins")
+        .args(args)
+        .env("PANTHEON_SCAFFOLD_GITHUB_API", api)
+        .env_remove("GITHUB_TOKEN")
+        .env_remove("GH_TOKEN")
+        .current_dir(root)
+        .output()
+        .unwrap();
+    (
+        output.status.code(),
+        String::from_utf8(output.stdout).unwrap(),
+        String::from_utf8(output.stderr).unwrap(),
+    )
+}
+
+#[test]
+fn update_pins_with_an_unknown_option_exits_2_and_prints_its_usage() {
+    let root = project("0.2.0");
+    let (code, out, err) = run_update_pins(root.path(), &["--nope"], "http://127.0.0.1:1");
+    assert_eq!((code, out.as_str()), (Some(2), ""));
+    assert!(
+        err.starts_with("unknown option --nope\nusage: scaffold-release update-pins"),
+        "{err}"
+    );
+}
+
+#[test]
+fn update_pins_reads_pkl_pins_pkl_under_the_directory_it_is_run_from() {
+    let root = project("0.2.0");
+    let (code, out, err) = run_update_pins(root.path(), &["--no-write"], "http://127.0.0.1:1");
+    assert_eq!((code, out.as_str()), (Some(1), ""));
+    assert!(err.contains("pkl/Pins.pkl"), "{err}");
+}
+
+#[test]
+fn update_pins_with_no_pins_checks_zero_and_writes_the_freshness_record_when_asked() {
+    let root = project("0.2.0");
+    std::fs::write(root.path().join("pkl/Pins.pkl"), "module x\n").unwrap();
+    let freshness = root.path().join("freshness.json");
+    let (code, out, err) = run_update_pins(
+        root.path(),
+        &["--freshness-out", freshness.to_str().unwrap()],
+        "http://127.0.0.1:1",
+    );
+    assert_eq!((code, err.as_str()), (Some(0), ""));
+    assert_eq!(out, "checked 0 pin(s)\nno pin changed\n");
+    let record = std::fs::read_to_string(freshness).unwrap();
+    assert!(
+        record.starts_with("{\n  \"schemaVersion\": 1,\n  \"lastSuccessfulPinCheck\": \""),
+        "{record}"
+    );
+}

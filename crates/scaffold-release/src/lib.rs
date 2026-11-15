@@ -5,6 +5,7 @@
 //! `pkl/PklProject` under the directory it is run from, so the workflow runs it from the checkout root.
 
 pub mod promote;
+pub mod update_pins;
 
 use std::io::Write;
 use std::path::Path;
@@ -191,7 +192,7 @@ fn release_assets(args: &[&str], root: &Path, out: &mut dyn Write) -> Result<(),
 }
 
 /// Both commands, for a command line that names neither.
-const ALL_USAGE: &str = "usage: scaffold-release release-assets check-tag <tag> | version | checksums <dir> <version>\n       scaffold-release promote check <tag> | promote <tag>";
+const ALL_USAGE: &str = "usage: scaffold-release release-assets check-tag <tag> | version | checksums <dir> <version>\n       scaffold-release promote check <tag> | promote <tag>\n       scaffold-release update-pins [--pins <file>] [--no-write] [--freshness-out <file>] [--summary <file>]";
 
 /// Runs the command. Exit 0 on success, 1 for a refusal (its message on `err`), 2 for a usage error.
 pub fn run(args: &[String], root: &Path, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
@@ -199,6 +200,7 @@ pub fn run(args: &[String], root: &Path, out: &mut dyn Write, err: &mut dyn Writ
     let rest = match args.split_first() {
         Some((&"release-assets", rest)) => rest,
         Some((&"promote", rest)) => return promote::command(rest, root, out, err),
+        Some((&"update-pins", rest)) => return update_pins::command(rest, root, out, err),
         _ => {
             let _ = writeln!(err, "{ALL_USAGE}");
             return 2;

@@ -94,7 +94,7 @@ jobs:
         run: |
           echo "$EXPECTED  tool/scaffold-release" | sha256sum --check --strict -
           chmod +x tool/scaffold-release
-      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
+      - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
         with:
           version: 2026.10.25
           install: false
@@ -156,7 +156,7 @@ jobs:
           TAG: ${{ inputs.tag }}
         run: tool/scaffold-release promote promote "$TAG"
       # The way back: the TypeScript tool, as before Phase 2. It needs the pinned tools, which the Rust path does not.
-      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
+      - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
         if: inputs.implementation == 'typescript'
         with:
           version: 2026.10.25

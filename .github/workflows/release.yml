@@ -57,6 +57,7 @@ jobs:
             version="$(mise x -- bun runner/scripts/release-assets.ts version)"
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
+      # A draft made by release-please is not visible to this job (contents: read), and is adopted by the release job. Only a published release stops it here.
       - name: Refuse to release a version that already has a release
         if: github.event_name == 'push'
         env:
@@ -250,12 +251,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           TAG: ${{ github.ref_name }}
-        run: |
-          gh release create "$TAG" dist/* \
-            --verify-tag \
-            --prerelease \
-            --title "$TAG (pre-release)" \
-            --notes "Pre-release of the package and the runner, released together. checksums.txt lists every file and carries a build provenance attestation: gh attestation verify checksums.txt --repo $GH_REPO. What breaks when you upgrade, and the order to change it in, is under Upgrading: https://github.com/$GH_REPO/blob/$TAG/docs/adopting.md#upgrading"
+        run: bash .github/scripts/publish-release.sh
 
   verify-release:
     name: Verify the published release on ${{ matrix.os }}

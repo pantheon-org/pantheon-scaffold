@@ -1,0 +1,70 @@
+/// The workflow job class, as a class-as-a-function: the typed keys are the inputs, the `fixed` properties and the methods are the outputs. Use it as
+/// `import "Jobs.pkl"` and `new Jobs.Job { ... }`.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.Jobs
+
+import "Pins.pkl"
+import "Steps.pkl"
+
+class Job {
+  name: String?
+  `runs-on`: String = "ubuntu-latest"
+  needs: Listing<String>?
+  `if`: String?
+  permissions: Mapping<String, String>?
+  `timeout-minutes`: Int?
+  env: Mapping<String, Any>?
+  strategy: Mapping<String, Any>?
+  steps: Listing<Steps.Step>
+  raw: Mapping<String, Any>?
+
+  /// Every pin used by the steps of this job, in order, with repeats.
+  fixed pins: List<Pins.Pin> = steps.toList().map((s) -> s.pin).filterNonNull()
+
+  /// How many escape-hatch uses (`raw`) this job and its steps make, for gate B.
+  fixed escapeUses: Int = (if (raw != null) 1 else 0) + steps.toList().map((s) -> s.escapeUses).fold(0, (a, b) -> a + b)
+
+  /// How many typed constructs this job and its steps are, for gate B.
+  fixed constructs: Int = 1 + steps.length
+
+  /// The names of the steps that have one, in order. A Preset finds a step by it.
+  fixed stepNames: List<String> = steps.toList().map((s) -> s.name).filterNonNull()
+
+  /// The job as it goes into the YAML.
+  fixed rendered: Dynamic =
+    let (self = this)
+    new Dynamic {
+      when (self.name != null) { name = self.name }
+      `runs-on` = self.`runs-on`
+      when (self.needs != null) { needs = self.needs }
+      when (self.`if` != null) { `if` = self.`if` }
+      when (self.permissions != null) { permissions = self.permissions }
+      when (self.`timeout-minutes` != null) { `timeout-minutes` = self.`timeout-minutes` }
+      when (self.env != null) { env = self.env }
+      when (self.strategy != null) { strategy = self.strategy }
+      steps = self.steps.toList().map((s) -> s.rendered).toListing()
+      when (self.raw != null) { ...self.raw }
+    }
+
+  local function noSuchStep(stepName: String): nothing =
+    throw("preset: step \"\(stepName)\" does not exist in job \"\(name ?? "")\". Steps: \(stepNames.sort().join(", "))")
+
+  /// Applies `change` to the step called `stepName` and returns the job. A step is found by its `name`; a step without one cannot be changed.
+  /// Fails, naming the steps there are, when the job has no step of that name. Plain pkl does not: amending a step that a newer package no longer
+  /// has silently creates an empty one.
+  function amendStep(stepName: String, change: (Steps.Step) -> Steps.Step): Job =
+    if (!stepNames.contains(stepName))
+      noSuchStep(stepName)
+    else
+      let (old = steps.toList())
+        (this) { steps = old.map((s) -> if (s.name == stepName) change.apply(s) else s).toListing() }
+
+  /// Puts `added` in the job just before the step called `stepName`. Fails, naming the steps there are, when the job has no step of that name.
+  function insertStepsBefore(stepName: String, added: List<Steps.Step>): Job =
+    if (!stepNames.contains(stepName))
+      noSuchStep(stepName)
+    else
+      let (all = steps.toList())
+      let (index = all.findIndex((s) -> s.name == stepName))
+        (this) { steps = (all.take(index) + added + all.drop(index)).toListing() }
+}

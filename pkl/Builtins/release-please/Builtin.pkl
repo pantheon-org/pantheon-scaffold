@@ -3,12 +3,15 @@
 module pantheon.scaffold.builtins.ReleasePlease
 
 import "../../Config.pkl"
+import "../../GenFiles.pkl"
+import "../../Steps.pkl"
+import "../../Workflows.pkl"
 import "../../Pins.pkl"
 import "../Shared.pkl"
 
 /// Keeps one rolling release pull request up to date and tags releases, under the App token so the tag starts the release workflow. With a
 /// binary (`options.binary`) it also tags the crate version itself when it has no tag yet (the script tag-release.sh).
-function workflow(opts: Config.Options): Config.Workflow =
+function workflow(opts: Config.Options): Workflows.Workflow =
   let (crate = opts.crateName ?? "crate")
   new {
     header =
@@ -75,7 +78,7 @@ function workflow(opts: Config.Options): Config.Workflow =
     }
   }
 
-local function bareCheckout(stepName: String): Config.Step = new {
+local function bareCheckout(stepName: String): Steps.Step = new {
   name = stepName
   uses = Pins.checkout
   `with` = new Mapping { ["persist-credentials"] = false }
@@ -83,11 +86,11 @@ local function bareCheckout(stepName: String): Config.Step = new {
 
 /// The release tagging script that `parameterisedFiles()` renders for a repository with a binary: the `release-please` workflow runs it (the step above)
 /// to tag the crate version when it has no tag yet. It names the crate.
-function parameterisedFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
+function parameterisedFiles(opts: Config.Options): Mapping<String, GenFiles.GenFile> = new {
   when (opts.binary) {
-    [".github/scripts/tag-release.sh"] = new Config.GenFile {
+    [".github/scripts/tag-release.sh"] = new GenFiles.GenFile {
       template = read("assets/tag-release.sh.j2").text
-      context = new Mapping { ["crate"] = Shared.needCrateName(opts) }
+      context = new Mapping { ["crate"] = opts.requireCrateName() }
       executable = true
     }
   }

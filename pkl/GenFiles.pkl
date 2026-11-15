@@ -1,0 +1,57 @@
+/// The class of a file the scaffold generates that is not a workflow, as a class-as-a-function: the typed keys are the inputs, and `mode`, `entry` and
+/// `withContext` are the outputs. Use it as `import "GenFiles.pkl"` and `new GenFiles.GenFile { ... }`.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.GenFiles
+
+typealias FileClass = "owned"|"seed"|"external"
+
+class GenFile {
+  /// owned: rewritten by the runner and refused if hand-edited. seed: written once.
+  /// external: listed but never written, hashed or deleted (for example mise.lock).
+  `class`: FileClass = "owned"
+  /// Absent for an external file, and for a file that has a `template`.
+  content: String?
+  /// Jinja source the runner renders with `context` (minijinja, strict undefined). Set this or `content`, not both.
+  template: String?
+  /// The values `template` reads: strings, booleans, integers, lists and mappings. Every variable the template reads must be here.
+  context: Mapping<String, Any>?
+  executable: Boolean = false
+  /// The runner deletes this owned file on `detach`, for a file that would fail on every run once detached (the consumer upgrade workflow).
+  removeOnDetach: Boolean = false
+
+  /// The file mode the runner writes it with.
+  fixed mode: String = if (executable) "0755" else "0644"
+
+  /// The file as a record of the contract, at `filePath`.
+  function entry(filePath: String): Dynamic =
+    let (self = this)
+      new Dynamic {
+        path = filePath
+        `class` = self.`class`
+        mode = self.mode
+        when (self.`class` != "external" && self.template == null) { content = self.content }
+        when (self.template != null) {
+          template = self.template
+          when (self.context != null) { context = self.context }
+        }
+        when (self.removeOnDetach) { removeOnDetach = true }
+      }
+
+  /// Replaces the context keys `overrides` names and returns the file, for the template file at `filePath`. `present` and `tools` are refused: they
+  /// say what options.without leaves out. A key is replaced whole, not merged. Fails, naming the keys there are, when the file has no template or the
+  /// context has no such key, so a misspelt key cannot do nothing.
+  function withContext(filePath: String, overrides: Mapping<String, Any>): GenFile =
+    if (template == null)
+      throw("preset: file \"\(filePath)\" is not a template, so it has no context. Change its content with amendFile, or replace the file.")
+    else
+      let (keys = context?.keys?.toList() ?? List())
+      let (absent = overrides.keys.toList().filter((k) -> !keys.contains(k)))
+      let (flags = overrides.keys.toList().filter((k) -> k == "present" || k == "tools"))
+        if (!flags.isEmpty)
+          throw("preset: context key \"\(flags.first)\" says which builtins and tools are present, and the package sets it from options.without. It cannot be replaced: change options.without instead.")
+        else if (!absent.isEmpty)
+          throw("preset: context key \"\(absent.first)\" does not exist in the template \"\(filePath)\". Keys: \(keys.sort().join(", "))")
+        else
+          let (old = context)
+          (this) { context = (old) { ...overrides } }
+}

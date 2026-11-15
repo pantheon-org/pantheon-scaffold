@@ -3,12 +3,13 @@
 module pantheon.scaffold.builtins.Upgrade
 
 import "../../Config.pkl"
+import "../../Workflows.pkl"
 import "../../Pins.pkl"
 
 /// The consumer upgrade workflow: weekly, checks the freshness record, finds the latest release the known-bad list allows, upgrades, and
 /// opens a pull request under the App token. Removed by `detach`, since it would fail on every run once the repository leaves the scaffold.
 /// The App steps are unverified: pushing a change to workflow files needs `workflows: write` on the App, which is not confirmed (plan P.4).
-function workflow(opts: Config.Options): Config.Workflow = new {
+function workflow(opts: Config.Options): Workflows.Workflow = new {
   header = #"""
     Weekly: proposes the latest pantheon-scaffold release as a pull request.
     Fails when the package's freshness record is older than 30 days, so a package

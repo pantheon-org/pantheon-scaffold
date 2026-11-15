@@ -668,9 +668,9 @@ fn run_migrate(flags: &Flags, env: &Env, io: &mut Io) -> Result<i32, String> {
             ));
             return Ok(EXIT_OK);
         }
-        let config_import = module_address(&package, "Config.pkl").map_err(|e| e.to_string())?;
+        let genfile_import = module_address(&package, "GenFiles.pkl").map_err(|e| e.to_string())?;
         presets =
-            verbatim_presets(&report, &flags.root, &config_import).map_err(|e| e.to_string())?;
+            verbatim_presets(&report, &flags.root, &genfile_import).map_err(|e| e.to_string())?;
         let paths: Vec<String> = presets.iter().map(|p| p.path.clone()).collect();
         text = config_text_with(&request, &package, &paths).map_err(|e| e.to_string())?;
         let beside: Vec<(String, String)> = presets
@@ -1630,7 +1630,7 @@ mod tests {
         std::fs::write(
             dir.path().join("scaffold.pkl"),
             format!(
-                "amends \"{package}/Config.pkl\"\noptions {{ toolchain = \"1.96.1\" }}\npresets {{ \"presets/ci.pkl\" }}\nfiles {{ [\"a.txt\"] = new GenFile {{ content = \"one\\n\" }} }}\n"
+                "amends \"{package}/Config.pkl\"\noptions {{ toolchain = \"1.96.1\" }}\npresets {{ \"presets/ci.pkl\" }}\nfiles {{ [\"a.txt\"] = new {{ content = \"one\\n\" }} }}\n"
             ),
         )
         .expect("the test setup works");

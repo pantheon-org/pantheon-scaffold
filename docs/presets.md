@@ -13,12 +13,12 @@ The Rust CI workflow gives its job 15 minutes. Yours needs 30.
 1. **Write the Preset**, `presets/ci.pkl`. In the examples `PKG` stands for `package://github.com/pantheon-org/pantheon-scaffold/releases/download/vVERSION/pantheon-scaffold@VERSION::sha256:SUM`, the same address as in your `scaffold.pkl`.
 
    ```pkl
-   import "PKG#/Config.pkl"
+   import "PKG#/Workflows.pkl"
    import "PKG#/Presets.pkl"
 
-   function apply(workflows: Mapping<String, Config.Workflow>): Mapping<String, Config.Workflow> =
+   function apply(workflows: Mapping<String, Workflows.Workflow>): Mapping<String, Workflows.Workflow> =
      Presets.amendWorkflow(workflows, "rust-ci", (w) ->
-       Presets.amendJob(w, "build-test", (j) -> (j) { `timeout-minutes` = 30 }))
+       w.amendJob("build-test", (j) -> (j) { `timeout-minutes` = 30 }))
    ```
 
 2. **Apply it in `scaffold.pkl`**: import it, list it in `presets`, and pass the Builtins through it.
@@ -51,14 +51,14 @@ Paths in `presets { }` are relative to the directory of `scaffold.pkl`, and must
 
 ## The helpers
 
-`Presets.pkl` has six helpers. Each one fails, naming what exists, when what you ask for is not there. Plain pkl does not: amending a workflow or job the package no longer has silently creates an empty one, and your change would stop working without a word.
+`Presets.pkl` has three helpers for a whole mapping, and the `Workflow` class in `Workflows.pkl` and the `Job` class in `Jobs.pkl` have three methods for one object. Each one fails, naming what exists, when what you ask for is not there. Plain pkl does not: amending a workflow or job the package no longer has silently creates an empty one, and your change would stop working without a word.
 
 | Helper | Changes | Fails when |
 |---|---|---|
 | `amendWorkflow(workflows, key, change)` | one workflow of a mapping | there is no workflow `key`. The message lists the builtins. |
-| `amendJob(workflow, job, change)` | one job of a workflow | there is no such job. The message lists the jobs. |
-| `amendStep(job, name, change)` | the step with that `name` | no step has that name. The message lists the names. |
-| `insertStepsBefore(job, name, steps)` | adds steps before the step with that `name` | no step has that name |
+| `workflow.amendJob(job, change)` (`Workflows.pkl`) | one job of a workflow | there is no such job. The message lists the jobs. |
+| `job.amendStep(name, change)` (`Jobs.pkl`) | the step with that `name` | no step has that name. The message lists the names. |
+| `job.insertStepsBefore(name, steps)` (`Jobs.pkl`) | adds steps before the step with that `name` | no step has that name |
 | `amendFile(files, path, change)` | one file of a mapping | there is no such file. The message lists the files. |
 | `amendContext(files, path, overrides)` | the variables of a template file, each replaced whole | the file is not a template, or the context has no such key. The message lists the keys. |
 
@@ -69,32 +69,33 @@ A step is found by its `name`. A step without one cannot be targeted.
 **Append steps to a job.** Amending `steps { ... }` appends:
 
 ```pkl
-(j) { steps { new Config.Step { name = "Extra"; run = "echo extra" } } }
+(j) { steps { new Steps.Step { name = "Extra"; run = "echo extra" } } }
 ```
 
 **Replace all the steps of a job.** Assign a typed listing. An untyped `new { }` inside it is a `Dynamic` and fails the type check:
 
 ```pkl
-(j) { steps = new Listing<Config.Step> { new Config.Step { name = "Only step"; run = "echo only" } } }
+(j) { steps = new Listing<Steps.Step> { new Steps.Step { name = "Only step"; run = "echo only" } } }
 ```
 
 **Change one step, or add steps before it.**
 
 ```pkl
-Presets.amendStep(job, "Test", (s) -> (s) { run = "cargo test --workspace --locked" })
-Presets.insertStepsBefore(job, "Test", List(new Config.Step { name = "Set up"; run = "echo hello" }))
+job.amendStep("Test", (s) -> (s) { run = "cargo test --workspace --locked" })
+job.insertStepsBefore("Test", List(new Steps.Step { name = "Set up"; run = "echo hello" }))
 ```
 
 **Add a workflow of your own.** Write it as a function in a Preset, and add its key to the mapping:
 
 ```pkl
 // presets/extra.pkl
-import "PKG#/Config.pkl"
+import "PKG#/Steps.pkl"
+import "PKG#/Workflows.pkl"
 
-function nightly(): Config.Workflow = new {
+function nightly(): Workflows.Workflow = new {
   name = "Nightly"
   on = new Mapping { ["schedule"] = new Listing { new Mapping { ["cron"] = "0 3 * * *" } } }
-  jobs { ["check"] { steps { new Config.Step { name = "Say hello"; run = "echo hello" } } } }
+  jobs { ["check"] { steps { new Steps.Step { name = "Say hello"; run = "echo hello" } } } }
 }
 ```
 

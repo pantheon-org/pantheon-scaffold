@@ -1,8 +1,8 @@
 // The entries this repository needs beyond the rendered .gitignore.
-import "../pkl/Config.pkl"
+import "../pkl/GenFiles.pkl"
 import "../pkl/Presets.pkl"
 
-function apply(files: Mapping<String, Config.GenFile>): Mapping<String, Config.GenFile> =
+function apply(files: Mapping<String, GenFiles.GenFile>): Mapping<String, GenFiles.GenFile> =
   Presets.amendFile(files, ".gitignore", (f) -> (f) {
     content = f.content + """
 

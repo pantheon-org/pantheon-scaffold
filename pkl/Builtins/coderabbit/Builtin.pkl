@@ -3,15 +3,16 @@
 module pantheon.scaffold.builtins.Coderabbit
 
 import "../../Config.pkl"
+import "../../GenFiles.pkl"
 import "../Shared.pkl"
 
 /// The files of this builtin that `parameterisedFiles()` renders. The path filter for the bundled skill is in the file only when `skills` is on.
-function parameterisedFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
-  [".coderabbit.yaml"] = new Config.GenFile {
+function parameterisedFiles(opts: Config.Options): Mapping<String, GenFiles.GenFile> = new {
+  [".coderabbit.yaml"] = new GenFiles.GenFile {
     template = read("assets/coderabbit.yaml.j2").text
     context = new Mapping {
       ["skills"] = opts.skills
-      ["skill"] = if (opts.skills) Shared.needSkillName(opts) else ""
+      ["skill"] = if (opts.skills) opts.requireSkillName() else ""
     }
   }
 }

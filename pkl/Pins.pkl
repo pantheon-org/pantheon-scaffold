@@ -9,6 +9,16 @@ class Pin {
   sha: String(matches(Regex("[0-9a-f]{40}")))
   /// The release tag, for example v7.0.1.
   version: String
+
+  /// The pin as a step writes it in `uses:`.
+  fixed ref: String = "\(action)@\(sha)"
+
+  /// The pin as a record of the contract.
+  fixed entry: Dynamic = new Dynamic {
+    action = outer.action
+    sha = outer.sha
+    version = outer.version
+  }
 }
 
 checkout: Pin = new { action = "actions/checkout"; sha = "3d3c42e5aac5ba805825da76410c181273ba90b1"; version = "v7.0.1" }

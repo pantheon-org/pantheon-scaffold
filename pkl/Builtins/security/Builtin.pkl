@@ -3,19 +3,20 @@
 module pantheon.scaffold.builtins.Security
 
 import "../../Config.pkl"
+import "../../GenFiles.pkl"
 import "../Shared.pkl"
 
 /// The files of this builtin that `parameterisedFiles()` renders.
-function parameterisedFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
-  ["SECURITY.md"] = new Config.GenFile {
+function parameterisedFiles(opts: Config.Options): Mapping<String, GenFiles.GenFile> = new {
+  ["SECURITY.md"] = new GenFiles.GenFile {
     `class` = "seed"
     template = if (opts.binary) read("assets/security-binary.md.j2").text else null
     content = if (opts.binary) null else read("assets/security-library.md").text
     context = if (opts.binary)
       new Mapping {
-        ["crate"] = Shared.needCrateName(opts)
+        ["crate"] = opts.requireCrateName()
         ["skills"] = opts.skills
-        ["skill"] = if (opts.skills) Shared.needSkillName(opts) else ""
+        ["skill"] = if (opts.skills) opts.requireSkillName() else ""
       }
     else null
   }

@@ -18,7 +18,7 @@ versions, already there) or in a new `pkl/Values.pkl` (everything else), and rea
 | `hk.pkl.tmpl`, `hk.shared.pkl.tmpl` | `hkVersion` (3 uses, two files) | `Tools.hkConfigVersion` | unchanged |
 | | `allFeatures` (boolean, replaces `@@FEATURES@@`) | `Options.features` | unchanged |
 | `rust-toolchain.toml.tmpl` | `toolchain` | `Options.toolchain` | unchanged |
-| `tag-release.sh.tmpl` | `crate` | `Shared.needCrateName` | unchanged |
+| `tag-release.sh.tmpl` | `crate` | `Options.requireCrateName` | unchanged |
 | `security-binary.md.tmpl` | `crate`, `skills` (boolean), `skill` | `Options` | unchanged |
 | `coderabbit.yaml.tmpl` | `skills` (boolean), `skill` | `Options` | unchanged |
 

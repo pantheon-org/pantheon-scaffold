@@ -5,10 +5,10 @@
 @ModuleInfo { minPklVersion = "0.32.0" }
 module pantheon.scaffold.builtins.ConventionalCommits
 
-import "../../Config.pkl"
+import "../../Workflows.pkl"
 
 /// Checks that the pull request title is a conventional commit. The job name is the required status check, so it must not change.
-function workflow(): Config.Workflow = new {
+function workflow(): Workflows.Workflow = new {
   header = #"""
     Pull requests are squash-merged, so the title becomes the commit message on
     main and is what release-please parses to pick the version bump and write

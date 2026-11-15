@@ -3,11 +3,13 @@
 module pantheon.scaffold.builtins.RustCi
 
 import "../../Config.pkl"
+import "../../GenFiles.pkl"
+import "../../Workflows.pkl"
 import "../Shared.pkl"
 
 /// Format, lint, build and test the Rust workspace. With `features = "all"` (the library repository) clippy, the build and the tests run with
 /// `--all-features`, and an extra step builds with the default features.
-function workflow(opts: Config.Options): Config.Workflow =
+function workflow(opts: Config.Options): Workflows.Workflow =
   let (features = if (opts.features == "all") "--all-features " else "")
   new {
   name = "Rust CI"
@@ -33,6 +35,6 @@ function workflow(opts: Config.Options): Config.Workflow =
 }
 
 /// The verbatim file of this builtin that `baseFiles()` renders.
-function baseFiles(): Mapping<String, Config.GenFile> = new {
-  [".github/scripts/check-toolchain-version.sh"] = new Config.GenFile { content = read("assets/check-toolchain-version.sh").text; executable = true }
+function baseFiles(): Mapping<String, GenFiles.GenFile> = new {
+  [".github/scripts/check-toolchain-version.sh"] = new GenFiles.GenFile { content = read("assets/check-toolchain-version.sh").text; executable = true }
 }

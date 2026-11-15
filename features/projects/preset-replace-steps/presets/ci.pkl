@@ -1,6 +1,7 @@
 // Replaces the steps of the Rust CI job with a single one.
-import "@PACKAGE@/Config.pkl"
+import "@PACKAGE@/Steps.pkl"
+import "@PACKAGE@/Workflows.pkl"
 
-function rustCi(base: Config.Workflow): Config.Workflow = (base) {
-  jobs { ["build-test"] { steps = new Listing<Config.Step> { new Config.Step { name = "Only step"; run = "echo only" } } } }
+function rustCi(base: Workflows.Workflow): Workflows.Workflow = (base) {
+  jobs { ["build-test"] { steps = new Listing<Steps.Step> { new Steps.Step { name = "Only step"; run = "echo only" } } } }
 }

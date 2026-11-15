@@ -2,12 +2,12 @@
 @ModuleInfo { minPklVersion = "0.32.0" }
 module pantheon.scaffold.builtins.Actionlint
 
-import "../../Config.pkl"
+import "../../GenFiles.pkl"
 import "../../Values.pkl"
 
 /// The files of this builtin that `verbatimFiles()` renders.
-function verbatimFiles(): Mapping<String, Config.GenFile> = new {
-  [".github/actionlint.yaml"] = new Config.GenFile {
+function verbatimFiles(): Mapping<String, GenFiles.GenFile> = new {
+  [".github/actionlint.yaml"] = new GenFiles.GenFile {
     template = read("assets/actionlint.yaml.j2").text
     context = new Mapping {
       ["releaseWorkflow"] = Values.releaseWorkflow

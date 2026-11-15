@@ -7,7 +7,7 @@ const path = join(import.meta.dir, "../../.github/workflows/promote.yml");
 const text = readFileSync(path, "utf8");
 type Step = { name?: string; uses?: string; run?: string; env?: Record<string, string>; with?: Record<string, unknown> };
 type Job = { needs?: string; if?: string; environment?: string; permissions?: Record<string, string>; steps: Step[] };
-const wf = Bun.YAML.parse(text) as { on: Record<string, { inputs?: Record<string, { type: string; default?: unknown; required?: boolean }> }>; permissions: unknown; jobs: Record<string, Job>; concurrency?: { "cancel-in-progress"?: boolean } };
+const wf = Bun.YAML.parse(text) as { on: Record<string, { inputs?: Record<string, { type: string; default?: unknown; required?: boolean }> }>; permissions: unknown; jobs: Record<string, Jobs.Job>; concurrency?: { "cancel-in-progress"?: boolean } };
 const jobs = Object.entries(wf.jobs);
 const allSteps = jobs.flatMap(([name, j]) => j.steps.map((s) => ({ job: name, ...s })));
 

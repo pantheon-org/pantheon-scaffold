@@ -3,10 +3,11 @@
 module pantheon.scaffold.builtins.RustToolchain
 
 import "../../Config.pkl"
+import "../../GenFiles.pkl"
 
 /// The files of this builtin that `baseFiles()` renders.
-function baseFiles(opts: Config.Options): Mapping<String, Config.GenFile> = new {
-  ["rust-toolchain.toml"] = new Config.GenFile {
+function baseFiles(opts: Config.Options): Mapping<String, GenFiles.GenFile> = new {
+  ["rust-toolchain.toml"] = new GenFiles.GenFile {
     template = read("assets/rust-toolchain.toml.j2").text
     context = new Mapping { ["toolchain"] = opts.toolchain }
   }

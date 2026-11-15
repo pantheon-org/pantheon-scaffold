@@ -2,11 +2,12 @@
 @ModuleInfo { minPklVersion = "0.32.0" }
 module pantheon.scaffold.builtins.InlineScripts
 
-import "../../Config.pkl"
+import "../../GenFiles.pkl"
+import "../../Workflows.pkl"
 import "../Shared.pkl"
 
 /// A run block in a workflow or composite action may hold at most 15 lines of code.
-function workflow(): Config.Workflow = new {
+function workflow(): Workflows.Workflow = new {
   header = """
     Rule: a `run:` block in a workflow or composite action may hold at most 15 lines
     of code (blank and comment lines excluded). Longer logic belongs in a script under
@@ -35,6 +36,6 @@ function workflow(): Config.Workflow = new {
 }
 
 /// The verbatim file of this builtin that `baseFiles()` renders.
-function baseFiles(): Mapping<String, Config.GenFile> = new {
-  [".github/scripts/check-inline-scripts.sh"] = new Config.GenFile { content = read("assets/check-inline-scripts.sh").text; executable = true }
+function baseFiles(): Mapping<String, GenFiles.GenFile> = new {
+  [".github/scripts/check-inline-scripts.sh"] = new GenFiles.GenFile { content = read("assets/check-inline-scripts.sh").text; executable = true }
 }

@@ -3,30 +3,32 @@
 module pantheon.scaffold.builtins.Hk
 
 import "../../Config.pkl"
+import "../../GenFiles.pkl"
 import "../../Tools.pkl"
+import "../../Presence.pkl"
 import "../Shared.pkl"
 
 /// The hook steps the four Rust repositories share (decision 31): `hk.shared.pkl`, owned by the runner, holds the steps, and `hk.pkl` is
 /// seeded once, imports it and holds only the hooks. Each repository adds its own steps in `hk.pkl`. `options.features = "all"` is the
 /// library repository's `--all-features` in the pre-push clippy and test steps. Checked against real hk in hk.test.ts.
-function files(opts: Config.Options): Mapping<String, Config.GenFile> =
-  let (p = Shared.present(opts))
+function files(opts: Config.Options): Mapping<String, GenFiles.GenFile> =
+  let (p = Presence.forOptions(opts))
   new {
-    ["hk.shared.pkl"] = new Config.GenFile {
+    ["hk.shared.pkl"] = new GenFiles.GenFile {
       template = read("assets/hk.shared.pkl.j2").text
       context = new Mapping {
         ["hkVersion"] = Tools.hkConfigVersion
         ["allFeatures"] = opts.features == "all"
-        ["present"] = Shared.presentFlags(p)
-        ["tools"] = Shared.toolFlags(p)
+        ["present"] = p.presentFlags
+        ["tools"] = p.toolFlags
       }
     }
-    ["hk.pkl"] = new Config.GenFile {
+    ["hk.pkl"] = new GenFiles.GenFile {
       `class` = "seed"
       template = read("assets/hk.pkl.j2").text
       context = new Mapping {
         ["hkVersion"] = Tools.hkConfigVersion
-        ["present"] = Shared.presentFlags(p)
+        ["present"] = p.presentFlags
       }
     }
   }

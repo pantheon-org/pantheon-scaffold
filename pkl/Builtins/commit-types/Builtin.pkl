@@ -5,11 +5,12 @@
 @ModuleInfo { minPklVersion = "0.32.0" }
 module pantheon.scaffold.builtins.CommitTypes
 
-import "../../Config.pkl"
+import "../../GenFiles.pkl"
+import "../../Workflows.pkl"
 import "../Shared.pkl"
 
 /// Fails when the commit types copied into the title gate drift from .github/commit-types.txt.
-function workflow(): Config.Workflow = new {
+function workflow(): Workflows.Workflow = new {
   header = #"""
     Keeps the PR title gate honest. conventional-commits.yml carries a copy of
     the allowed commit types inside its regex, because it runs on
@@ -59,11 +60,11 @@ local commitTypesPaths: Listing<String> = new {
 }
 
 /// The verbatim file of this builtin that `toolingFiles()` renders.
-function toolingFiles(): Mapping<String, Config.GenFile> = new {
-  [".github/scripts/check-commit-types.sh"] = new Config.GenFile { content = read("assets/check-commit-types.sh").text; executable = true }
+function toolingFiles(): Mapping<String, GenFiles.GenFile> = new {
+  [".github/scripts/check-commit-types.sh"] = new GenFiles.GenFile { content = read("assets/check-commit-types.sh").text; executable = true }
 }
 
 /// The verbatim file of this builtin that `workflowFiles()` renders.
-function workflowFiles(): Mapping<String, Config.GenFile> = new {
-  [".github/commit-types.txt"] = new Config.GenFile { content = read("assets/commit-types.txt").text }
+function workflowFiles(): Mapping<String, GenFiles.GenFile> = new {
+  [".github/commit-types.txt"] = new GenFiles.GenFile { content = read("assets/commit-types.txt").text }
 }

@@ -2,11 +2,12 @@
 @ModuleInfo { minPklVersion = "0.32.0" }
 module pantheon.scaffold.builtins.SyncLabels
 
-import "../../Config.pkl"
+import "../../GenFiles.pkl"
+import "../../Workflows.pkl"
 import "../Shared.pkl"
 
 /// Creates the labels Dependabot applies, from .github/labels.txt.
-function workflow(): Config.Workflow = new {
+function workflow(): Workflows.Workflow = new {
   header = #"""
     Creates the labels Dependabot applies (see .github/dependabot.yml). Dependabot
     cannot create labels itself and comments on its PRs when one is missing.
@@ -44,11 +45,11 @@ function workflow(): Config.Workflow = new {
 }
 
 /// The verbatim file of this builtin that `toolingFiles()` renders.
-function toolingFiles(): Mapping<String, Config.GenFile> = new {
-  [".github/scripts/sync-labels.sh"] = new Config.GenFile { content = read("assets/sync-labels.sh").text; executable = true }
+function toolingFiles(): Mapping<String, GenFiles.GenFile> = new {
+  [".github/scripts/sync-labels.sh"] = new GenFiles.GenFile { content = read("assets/sync-labels.sh").text; executable = true }
 }
 
 /// The verbatim file of this builtin that `workflowFiles()` renders.
-function workflowFiles(): Mapping<String, Config.GenFile> = new {
-  [".github/labels.txt"] = new Config.GenFile { content = read("assets/labels.txt").text }
+function workflowFiles(): Mapping<String, GenFiles.GenFile> = new {
+  [".github/labels.txt"] = new GenFiles.GenFile { content = read("assets/labels.txt").text }
 }

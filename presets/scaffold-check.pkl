@@ -1,20 +1,19 @@
 // This repository is rendered from the package in its own checkout, not from a published release, so the check builds the runner here
 // and passes the package folder, instead of installing a released runner through mise.
-import "../pkl/Config.pkl"
+import "../pkl/Steps.pkl"
+import "../pkl/Workflows.pkl"
 import "../pkl/Presets.pkl"
 
 local checkStep = "Check that the scaffold files match the render"
 
-function apply(workflows: Mapping<String, Config.Workflow>): Mapping<String, Config.Workflow> =
-  Presets.amendWorkflow(workflows, "scaffold-check", (w) -> Presets.amendJob(w, "check", (j) ->
-    Presets.amendStep(
-      Presets.insertStepsBefore(
-        (j) { env { ["MISE_DISABLE_TOOLS"] = "rust" } },
+function apply(workflows: Mapping<String, Workflows.Workflow>): Mapping<String, Workflows.Workflow> =
+  Presets.amendWorkflow(workflows, "scaffold-check", (w) -> w.amendJob("check", (j) ->
+    ((j) { env { ["MISE_DISABLE_TOOLS"] = "rust" } })
+      .insertStepsBefore(
         checkStep,
-        List(new Config.Step {
+        List(new Steps.Step {
           name = "Install the Rust toolchain"
           run = "rustup toolchain install 1.96.1 --profile minimal\nrustup default 1.96.1"
         })
-      ),
-      checkStep,
-      (s) -> (s) { run = "mise x -- cargo run -q -p scaffold-cli --locked -- check scaffold.pkl --allow-local-package pkl" })))
+      )
+      .amendStep(checkStep, (s) -> (s) { run = "mise x -- cargo run -q -p scaffold-cli --locked -- check scaffold.pkl --allow-local-package pkl" })))

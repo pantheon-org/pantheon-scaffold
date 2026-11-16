@@ -300,13 +300,13 @@ A claim in this guide, and the test or the proof line that shows it. A path is a
 | Owned, seeded and external files behave as the table says | `runner/test/apply.test.ts`, [runner-safety.md](runner-safety.md) |
 | A repeat render writes 0 files, and `check` passes after a render | `runner/test/check.test.ts`; Report, wave D (benefit test: "check", "second render") |
 | `check` writes nothing and exits 4 on drift; it runs on pull requests in CI | `runner/test/check.test.ts`, `crates/scaffold-package-tests/tests/consumer_check.rs`, [check-in-ci.md](check-in-ci.md) |
-| Workflows keep their triggers, permissions and `run:` scripts when re-rendered | `runner/test/equality.test.ts`, `runner/test/workflows-a.test.ts`, `workflows-b.test.ts`, `workflows-c.test.ts`; Report, wave A (zero uncategorised differences) |
+| Workflows keep their triggers, permissions and `run:` scripts when re-rendered | `runner/test/equality.test.ts`, `crates/scaffold-package-tests/tests/workflows_a.rs`, `crates/scaffold-package-tests/tests/workflows_b.rs`, `crates/scaffold-package-tests/tests/workflows_c.rs`; Report, wave A (zero uncategorised differences) |
 | Each option adds and removes exactly the files listed | `runner/test/phase5-toggles.test.ts`, [feature-toggles.md](feature-toggles.md); Report, wave A (the four repositories cover the variants) |
 | A toggle that needs a name stops with an error naming the option | `runner/test/phase5-toggles.test.ts` |
 | The render changes a real repository only in the ways listed | Report, wave A (every difference categorised, none uncategorised) and the sample check ([sample-check-0.1.5.md](../archive/proof/docs/sample-check-0.1.5.md), 19 of 19 confirmed) |
 | The first-time setup works as written: install, checksum, `scaffold.pkl`, dry run, render, `check`, a second render that writes 0 files, and the rendered tree builds and passes its tests | Report, Phase 8 wave E (every step of this guide run on a scratch clone of `pantheon-adr`: 188 tests passed, 0 failed), `archive/proof/scripts/proof-adoption.ts` |
 | `mise.toml` changes by about ten lines added and four removed | `archive/proof/scripts/proof-categories.ts` (the rule), Report, wave A |
-| The `hk.pkl` migration keeps the hook results | `runner/test/hk.test.ts`, `runner/test/tooling.test.ts`; Report, wave A (`hk check --all` the same before and after) |
+| The `hk.pkl` migration keeps the hook results | `runner/test/hk.test.ts`, `crates/scaffold-package-tests/tests/tooling.rs`; Report, wave A (`hk check --all` the same before and after) |
 | `rumdl` findings exist before and after, unchanged by the render (except MD041 on the pull request template, from 0.1.9) | Report, wave A (findings per repository) |
 | The runner deletes only from a clean tracked tree, and only tracked files | `runner/test/guard.test.ts`, [runner-safety.md](runner-safety.md) |
 | `upgrade` verifies the attestation, moves the amends line, every import and the pin, and puts everything back if mise fails | `runner/test/upgrade.test.ts`, `runner/test/cli-upgrade.test.ts`; Report, wave B and wave D |

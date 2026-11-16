@@ -86,7 +86,7 @@ With `binary`, the `github-actions` entry of the rendered `dependabot.yml` has a
 
 Known limit, not verified: whether a Dependabot `ignore` entry also stops Dependabot's security updates for these two actions. If it does, a security fix for either action has to be applied through `dist-workspace.toml` by hand. Moving the two commits into `Pins.pkl` (so the pin update workflow keeps them current) was the rejected alternative: it needs `dist` in that workflow to regenerate `release.yml` in the same pull request.
 
-Checks: `runner/test/phase5-dependabot.test.ts`, the adjusted equality test in `workflows-b.test.ts`, the mutation check in `archive/spikes/phase-5-dependabot` (5 of 5 caught) and the real-repository render.
+Checks: `runner/test/phase5-dependabot.test.ts`, the adjusted equality test in `crates/scaffold-package-tests/tests/workflows_b.rs`, the mutation check in `archive/spikes/phase-5-dependabot` (5 of 5 caught) and the real-repository render.
 
 ## Presence inside templates: what a left-out builtin changes in the files that stay
 

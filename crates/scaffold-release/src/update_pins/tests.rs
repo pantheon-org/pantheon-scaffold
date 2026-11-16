@@ -218,6 +218,21 @@ fn a_pin_whose_commit_is_not_the_commit_of_its_recorded_tag_is_a_problem_even_wh
 }
 
 #[test]
+fn the_tag_of_an_up_to_date_pin_that_cannot_be_found_is_a_problem() {
+    let mut api = current();
+    api.commits.remove("actions/checkout@v1.0.0");
+    let (changes, problems) = update_pins(&parse_pins(&pins_text()).unwrap(), &api);
+    assert_eq!(changes, []);
+    assert_eq!(
+        problems,
+        [PinProblem {
+            name: "checkout".to_owned(),
+            message: "actions/checkout: no such tag v1.0.0".to_owned()
+        }]
+    );
+}
+
+#[test]
 fn a_latest_tag_that_is_not_a_published_release_is_a_problem_and_nothing_changes_for_it() {
     let mut api = fake(
         &[
@@ -537,6 +552,45 @@ fn a_run_with_no_freshness_or_summary_option_writes_only_the_pins() {
         std::fs::read_to_string(dir.path().join("Pins.pkl"))
             .unwrap()
             .contains("v1.1.0")
+    );
+}
+
+#[test]
+fn a_pins_file_with_no_pins_checks_zero_and_still_writes_the_record() {
+    let (dir, options) = temp_pins("module x\n");
+    let (code, out, err) = exec(&options, &fake(&[], &[]));
+    assert_eq!(
+        (code, out.as_str(), err.as_str()),
+        (0, "checked 0 pin(s)\nno pin changed\n", "")
+    );
+    let record = std::fs::read_to_string(dir.path().join("freshness.json")).unwrap();
+    assert_eq!(parse_freshness(&record).unwrap(), NOW);
+    assert!(!dir.path().join("summary.md").exists());
+}
+
+#[test]
+fn a_move_to_a_pre_release_tag_with_a_dot_in_it_is_written() {
+    let (dir, options) = temp_pins(&script_pins());
+    let api = fake(
+        &[
+            ("actions/checkout", "v1.1.0-rc.1"),
+            ("actions/setup-node", "v2.0.0"),
+        ],
+        &[
+            ("actions/checkout@v1.1.0-rc.1", sha('c')),
+            ("actions/setup-node@v2.0.0", sha('b')),
+        ],
+    );
+    let (code, out, err) = exec(&options, &api);
+    assert_eq!((code, err.as_str()), (0, ""));
+    assert_eq!(
+        out,
+        "checked 2 pin(s)\n  actions/checkout v1.0.0 -> v1.1.0-rc.1\n"
+    );
+    assert!(
+        std::fs::read_to_string(dir.path().join("Pins.pkl"))
+            .unwrap()
+            .contains("version = \"v1.1.0-rc.1\"")
     );
 }
 

@@ -713,3 +713,132 @@ On 16-11-2026 `runner/test/fixtures` (37 folders) and `runner/test/upstream` (44
 ### The baseline moves out of `runner/`
 
 On 16-11-2026 `runner/scripts/builtins-baseline/baseline.json` and `README.md` moved to `crates/scaffold-release/baseline/` with `git mv`, before Phase 8, so that deleting `runner/` cannot delete the frozen snapshot that the `baseline` job of `ci.yml` compares against. The blob hash of `baseline.json` is the same before and after (`beaf9f2`). The `ci.yml` job, the workflow test, the hygiene test and the docs read the new path.
+
+## Phase 6b: the update-pins tests and the differential scenarios
+
+Written on 16-11-2026 for Phase 6b of [ts-tooling-rust-port.md](ts-tooling-rust-port.md), before the TypeScript is deleted. `semver` (5 tests) and `freshness` (9 tests) have their rows above and are covered. These are the rows of the two files that had none, and of the 30 scenarios of `update-pins-diff.sh`, the only byte for byte check of the output, the files and the requests of the two tools. Three Rust tests were added for gaps this mapping found: `a_pins_file_with_no_pins_checks_zero_and_still_writes_the_record`, `a_move_to_a_pre_release_tag_with_a_dot_in_it_is_written` and `the_tag_of_an_up_to_date_pin_that_cannot_be_found_is_a_problem`, all in `crates/scaffold-release/src/update_pins/tests.rs`.
+
+### pinupdate
+
+| TypeScript test (`runner/test/pinupdate.test.ts`) | Rust test | Note |
+|---|---|---|
+| every pin line is read, with the repository part of a workflow path | `every_pin_line_is_read_with_the_repository_part_of_a_workflow_path` | covered |
+| a pin line that cannot be read is an error, never skipped | `a_pin_line_that_cannot_be_read_is_an_error_never_skipped` | covered |
+| the real Pins.pkl is read completely | `the_real_pins_pkl_is_read_completely` | covered |
+| pins that are already at the latest release and match their tag change nothing and raise no problem | `pins_already_at_the_latest_release_and_matching_their_tag_change_nothing` | covered |
+| a pin behind its latest release is updated to that release's commit, and a major bump is flagged | `a_pin_behind_its_latest_release_moves_to_that_commit_and_a_major_bump_is_flagged` | covered |
+| a pin is never moved to an older release | `a_pin_is_never_moved_to_an_older_release` | covered |
+| a pin whose commit is not the commit of its recorded tag is a problem even when it is up to date | `a_pin_whose_commit_is_not_the_commit_of_its_recorded_tag_is_a_problem_even_when_up_to_date` | covered |
+| a latest tag that is not a published release is a problem and nothing is changed for it | `a_latest_tag_that_is_not_a_published_release_is_a_problem_and_nothing_changes_for_it` | covered |
+| a commit that does not exist in the upstream repository is a problem | `a_commit_that_does_not_exist_in_the_upstream_repository_is_a_problem` | covered |
+| a repository with no release, and a GitHub error, are problems and never read as unchanged | `a_repository_with_no_release_and_a_github_error_are_problems_never_unchanged` | covered |
+| applying changes rewrites only the pin lines that changed, and applying them twice changes nothing more | `applying_changes_rewrites_only_the_pin_lines_that_changed_and_twice_changes_nothing_more` | covered |
+| applying a change to a pin that is not in the file is an error | `applying_a_change_to_a_pin_that_is_not_in_the_file_is_an_error` | covered |
+| the freshness record the update writes is one the freshness check accepts | `the_record_the_update_writes_is_one_the_check_accepts` (in `scaffold-core`) | covered |
+
+### update-pins-script
+
+| TypeScript test (`runner/test/update-pins-script.test.ts`) | Rust test | Note |
+|---|---|---|
+| a no-write run lists the changes and writes nothing | `a_no_write_run_lists_the_changes_and_writes_nothing` | covered |
+| a real run rewrites the changed pin, writes the freshness record and a summary for the pull request | `a_real_run_rewrites_the_changed_pin_and_writes_the_freshness_record_and_a_summary` | covered |
+| when nothing changed the freshness record is still written, and no summary is | `when_nothing_changed_the_freshness_record_is_still_written_and_no_summary_is` | covered |
+| a problem fails the run and writes nothing, not even the freshness record | `a_problem_fails_the_run_and_writes_nothing_not_even_the_freshness_record` | covered |
+| a major bump is marked in the summary | `a_major_bump_is_marked_in_the_summary_and_in_the_listing` | covered |
+| an unknown option is a usage error | `the_options_are_read_and_an_unknown_one_or_a_missing_value_is_a_usage_error` | covered |
+
+### The 30 scenarios of `update-pins-diff.sh`
+
+| Scenario | Rust test | Note |
+|---|---|---|
+| every pin is current: the record is written, the pins are not | `when_nothing_changed_the_freshness_record_is_still_written_and_no_summary_is` | covered |
+| the same with --no-write: nothing is written | `a_no_write_run_lists_the_changes_and_writes_nothing` | covered with pins that move; the run with every pin current and `--no-write` is the two tests together |
+| a minor move is written with the record and the summary | `a_real_run_rewrites_the_changed_pin_and_writes_the_freshness_record_and_a_summary` | covered |
+| a minor move with --no-write: listed, nothing written | `a_no_write_run_lists_the_changes_and_writes_nothing` | covered |
+| a major move is flagged in the listing and the summary | `a_major_bump_is_marked_in_the_summary_and_in_the_listing` | covered |
+| a move to a pre-release tag with a dot in it | `a_move_to_a_pre_release_tag_with_a_dot_in_it_is_written` | covered (added in 6b) |
+| the latest tag is not a published release | `a_latest_tag_that_is_not_a_published_release_is_a_problem_and_nothing_changes_for_it` | covered |
+| the latest release is a draft | `a_release_is_published_only_when_it_exists_and_is_not_a_draft` | covered (HTTP layer) |
+| the commit does not belong to the repository | `a_commit_that_does_not_exist_in_the_upstream_repository_is_a_problem` | covered |
+| a repository with no release | `a_repository_with_no_release_and_a_github_error_are_problems_never_unchanged` | covered |
+| a 503 is retried and the next answer is used | `a_5xx_is_retried_up_to_three_attempts_and_a_404_is_an_answer_that_is_not` | covered |
+| a 502 that never goes away fails after three attempts and writes nothing | `a_5xx_is_retried_up_to_three_attempts_and_a_404_is_an_answer_that_is_not`, `a_problem_fails_the_run_and_writes_nothing_not_even_the_freshness_record` | covered (two tests) |
+| a 403 is not retried and is a problem | `the_latest_release_is_its_tag_and_a_repository_with_none_is_none` | covered (HTTP layer: one 403 answer, one request) |
+| the tag of an up to date pin cannot be found | `the_tag_of_an_up_to_date_pin_that_cannot_be_found_is_a_problem` | covered (added in 6b) |
+| an up to date pin whose commit is not its tag's commit | `a_pin_whose_commit_is_not_the_commit_of_its_recorded_tag_is_a_problem_even_when_up_to_date` | covered |
+| the latest release is older than the pin: nothing moves | `a_pin_is_never_moved_to_an_older_release` | covered |
+| an annotated tag is followed to its commit | `a_tag_resolves_to_its_commit_and_an_annotated_tag_is_followed_to_it` | covered |
+| a tag that points to a tree | `a_tag_resolves_to_its_commit_and_an_annotated_tag_is_followed_to_it` | covered (the v3.0.0 case of that test) |
+| the latest tag is not a version | `a_version_that_is_not_a_version_is_a_problem_and_the_update_does_not_guess` | covered |
+| the pinned version is not a version | `a_version_that_is_not_a_version_is_a_problem_and_the_update_does_not_guess` | covered |
+| one pin moves and another has a problem: nothing is written | `a_problem_fails_the_run_and_writes_nothing_not_even_the_freshness_record` | covered |
+| an action with a workflow path in its name uses the repository part | `every_pin_line_is_read_with_the_repository_part_of_a_workflow_path` | covered |
+| a Pins.pkl with no pins checks zero and writes the record | `a_pins_file_with_no_pins_checks_zero_and_still_writes_the_record` | covered (added in 6b) |
+| no token at all: no Authorization header is sent | `the_token_is_github_token_then_gh_token_and_an_empty_one_is_no_token`, `a_request_carries_the_accept_header_and_the_token_when_there_is_one` | covered |
+| GH_TOKEN alone is used | `the_token_is_github_token_then_gh_token_and_an_empty_one_is_no_token` | covered |
+| an empty GITHUB_TOKEN ends the search: no header, and GH_TOKEN is not tried | `the_token_is_github_token_then_gh_token_and_an_empty_one_is_no_token` | covered |
+| both set: GITHUB_TOKEN is used | `the_token_is_github_token_then_gh_token_and_an_empty_one_is_no_token` | covered |
+| usage: an unknown option (exit code only) | `the_options_are_read_and_an_unknown_one_or_a_missing_value_is_a_usage_error`, `the_command_reports_a_usage_error_with_exit_2` | covered |
+| usage: --summary with no value (exit code only) | `the_options_are_read_and_an_unknown_one_or_a_missing_value_is_a_usage_error` | covered |
+| a line of Pins.pkl that cannot be read (exit code only) | `a_pins_file_that_is_missing_or_has_a_line_that_cannot_be_read_exits_1` | covered |
+
+The last differential output before deletion, from the same commit, was `30 comparisons, 0 differ`. The commit that still holds the TypeScript tool is f6a24a6 on `origin/main`. What the differential script proved at the byte level for the requests (order, Accept and Authorization headers) is covered in Rust by `a_request_carries_the_accept_header_and_the_token_when_there_is_one` and `the_whole_update_runs_against_a_server_standing_in_for_github`; the TypeScript tool has no other reference once it is deleted.
+
+### update-pins-workflow
+
+`runner/test/update-pins-workflow.test.ts` (17 tests) is ported to `crates/scaffold-package-tests/tests/update_pins_workflow.rs` (18 tests), written against `update-pins.yml` as Phase 6b leaves it: one tool, no `implementation` input, no mise or bun step. Fourteen titles are ported (five of them adjusted because the TypeScript write step is gone), three are rewritten and one test is new.
+
+| TypeScript test | Rust test | Note |
+|---|---|---|
+| it runs on a schedule or by hand, and on no push: merging a change to the tool must not start a real run | `it_runs_on_a_schedule_or_by_hand_and_on_no_push_merging_a_change_to_the_tool_must_not_start_a_real_run` | covered |
+| a manual run is a dry run unless told otherwise, and says which tool writes in a real run, the Rust one by default | `a_manual_run_is_a_dry_run_unless_told_otherwise_and_dry_run_is_its_only_input` | rewritten: there is one tool, so the `implementation` choice is gone and `dry_run` is the only input |
+| nothing has permissions by default and every job reads contents only: writes use the App token | `nothing_has_permissions_by_default_and_every_job_reads_contents_only_writes_use_the_app_token` | covered |
+| the only secret is the App key, and the default token is never used to write | `the_only_secret_is_the_app_key_and_the_default_token_is_never_used_to_write` | covered |
+| every action is pinned by a 40 character SHA and checkout keeps no credentials | `every_action_is_pinned_by_a_40_character_sha_and_checkout_keeps_no_credentials` | covered |
+| no run script interpolates an expression, and each is 15 lines or fewer | `no_run_script_interpolates_an_expression_and_each_is_15_lines_or_fewer` | covered |
+| the freshness record is written only after the pins were checked and the pull request step ran | `the_freshness_record_is_written_only_after_the_pins_were_checked_and_the_pull_request_step_ran` | adjusted: the TypeScript write step is not in the order |
+| each writing step asks for the record and the summary, and a failing check fails the job | `the_writing_step_asks_for_the_record_and_the_summary_and_a_failing_check_fails_the_job` | adjusted: one writing step |
+| the record goes to the freshness branch, never main | `the_record_goes_to_the_freshness_branch_never_main` | covered |
+| the pull request step does nothing when no pin changed | `the_pull_request_step_does_nothing_when_no_pin_changed` | covered |
+| the pull request is a conventional commit and is opened with the App token | `the_pull_request_is_a_conventional_commit_and_is_opened_with_the_app_token` | covered |
+| the release tool is built in a job that holds no token | `the_release_tool_is_built_in_a_job_that_holds_no_token` | covered |
+| the update job, which holds the App token, never runs cargo and downloads the tool and checks its checksum before it runs it | `the_update_job_which_holds_the_app_token_never_runs_cargo_and_downloads_the_tool_and_checks_its_checksum_before_it_runs_it` | covered, and stronger: the checksum step is pinned exactly and no step before it runs the tool (see breakages A6 and C4) |
+| no job has a job-wide token in its environment: each step that needs one names it | `no_job_has_a_job_wide_token_in_its_environment_each_step_that_needs_one_names_it` | covered |
+| a dry run reaches nothing that writes: no App token, no write step, no pull request, no freshness record | `a_dry_run_reaches_nothing_that_writes_no_app_token_no_write_step_no_pull_request_no_freshness_record` | adjusted: the TypeScript write step is not among the writers; the conditions are exact strings |
+| a dry run runs both tools and fails when they disagree, whatever the Rust one says | `a_dry_run_runs_the_one_tool_with_no_write_and_the_step_fails_with_the_tool` | rewritten: there is no second tool to compare with. The step is exactly `tool/scaffold-release update-pins --no-write` with the read-only token |
+| a real run uses the Rust tool unless asked for the TypeScript one, with the App token, and mise is installed only for the TypeScript tool | `a_real_run_uses_the_one_tool_with_the_app_token_and_no_step_installs_mise` | rewritten: the real run has the `NOT_DRY` condition alone, the App token, and no step installs mise |
+| (new in 6b) | `there_is_one_tool_nothing_chooses_it_and_nothing_names_a_second_one_or_bun` | new: the workflow names no `implementation`, `update-pins.ts`, `bun`, `mise`, `typescript` or `disagree` |
+
+#### Breakage comparison of the workflow test
+
+On 16-11-2026, in plain clones, a deliberate breakage of `update-pins.yml` was applied to the branch (Rust tests) and, with the same text where the line is the same in both files, to a clone of `origin/main` at f6a24a6 (TypeScript tests). The failing tests of the two suites were paired by the table above. Both trees were left clean.
+
+Group A, breakages that are the same in both files (19 runs):
+
+| Breakage | TypeScript failing | Rust failing | Result |
+|---|---|---|---|
+| the mint condition loses its `!` | 15 | 15 | identical |
+| the mint step has no `if` | 15 | 15 | identical |
+| workflow permissions are `write-all` | 3 | 3 | identical |
+| the tool job may write contents | 3, 12 | 3, 12 | identical |
+| checkout keeps credentials | 5 | 5 | identical |
+| the record goes to `main` | 7, 9, 15 | 7, 9, 15 | identical |
+| the pull request step has no `if` | 15 | 15 | identical |
+| the freshness step has no `if` | 15 | 15 | identical |
+| the dry run uses the default secret token | 4, 15 | 4, 15 and the rewritten 16 | identical on the ported tests |
+| a push trigger is added | 1 | 1 | identical |
+| the update job has a job-wide token | 14 | 14 | identical |
+| the writing step ignores a failure | 8 | 8 | identical |
+| the pull request is not a conventional commit | 11 | 11 | identical |
+| a run script interpolates an expression | 6 | 6 and the rewritten 16 | identical on the ported tests |
+| the pull request step no longer checks for a change | 10 | 10 | identical |
+| the update job runs cargo | 13 | 13 | identical |
+| the update job does not wait for the tool job | 13 | 13 | identical |
+| **the checksum check ends in `\|\| true`** | none | 13 | **different: neither TypeScript test nor the first Rust version caught it. The Rust test now pins the step exactly** |
+| **the update job runs the tool before it checks it** | none | 13 | **different: same gap; the Rust test now fails if any step before the check runs the tool** |
+
+The first run found three tests that failed in no breakage (the interpolation, pull request step and update job tests) and one breakage that neither suite caught (the checksum). A second round added the interpolation, no-check and cargo breakages and a tightened assertion. After the second round every one of the 18 Rust tests fails in at least one breakage.
+
+Group B, breakages on the branch only, for the rewritten and new tests: an `implementation` input back (fails the input test and the new test), a mise step back (the real run test and the new test), `--no-write` dropped from the dry run (the dry run tests), the App token given to the dry run (the dry run tests), the real run depending on an `implementation` input (the dry run reach test, the real run test and the new test), the dry run condition loosened (the dry run reach test) and bun named in a comment (the new test). Each fails what it should.
+
+The script was `breakage-update-pins.ts` (TypeScript on bun) in the session scratchpad; the breakages are the one-line `perl` substitutions named in the table.

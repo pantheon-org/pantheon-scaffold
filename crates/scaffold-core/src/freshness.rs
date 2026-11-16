@@ -1,6 +1,6 @@
 //! The freshness record: the UTC time of the last successful pin check, kept as `freshness.json` on the `freshness` branch
 //! of the package repository and written only by the pin-update workflow. The consumer upgrade workflow fails visibly when
-//! it is stale. Ported from `runner/src/freshness.ts`.
+//! it is stale. Ported from `runner/src/freshness.ts`, deleted in Phase 6b.
 
 use std::time::Duration;
 

@@ -1,6 +1,6 @@
 # Plan: port the remaining TypeScript tooling to Rust
 
-**Status (15-11-2026): draft 2, revised after a three-lens review (Technical, Strategic, Risk). The owner chose to port everything (D0 and D1) and named themselves for D5 (see "Decisions for the owner"). Phases 0 to 6 are done and merged (Phase 6b, the update-pins TypeScript and `freshness.ts`, waits for the first real Rust update-pins run); the gate after Phase 2 was decided go on 15-11-2026 (see "The gate after Phase 2"). Phase 7 is in progress, in the parts 7a to 7e below; only the update-pins test pieces (after 6b) are left.** Written against `origin/main` at `8eae6ad`.
+**Status (15-11-2026): draft 2, revised after a three-lens review (Technical, Strategic, Risk). The owner chose to port everything (D0 and D1) and named themselves for D5 (see "Decisions for the owner"). Phases 0 to 6 are done and merged (Phase 6b, the update-pins TypeScript, `freshness.ts` and `semver.ts`, was done after the first real Rust update-pins run on 16-11-2026); the gate after Phase 2 was decided go on 15-11-2026 (see "The gate after Phase 2"). Phase 7 is done, in the parts 7a to 7e below. Phase 8 (the bun pin and `runner/package.json`) is what is left.** Written against `origin/main` at `8eae6ad`.
 
 ## Why, and the case against
 
@@ -148,10 +148,10 @@ Phase 6 still waits for Phases 4 and 5, because the TypeScript release code is i
 
 | File | What calls bun today | Phase |
 |---|---|---|
-| `release.yml` | `bun test` (the `package` job). The release assets (Phase 1), the smoke suite (Phase 4) and the runner build (Phase 5) run `scaffold-release` | 8 |
+| `release.yml` | none: the `bun test` step of the `package` job went with Phase 6b. The release assets (Phase 1), the smoke suite (Phase 4) and the runner build (Phase 5) run `scaffold-release` | 8 |
 | `promote.yml` | none: the Rust tool only since Phase 2, and the TypeScript way back was deleted in Phase 6 | |
-| `update-pins.yml` | `update-pins.ts`, and `on.push.paths` lists `runner/scripts/update-pins.ts` and `runner/src/pinupdate.ts` | 3 |
-| `ci.yml` | `bun test`, and actionlint on `crates/scaffold-package-tests/fixtures/consumer-check.yml`. The baseline, smoke and runner build steps run `scaffold-release` since Phases 4 and 5, and the TypeScript twins and their differential scripts were deleted in Phase 6. Only `update-pins-diff.sh` remains, until Phase 6b | 8, 7, 6b |
+| `update-pins.yml` | none: the Rust tool only since Phase 6b (before, `update-pins.ts` and a `push` trigger with `paths` for it) | 3 |
+| `ci.yml` | actionlint on `crates/scaffold-package-tests/fixtures/consumer-check.yml`. The baseline, smoke and runner build steps run `scaffold-release` since Phases 4 and 5, and the TypeScript twins and their differential scripts were deleted in Phase 6. `update-pins-diff.sh` and the `bun test` step went with Phase 6b | 8, 7, 6b |
 
 `release.yml` (the `prepare` and `Attest and publish` jobs), `promote.yml` and `update-pins.yml` install no Rust today. Each needs the artifact download from D2, not a toolchain step.
 

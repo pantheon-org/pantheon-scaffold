@@ -302,7 +302,7 @@ A claim in this guide, and the test or the proof line that shows it. A path is a
 | Owned, seeded and external files behave as the table says | `runner/test/apply.test.ts`, [runner-safety.md](runner-safety.md) |
 | A repeat render writes 0 files, and `check` passes after a render | `runner/test/check.test.ts`; Report, wave D (benefit test: "check", "second render") |
 | `check` writes nothing and exits 4 on drift; it runs on pull requests in CI | `runner/test/check.test.ts`, `crates/scaffold-package-tests/tests/consumer_check.rs`, [check-in-ci.md](check-in-ci.md) |
-| Workflows keep their triggers, permissions and `run:` scripts when re-rendered | `runner/test/equality.test.ts`, `crates/scaffold-package-tests/tests/workflows_a.rs`, `crates/scaffold-package-tests/tests/workflows_b.rs`, `crates/scaffold-package-tests/tests/workflows_c.rs`; Report, wave A (zero uncategorised differences) |
+| Workflows keep their triggers, permissions and `run:` scripts when re-rendered | `crates/scaffold-core/src/equality.rs` (its tests, which replaced `runner/test/equality.test.ts`), `crates/scaffold-package-tests/tests/workflows_a.rs`, `crates/scaffold-package-tests/tests/workflows_b.rs`, `crates/scaffold-package-tests/tests/workflows_c.rs`; Report, wave A (zero uncategorised differences) |
 | Each option adds and removes exactly the files listed | `crates/scaffold-package-tests/tests/phase5_toggles.rs`, [feature-toggles.md](feature-toggles.md); Report, wave A (the four repositories cover the variants) |
 | A toggle that needs a name stops with an error naming the option | `crates/scaffold-package-tests/tests/phase5_toggles.rs` |
 | The render changes a real repository only in the ways listed | Report, wave A (every difference categorised, none uncategorised) and the sample check ([sample-check-0.1.5.md](../archive/proof/docs/sample-check-0.1.5.md), 19 of 19 confirmed) |
@@ -315,7 +315,7 @@ A claim in this guide, and the test or the proof line that shows it. A path is a
 | `upgrade` of a repository that renders `mise.toml` succeeds without `--force` | `runner/test/upgrade.test.ts` ("recorded in the manifest"); Report, wave D (0.1.3 to 0.1.5, exit 0, both clones) |
 | Rolling back is two steps and ends byte for byte at the old render | Report, wave B ("pin-back"), [runner-upgrade.md](runner-upgrade.md) |
 | `detach` keeps every file, and a `git revert` restores the management | `runner/test/detach.test.ts`; Report, wave B ("detach, then a git revert") |
-| A known-bad version produces a warning, and a refusal with `--strict` | `runner/test/knownbad.test.ts`, `runner/test/preflight.test.ts`, [runner-lifecycle.md](runner-lifecycle.md) |
+| A known-bad version produces a warning, and a refusal with `--strict` | `crates/scaffold-core/src/knownbad.rs` and `crates/scaffold-core/src/preflight.rs` (their tests, which replaced `runner/test/knownbad.test.ts` and `runner/test/preflight.test.ts`), [runner-lifecycle.md](runner-lifecycle.md) |
 | Releases 0.1.0 to 0.1.4 are on the known-bad list | `known-bad.json`, `runner/test/knownbad.test.ts` (the bundled list is a subset of it) |
 | Three workflows need the App key secret; the others use only `GITHUB_TOKEN` | [security-dossier-0.1.5.md](../archive/proof/docs/security-dossier-0.1.5.md) (the workflow table); Report, wave C (the three fail closed with a bad key) |
 | `release.yml` is not rendered; `dist-check.yml` checks it | `crates/scaffold-package-tests/tests/phase5_dist.rs`, [feature-toggles.md](feature-toggles.md) (wave D) |

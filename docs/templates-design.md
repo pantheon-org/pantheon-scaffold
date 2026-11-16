@@ -73,7 +73,7 @@ boolean, never an absent key.
 | Options a repository sets | `Config.Options` |
 
 `docs/templates-variables.md` lists every value and why it is or is not a variable. The one asset that stays plain is
-`mise-repo.toml`, a seed of comments and an empty table (`runner/test/templates.test.ts` names it). A repository changes a
+`mise-repo.toml`, a seed of comments and an empty table (`crates/scaffold-package-tests/tests/templates.rs` names it). A repository changes a
 variable from a Preset with `Presets.amendContext`.
 
 ## Notes found while building it

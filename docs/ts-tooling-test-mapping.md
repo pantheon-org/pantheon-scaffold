@@ -226,7 +226,7 @@ Written on 16-11-2026 for Phase 6 of [ts-tooling-rust-port.md](ts-tooling-rust-p
 
 | TypeScript test (`runner/test/release.test.ts`) | Rust test (`crates/scaffold-release/src/lib.rs`) | Note |
 |---|---|---|
-| pklProjectVersion reads the one version line of the package block | `pkl_project_version_reads_the_one_version_line_of_the_package_block` | covered; the TypeScript test stays, because `package-uri.test.ts` still imports `pklProjectVersion` (Phase 7) |
+| pklProjectVersion reads the one version line of the package block | `pkl_project_version_reads_the_one_version_line_of_the_package_block` | covered; the TypeScript test and `release.ts` were deleted in Phase 7a, with their last user `package-uri.test.ts` |
 | a tag that matches the PklProject version passes, pre-release tags included | `a_tag_that_matches_the_pkl_project_version_passes_pre_release_tags_included` | covered |
 | a tag that is not v followed by a version is refused | `a_tag_that_is_not_v_followed_by_a_version_is_refused` | covered |
 | a tag that differs from the PklProject version is refused, so the package URI cannot point at the wrong release | `a_tag_that_differs_from_the_pkl_project_version_is_refused` | covered |
@@ -277,3 +277,90 @@ Written on 16-11-2026 for Phase 6 of [ts-tooling-rust-port.md](ts-tooling-rust-p
 | the host decides which target can be built here | `the_host_decides_which_target_can_be_built_here` | covered |
 | the arguments are --target, --version and --out, and the target is required | `the_arguments_are_target_version_and_out_and_the_target_is_required` | covered |
 
+
+## Added in Phase 7a: the first package tests, ported
+
+Written on 16-11-2026 for Phase 7a of [ts-tooling-rust-port.md](ts-tooling-rust-port.md). These TypeScript tests were ported to the crate `scaffold-package-tests` and deleted. Every row was checked against the files by script: the TypeScript title is the one in the deleted file (read from `origin/main`), and the Rust test exists. A TypeScript loop that generated several tests is mapped row by row.
+
+### templates
+
+| TypeScript test (`runner/test/templates.test.ts`) | Rust test (`crates/scaffold-package-tests/tests/templates.rs`) | Note |
+|---|---|---|
+| every toml, yaml and json asset a builtin ships is a Jinja template, apart from the one named exception | `every_toml_yaml_and_json_asset_a_builtin_ships_is_a_jinja_template_apart_from_the_one_named_exception` | covered |
+| no asset still uses an @@NAME@@ placeholder | `no_asset_still_uses_an_at_at_name_at_at_placeholder` | covered |
+| no builtin patches rendered text with replaceAll or replaceFirst: a variable and a conditional do that in the template | `no_builtin_patches_rendered_text_with_replace_all_or_replace_first_a_variable_and_a_conditional_do_that_in_the_template` | covered |
+
+### config-name
+
+| TypeScript test (`runner/test/config-name.test.ts`) | Rust test (`crates/scaffold-package-tests/tests/config_name.rs`) | Note |
+|---|---|---|
+| no tracked file is named pantheon.pkl | `no_tracked_file_is_named_pantheon_pkl` | covered |
+| the old config name appears only in the files that are allowed to say it | `the_old_config_name_appears_only_in_the_files_that_are_allowed_to_say_it` | covered |
+| every allowed file still says it, so the list does not outlive its reasons | `every_allowed_file_still_says_it_so_the_list_does_not_outlive_its_reasons` | covered |
+
+### mode-index
+
+| TypeScript test (`runner/test/mode-index.test.ts`) | Rust test (`crates/scaffold-package-tests/tests/mode_index.rs`) | Note |
+|---|---|---|
+| git records the nine shared scripts as 100755 and the configs as 100644 after a render and a commit | `git_records_the_nine_shared_scripts_as_100755_and_the_configs_as_100644_after_a_render_and_a_commit` | covered |
+| check on a fresh clone of the committed render finds no drift | `check_on_a_fresh_clone_of_the_committed_render_finds_no_drift` | covered |
+| a script committed without the executable bit is mode drift on a fresh clone (exit 4) | `a_script_committed_without_the_executable_bit_is_mode_drift_on_a_fresh_clone_exit_4` | covered |
+
+### package-render
+
+| TypeScript test (`runner/test/package-render.test.ts`) | Rust test (`crates/scaffold-package-tests/tests/package_render.rs`) | Note |
+|---|---|---|
+| the rendered workflows carry version comments and still equal the pinned upstream copies | `the_rendered_workflows_carry_version_comments_and_still_equal_the_pinned_upstream_copies` | covered |
+
+### consumer-check
+
+| TypeScript test (`runner/test/consumer-check.test.ts`) | Rust test (`crates/scaffold-package-tests/tests/consumer_check.rs`) | Note |
+|---|---|---|
+| the consumer check runs on pull_request only, never pull_request_target | `the_consumer_check_runs_on_pull_request_only_never_pull_request_target` | covered |
+| the consumer check uses no secrets | `the_consumer_check_uses_no_secrets` | covered |
+| the token is the built-in one with read access only | `the_token_is_the_built_in_one_with_read_access_only` | covered |
+| every action is pinned by a 40 character SHA | `every_action_is_pinned_by_a_40_character_sha` | covered |
+| checkout does not persist credentials | `checkout_does_not_persist_credentials` | covered |
+| the tools come from the lock file | `the_tools_come_from_the_lock_file` | covered |
+| the package cache is kept between runs, so an outage does not block the check | `the_package_cache_is_kept_between_runs_so_an_outage_does_not_block_the_check` | covered |
+
+### smoke-fixtures
+
+| TypeScript test (`runner/test/smoke-fixtures.test.ts`) | Rust test (`crates/scaffold-package-tests/tests/smoke_fixtures.rs`) | Note |
+|---|---|---|
+| smoke-orphan-a renders two files and smoke-orphan-b drops the second | `smoke_orphan_a_renders_two_files_and_smoke_orphan_b_drops_the_second` | covered |
+| smoke-case-collision renders two paths that differ only by case | `smoke_case_collision_renders_two_paths_that_differ_only_by_case` | covered |
+| smoke-case-a and smoke-case-b render the same file under names that differ only by case | `smoke_case_a_and_smoke_case_b_render_the_same_file_under_names_that_differ_only_by_case` | covered |
+| the phase 3 fixtures render the same 19 files, with the default and with all features | `the_phase_3_fixtures_render_the_same_19_files_with_the_default_and_with_all_features` | covered |
+
+### package-uri
+
+| TypeScript test (`runner/test/package-uri.test.ts`) | Rust test (`crates/scaffold-package-tests/tests/package_uri.rs`) | Note |
+|---|---|---|
+| a package loaded from a package URI reports that URI, and the runner reads its version from it | `a_package_loaded_from_a_package_uri_reports_that_uri_and_the_runner_reads_its_version_from_it` | covered |
+| a package loaded from a local folder has no packageUri | `a_package_loaded_from_a_local_folder_has_no_package_uri` | covered |
+| a file marked removeOnDetach reaches the contract, and an unmarked one does not carry the key | `a_file_marked_remove_on_detach_reaches_the_contract_and_an_unmarked_one_does_not_carry_the_key` | covered |
+| a consumer that pins the package with its checksum still gets a packageUri the runner can read the version from | `a_consumer_that_pins_the_package_with_its_checksum_still_gets_a_package_uri_the_runner_can_read_the_version_from` | covered |
+| the mise builtin pins the runner at the package version when loaded from a package URI | `the_mise_builtin_pins_the_runner_at_the_package_version_when_loaded_from_a_package_uri` | covered (one iteration of a TypeScript loop) |
+| the mise builtin pins the runner at the package version when loaded from a package URI that carries the pinned checksum | `the_mise_builtin_pins_the_runner_at_the_package_version_when_loaded_from_a_package_uri_that_carries_the_pinned_checksum` | covered (one iteration of a TypeScript loop); the last two rows are one TypeScript loop over `pinChecksum` false and true |
+
+### dependabot-entry
+
+| TypeScript test (`runner/test/dependabot-entry.test.ts`) | Rust test (`crates/scaffold-package-tests/tests/dependabot_entry.rs`) | Note |
+|---|---|---|
+| a binary: the github-actions entry is rendered, the cargo entry always | `a_binary_renders_the_github_actions_entry_and_the_cargo_entry` | covered (one iteration of a TypeScript loop) |
+| a composite action: the github-actions entry is rendered, the cargo entry always | `a_composite_action_renders_the_github_actions_entry_and_the_cargo_entry` | covered (one iteration of a TypeScript loop) |
+| the draft release shape: the github-actions entry is rendered, the cargo entry always | `the_draft_release_shape_renders_the_github_actions_entry_and_the_cargo_entry` | covered (one iteration of a TypeScript loop) |
+| builtins left out (one workflow): the github-actions entry is rendered, the cargo entry always | `builtins_left_out_one_workflow_render_the_github_actions_entry_and_the_cargo_entry` | covered (one iteration of a TypeScript loop) |
+| a tool Builtin left out (it renders no workflow): the github-actions entry is left out, the cargo entry always | `a_tool_builtin_left_out_that_renders_no_workflow_leaves_the_github_actions_entry_out` | covered (one iteration of a TypeScript loop) |
+| a Builtin the toggles already removed (release without binary): the github-actions entry is left out, the cargo entry always | `a_builtin_the_toggles_already_removed_leaves_the_github_actions_entry_out` | covered (one iteration of a TypeScript loop) |
+| everything a workflow Builtin could be left out: the github-actions entry is rendered, the cargo entry always | `everything_a_workflow_builtin_could_be_left_out_renders_the_github_actions_entry` | covered (one iteration of a TypeScript loop) |
+| a plain library (the dev-kit): the github-actions entry is left out, the cargo entry always | `a_plain_library_the_dev_kit_leaves_the_github_actions_entry_out` | covered (one iteration of a TypeScript loop) |
+| on, on a plain library: the github-actions entry is rendered, the cargo entry always | `on_on_a_plain_library_renders_the_github_actions_entry` | covered (one iteration of a TypeScript loop) |
+| off, on a binary: the github-actions entry is left out, the cargo entry always | `off_on_a_binary_leaves_the_github_actions_entry_out` | covered (one iteration of a TypeScript loop) |
+| auto, spelt out, on a plain library: the github-actions entry is left out, the cargo entry always | `auto_spelt_out_on_a_plain_library_leaves_the_github_actions_entry_out` | covered (one iteration of a TypeScript loop) |
+| the header has its four variants, and none claims what the file does not do | `the_header_has_its_four_variants_and_none_claims_what_the_file_does_not_do` | covered |
+| this repository's options render the committed .github/dependabot.yml, so check stays clean | `this_repositorys_options_render_the_committed_dependabot_yml_so_check_stays_clean` | covered |
+| a misspelt value is refused by the render | `a_misspelt_value_is_refused_by_the_render` | covered; the first eleven rows are the eleven cases of one TypeScript loop (`CASES`) |
+
+41 rows. `runner/test/release.test.ts` and `runner/src/release.ts` were deleted in the same change: their one remaining test (`pklProjectVersion`) is the first row of the `release` table above, and its last user was `package-uri.test.ts`.

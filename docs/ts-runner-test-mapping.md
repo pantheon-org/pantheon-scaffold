@@ -52,7 +52,7 @@ The match column is a word-overlap score between the TypeScript test name and th
 | `cli`: contract summarises a valid fixture | `contract evaluates a config and reports what it holds` (cli.feature). |
 | `cli`: contract fails with exit 1 on a refused read; a local package cannot be read without `--allow-local-package` | **Ported:** the scenario `a config that reads a local package is refused without --allow-local-package` (cli.feature). |
 | `cli`: render writes the slice with modes and a manifest | `render writes the files of the contract` and `the executable bit is set from the contract` (render.feature). |
-| `cli`: the rendered workflows carry version comments and equal the pinned upstream copies | **Ported:** `runner/test/package-render.test.ts` renders through the Rust binary and compares with the pinned upstream workflows. |
+| `cli`: the rendered workflows carry version comments and equal the pinned upstream copies | **Ported:** `crates/scaffold-package-tests/tests/package_render.rs` (ported to Rust in Phase 7a) renders through the Rust binary and compares with the pinned upstream workflows. |
 | `cli`: check on an empty repo reports every owned file as missing | **Ported:** the scenario `check on an empty repository reports every owned file as missing` (render.feature). |
 | `cli`: `--dry-run` takes no lock and a check runs while the lock is held | **Ported:** the scenario `a dry run takes no lock, and a check runs while the lock is held` (safety.feature). |
 | `cli`: the usage text names the exit codes | `USAGE` in `crates/scaffold-cli/src/lib.rs` holds the codes; `a_bad_option_prints_the_message_and_the_usage`. |
@@ -60,7 +60,7 @@ The match column is a word-overlap score between the TypeScript test name and th
 | `cli-lifecycle`: an unreachable known-bad list falls back to the bundled snapshot | `when_the_list_cannot_be_fetched_the_cached_copy_is_used_and_the_run_goes_on` and `the_gate_passes_the_package_version_on_and_falls_back_when_the_known_bad_list_cannot_be_fetched`. |
 | `cli-lifecycle`: pkl gets the package cache under the repository by default | `the_pkl_options_come_from_the_flags`. |
 | `cli-lifecycle`: `--repair` rebuilds an unreadable manifest | `--repair rebuilds a manifest that is not JSON` (lifecycle.feature) and `a_disabled_security_builtin_is_a_warning_and_repair_does_not_read_the_manifest`. |
-| `cli-lifecycle`: a package URI that carries the pinned checksum renders and records the version | `runner/test/package-uri.test.ts` (kept) renders through a package URI with the checksum, and `preflight.rs` covers the URI parsing. |
+| `cli-lifecycle`: a package URI that carries the pinned checksum renders and records the version | `crates/scaffold-package-tests/tests/package_uri.rs` (kept, ported to Rust in Phase 7a) renders through a package URI with the checksum, and `preflight.rs` covers the URI parsing. |
 | `cli-freshness`: a fresh record exits 0; a stale record exits 3; a record that is not valid is exit 1; a limit that is not a whole number is a usage error | The freshness scenarios of releases.feature (a recent record is fresh, older than thirty days is stale, a record that is not JSON is an error) and `a_number_option_needs_a_whole_number_of_at_least_one`. |
 
 ## Every deleted test

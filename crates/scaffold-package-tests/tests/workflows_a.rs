@@ -124,19 +124,69 @@ fn the_zizmor_ignore_comment_on_the_pull_request_target_trigger_is_rendered_on_t
     );
 }
 
+/// The one line the package adds to `.plumber.yaml` on top of the pantheon-adr copy: the trusted `jdx/mise-action` entry (0.4.2). It is
+/// removed by content, not by position, so that the rest of the file is still compared with the pinned copy.
+const PLUMBER_ADDED: &str = "- jdx/mise-action";
+
+fn without_lines_containing(text: &str, needle: &str) -> (String, usize) {
+    let mut kept = String::new();
+    let mut removed = 0;
+    for line in text.split_inclusive('\n') {
+        if line.contains(needle) {
+            removed += 1;
+        } else {
+            kept.push_str(line);
+        }
+    }
+    (kept, removed)
+}
+
 #[test]
 fn the_four_config_files_are_byte_for_byte_the_pinned_pantheon_adr_files_and_not_executable() {
     let blobs = upstream_json("workflow-files-blobs.json");
     let blobs = blobs.as_object().unwrap();
     assert_eq!(blobs.len(), 4);
     for (path, blob) in blobs {
-        assert_eq!(
-            git_blob_sha(content(&CONTRACT, path)),
-            blob.as_str().unwrap(),
-            "{path}"
-        );
+        let text = content(&CONTRACT, path);
+        // .plumber.yaml has exactly one line more than the pantheon-adr copy; every other file has none.
+        let (text, removed) = if path == ".plumber.yaml" {
+            without_lines_containing(text, PLUMBER_ADDED)
+        } else {
+            (text.to_string(), 0)
+        };
+        assert_eq!(removed, usize::from(path == ".plumber.yaml"), "{path}");
+        assert_eq!(git_blob_sha(&text), blob.as_str().unwrap(), "{path}");
         assert_eq!(mode(&CONTRACT, path), "0644", "{path}");
     }
+}
+
+#[test]
+fn the_plumber_configuration_trusts_the_mise_action_by_name_and_keeps_the_five_other_trusted_actions()
+ {
+    let doc = scaffold_package_tests::parse_yaml(content(&CONTRACT, ".plumber.yaml")).unwrap();
+    let trusted: Vec<&str> = doc["github"]["controls"]["githubActionMustComeFromAuthorizedSources"]
+        ["trustedGithubActions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|v| v.as_str().unwrap())
+        .collect();
+    assert_eq!(
+        trusted,
+        [
+            "getplumber/plumber",
+            "googleapis/release-please-action",
+            "peter-evans/find-comment",
+            "peter-evans/create-or-update-comment",
+            "zizmorcore/zizmor-action",
+            "jdx/mise-action",
+        ]
+    );
+    // The pin check is a separate control and stays on: trusting a name does not trust an unpinned ref.
+    assert_eq!(
+        doc["github"]["controls"]["actionsMustBePinnedByCommitSha"]["enabled"],
+        true
+    );
 }
 
 #[test]

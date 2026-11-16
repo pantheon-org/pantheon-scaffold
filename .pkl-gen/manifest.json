@@ -143,7 +143,7 @@
     },
     ".plumber.yaml": {
       "class": "owned",
-      "hash": "151bde3704f31000d8c13fcb16f05345a63c84bc85e69d6e0ebcaed585d027a9"
+      "hash": "5d17a34b7d8f4c30eeb426ec05c58818dee5ecb0976a044149ccc755f4b71981"
     },
     ".release-please-manifest.json": {
       "class": "seed",

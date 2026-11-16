@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.1](https://github.com/pantheon-org/pantheon-scaffold/compare/v0.4.0...v0.4.1) (2026-11-16)
+
+
+### Features
+
+* **release:** run smoke and the baseline scripts from scaffold-release ([#138](https://github.com/pantheon-org/pantheon-scaffold/issues/138)) ([ade19f4](https://github.com/pantheon-org/pantheon-scaffold/commit/ade19f434375722d06c272f9af49254af6bc6327))
+
+
+### Bug Fixes
+
+* **pkl:** leave out the dependabot github-actions entry when nothing is left for it to scan ([#139](https://github.com/pantheon-org/pantheon-scaffold/issues/139)) ([cde80ff](https://github.com/pantheon-org/pantheon-scaffold/commit/cde80ff962c079b77ce4d20bb3fe900e98819ba0))
+
 ## [0.4.0](https://github.com/pantheon-org/pantheon-scaffold/compare/v0.3.0...v0.4.0) (2026-11-15)
 
 

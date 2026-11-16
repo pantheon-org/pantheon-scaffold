@@ -76,7 +76,7 @@ Checks: `crates/scaffold-package-tests/tests/phase5_dist.rs`, the updated `crate
 
 The consumer smoke test is a step of `verify-release` in `release.yml` (moved here from wave D, because only the release candidate contains the Phase 5 builtins). After the release is published, on all three platforms, a scratch consumer loads the package by its package URI with the published checksum, both for `Config.pkl` and for `Builtins.pkl`, renders `standardWorkflows` and `standardFiles` with `skillName` and `crateName` set into an empty folder, runs `check`, and renders again. It fails unless `check` passes, the second render writes nothing, the files of every toggle are there, and the external `release.yml` was not written. It runs with the runner installed through mise with checksums and provenance enforced, so it is the consumer's whole path.
 
-Checks: the two new assertions in `runner/test/release-workflow.test.ts`, the mutation check in `archive/spikes/phase-5-wave-e` (6 of 6 caught), actionlint, and a local rehearsal of the same sequence with the local package (29 files written, `check` ok, second render 0 written).
+Checks: the two new assertions in `crates/scaffold-package-tests/tests/release_workflow.rs`, the mutation check in `archive/spikes/phase-5-wave-e` (6 of 6 caught), actionlint, and a local rehearsal of the same sequence with the local package (29 files written, `check` ok, second render 0 written).
 
 ## Decision 86: Dependabot leaves the two artifact actions of release.yml alone
 

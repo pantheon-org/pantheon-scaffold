@@ -116,3 +116,37 @@ pub fn git_repo(files: &[(&str, &str)]) -> tempfile::TempDir {
     commit_all(dir.path(), "init");
     dir
 }
+
+/// Writes an executable script and waits until it can be run. Running a file fails with ETXTBSY ("text file busy") while any process
+/// still holds it open for writing, and a test thread that forks at the wrong moment holds a copy of the descriptor until its own exec. So
+/// the script gets a guard line that makes a probe run exit at once, and the probe is repeated until it is no longer refused.
+pub fn write_script(path: &Path, body: &str) {
+    use std::os::unix::fs::PermissionsExt;
+    use std::process::Stdio;
+    let (shebang, rest) = body
+        .split_once('\n')
+        .expect("a script starts with a shebang line");
+    std::fs::write(
+        path,
+        format!("{shebang}\n[ -z \"${{SCRIPT_PROBE:-}}\" ] || exit 0\n{rest}"),
+    )
+    .unwrap();
+    std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).unwrap();
+    for _ in 0..500 {
+        let probe = Command::new(path)
+            .env("SCRIPT_PROBE", "1")
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
+        match probe {
+            Err(e) if e.raw_os_error() == Some(26) => {
+                std::thread::sleep(std::time::Duration::from_millis(10))
+            }
+            other => {
+                other.unwrap();
+                return;
+            }
+        }
+    }
+    panic!("{} stayed busy for five seconds", path.display());
+}

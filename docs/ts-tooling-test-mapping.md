@@ -604,3 +604,98 @@ Written on 16-11-2026 for Phase 7c of [ts-tooling-rust-port.md](ts-tooling-rust-
 | release-bump waits for the workflow that the release shape names | `release_bump_waits_for_the_workflow_that_the_release_shape_names` | covered |
 
 The three files had 50 TypeScript tests (presence 15, presence-templates 27, release-builtins 8) and are replaced by 50 Rust tests, one for each: the loops here are over fixed cases and are written out. The other 205 Rust tests of the crate are those of Phases 7a and 7b.
+
+## Added in Phase 7d: the workflow and script tests
+
+Written on 16-11-2026 for Phase 7d of [ts-tooling-rust-port.md](ts-tooling-rust-port.md). These four TypeScript test files were ported to `scaffold-package-tests` and deleted. Every row was checked by script: the TypeScript title is the one in the deleted file (read from `origin/main`; a title built in a loop is the template of the loop), and each Rust test is in the list that `cargo test -- --list` prints for the crate. For a plain title the Rust name is the title in snake_case, derived by the script. `update-pins-workflow.test.ts` is not in this list: it waits for Phase 6b.
+
+### release-workflow
+
+| TypeScript test (`runner/test/release-workflow.test.ts`) | Rust test (`crates/scaffold-package-tests/tests/release_workflow.rs`) | Note |
+|---|---|---|
+| it runs on a v-tag push or by hand, never on pull_request_target or a branch push | `it_runs_on_a_v_tag_push_or_by_hand_never_on_pull_request_target_or_a_branch_push` | covered |
+| the manual run is a dry run unless told otherwise | `the_manual_run_is_a_dry_run_unless_told_otherwise` | covered |
+| nothing has permissions by default and every job asks for its own | `nothing_has_permissions_by_default_and_every_job_asks_for_its_own` | covered |
+| only the release job can write contents, attest and use the id token | `only_the_release_job_can_write_contents_attest_and_use_the_id_token` | covered |
+| every action is pinned by a 40 character SHA | `every_action_is_pinned_by_a_40_character_sha` | covered |
+| it uses no secrets and persists no checkout credentials | `it_uses_no_secrets_and_persists_no_checkout_credentials` | covered |
+| no run script interpolates text a pusher controls: tags, refs and inputs go through env | `no_run_script_interpolates_text_a_pusher_controls_tags_refs_and_inputs_go_through_env` | covered |
+| only the release job publishes, through publish-release.sh, and never on a dry run | `only_the_release_job_publishes_through_publish_release_sh_and_never_on_a_dry_run` | covered |
+| publish-release.sh makes a pre-release, adopts only a draft for the tag, and never re-publishes | `publish_release_sh_makes_a_pre_release_adopts_only_a_draft_for_the_tag_and_never_re_publishes` | covered |
+| the attestation is made only on a real release, and covers the assets | `the_attestation_is_made_only_on_a_real_release_and_covers_the_assets` | covered |
+| the tag is checked against PklProject before anything is built | `the_tag_is_checked_against_pkl_project_before_anything_is_built` | covered |
+| the release tool is built in a job that cannot write and holds no token, and prepare and release only download it | `the_release_tool_is_built_in_a_job_that_cannot_write_and_holds_no_token_and_prepare_and_release_only_download_it` | covered |
+| no job that can write runs cargo | `no_job_that_can_write_runs_cargo` | covered |
+| prepare and release have no job-wide token in their environment, so the tool runs without one | `prepare_and_release_have_no_job_wide_token_in_their_environment_so_the_tool_runs_without_one` | covered |
+| a dry run also checks the tag this version would get, so check-tag is exercised before a real tag | `a_dry_run_also_checks_the_tag_this_version_would_get_so_check_tag_is_exercised_before_a_real_tag` | covered |
+| the runner is built on a machine of each target, in a matrix, and a failure on one does not hide the others | `the_runner_is_built_on_a_machine_of_each_target_in_a_matrix_and_a_failure_on_one_does_not_hide_the_others` | covered |
+| each build installs the pinned Rust toolchain, builds with the release tool, and uploads its own binary | `each_build_installs_the_pinned_rust_toolchain_builds_with_the_release_tool_and_uploads_its_own_binary` | covered |
+| nothing cross-compiles, and the TypeScript build script is gone from the release | `nothing_cross_compiles_and_the_type_script_build_script_is_gone_from_the_release` | covered |
+| ${label} installs zig through mise's rust-build environment and reads no package archive | `release_yml_build_installs_zig_through_mises_rust_build_environment_and_reads_no_package_archive`, `ci_yml_rust_binary_installs_zig_through_mises_rust_build_environment_and_reads_no_package_archive` | 2 TypeScript tests (a loop over 2 jobs), 2 Rust tests |
+| no other job gets zig, so no other job depends on its download host | `no_other_job_gets_zig_so_no_other_job_depends_on_its_download_host` | covered |
+| the rust-build environment pins zig to one exact version and locks it for the three platforms with a checksum each | `the_rust_build_environment_pins_zig_to_one_exact_version_and_locks_it_for_the_three_platforms_with_a_checksum_each` | covered |
+| the package is built on its own and uploaded as package-files | `the_package_is_built_on_its_own_and_uploaded_as_package_files` | covered |
+| smoke tests the binary built for its own target, and the release gets the package and all three binaries into one folder | `smoke_tests_the_binary_built_for_its_own_target_and_the_release_gets_the_package_and_all_three_binaries_into_one_folder` | covered |
+| the release workflow and the pull request checks build the binary with the same script | `the_release_workflow_and_the_pull_request_checks_build_the_binary_with_the_same_script` | covered |
+| the smoke job runs the Rust release tool built for its own target, and the TypeScript smoke suite is no longer run by the release | `the_smoke_job_runs_the_rust_release_tool_built_for_its_own_target_and_the_type_script_smoke_suite_is_no_longer_run_by_the_release` | covered |
+| the build job builds the release tool before it builds the runner with it, and runs no TypeScript to do so | `the_build_job_builds_the_release_tool_before_it_builds_the_runner_with_it_and_runs_no_type_script_to_do_so` | covered |
+| the pull request checks build the tool before the runner, and build and smoke-test the runner on every platform | `the_pull_request_checks_build_the_tool_before_the_runner_and_build_and_smoke_test_the_runner_on_every_platform` | covered |
+| the release tool for the smoke job is built where nothing can write, and its artifact is kept out of the released files | `the_release_tool_for_the_smoke_job_is_built_where_nothing_can_write_and_its_artifact_is_kept_out_of_the_released_files` | covered |
+| the pull request checks run the Rust smoke and baseline scripts, and no differential script of a deleted tool | `the_pull_request_checks_run_the_rust_smoke_and_baseline_scripts_and_no_differential_script_of_a_deleted_tool` | covered |
+| the release is verified from the outside after it is published, on all three platforms | `the_release_is_verified_from_the_outside_after_it_is_published_on_all_three_platforms` | covered |
+| two releases never run at once, and a running release is not cancelled | `two_releases_never_run_at_once_and_a_running_release_is_not_cancelled` | covered |
+| the consumer the release is verified with limits the lock to the supported platforms and checks the assets mise chose | `the_consumer_the_release_is_verified_with_limits_the_lock_to_the_supported_platforms_and_checks_the_assets_mise_chose` | covered |
+| verify-release renders the standard workflows and files through the published package, checks them, and renders again with nothing to write | `verify_release_renders_the_standard_workflows_and_files_through_the_published_package_checks_them_and_renders_again_with_nothing_to_write` | covered |
+| verify-release imports Builtins from the same package URI, with the same checksum, as it amends Config | `verify_release_imports_builtins_from_the_same_package_uri_with_the_same_checksum_as_it_amends_config` | covered |
+| the release notes start with the pre-release wording, link the Upgrading section, and keep the link when promoted | `the_release_notes_start_with_the_pre_release_wording_link_the_upgrading_section_and_keep_the_link_when_promoted` | covered |
+
+### promote-workflow
+
+| TypeScript test (`runner/test/promote-workflow.test.ts`) | Rust test (`crates/scaffold-package-tests/tests/promote_workflow.rs`) | Note |
+|---|---|---|
+| it runs by hand only, never on a push, a pull request or pull_request_target | `it_runs_by_hand_only_never_on_a_push_a_pull_request_or_pull_request_target` | covered |
+| it takes a tag and is a dry run unless told otherwise | `it_takes_a_tag_and_is_a_dry_run_unless_told_otherwise` | covered |
+| nothing has permissions by default and every job asks for its own | `nothing_has_permissions_by_default_and_every_job_asks_for_its_own` | covered |
+| only the promote job can write, and it writes only contents | `only_the_promote_job_can_write_and_it_writes_only_contents` | covered |
+| the promote job sits behind the protected environment, and the dry-run job never touches it | `the_promote_job_sits_behind_the_protected_environment_and_the_dry_run_job_never_touches_it` | covered |
+| the promote job runs only after the tool and guards jobs, and only when the run is not a dry run | `the_promote_job_runs_only_after_the_tool_and_guards_jobs_and_only_when_the_run_is_not_a_dry_run` | covered |
+| the guards job checks with the release tool, and only the promote job can ask it to edit | `the_guards_job_checks_with_the_release_tool_and_only_the_promote_job_can_ask_it_to_edit` | covered |
+| there is one tool: no input chooses it, no step compares two, and nothing installs bun or mise | `there_is_one_tool_no_input_chooses_it_no_step_compares_two_and_nothing_installs_bun_or_mise` | covered |
+| the release tool is built in a job that cannot write and holds no token | `the_release_tool_is_built_in_a_job_that_cannot_write_and_holds_no_token` | covered |
+| guards and promote download the release tool and check its checksum before they run it | `guards_and_promote_download_the_release_tool_and_check_its_checksum_before_they_run_it` | covered |
+| no job that can write runs cargo | `no_job_that_can_write_runs_cargo` | covered |
+| no job has a job-wide token in its environment: each step that needs one names it | `no_job_has_a_job_wide_token_in_its_environment_each_step_that_needs_one_names_it` | covered |
+| every action is pinned by a 40 character SHA | `every_action_is_pinned_by_a_40_character_sha` | covered |
+| it uses no secrets and persists no checkout credentials | `it_uses_no_secrets_and_persists_no_checkout_credentials` | covered |
+| no run script interpolates text a dispatcher controls: the tag goes through env | `no_run_script_interpolates_text_a_dispatcher_controls_the_tag_goes_through_env` | covered |
+| runs never overlap and are never cancelled half way | `runs_never_overlap_and_are_never_cancelled_half_way` | covered |
+
+### publish-release
+
+| TypeScript test (`runner/test/publish-release.test.ts`) | Rust test (`crates/scaffold-package-tests/tests/publish_release.rs`) | Note |
+|---|---|---|
+| one draft for the tag: assets are uploaded to it and it is published as a pre-release by id | `one_draft_for_the_tag_assets_are_uploaded_to_it_and_it_is_published_as_a_pre_release_by_id` | covered |
+| no release for the tag: it is created as a pre-release, as for a tag pushed by hand | `no_release_for_the_tag_it_is_created_as_a_pre_release_as_for_a_tag_pushed_by_hand` | covered |
+| a published release for the tag stops it, and nothing is created or edited | `a_published_release_for_the_tag_stops_it_and_nothing_is_created_or_edited` | covered |
+| two drafts for the tag stop it before anything is uploaded | `two_drafts_for_the_tag_stop_it_before_anything_is_uploaded` | covered |
+
+### release-bump
+
+| TypeScript test (`runner/test/release-bump.test.ts`) | Rust test (`crates/scaffold-package-tests/tests/release_bump.rs`) | Note |
+|---|---|---|
+| it runs only after the release workflow completed, and only for a successful tag push | `it_runs_only_after_the_release_workflow_completed_and_only_for_a_successful_tag_push` | covered |
+| nothing has permissions by default; the job reads contents, and the App token can write only contents and pull requests | `nothing_has_permissions_by_default_the_job_reads_contents_and_the_app_token_can_write_only_contents_and_pull_requests` | covered |
+| it checks out main without credentials, pins every action by SHA, and passes event text through env only | `it_checks_out_main_without_credentials_pins_every_action_by_sha_and_passes_event_text_through_env_only` | covered |
+| v0.3.0 released and main still at 0.3.0: the next patch is put in a branch, a pull request is opened, and it is merged when checks pass | `v0_3_0_released_and_main_still_at_0_3_0_the_next_patch_is_put_in_a_branch_a_pull_request_is_opened_and_it_is_merged_when_checks_pass` | covered |
+| the patch carries over two digits: v1.2.9 gives 1.2.10 | `the_patch_carries_over_two_digits_v1_2_9_gives_1_2_10` | covered |
+| a failing check leaves the pull request open and fails the run | `a_failing_check_leaves_the_pull_request_open_and_fails_the_run` | covered |
+| no check yet is not green: it waits, then gives up without merging | `no_check_yet_is_not_green_it_waits_then_gives_up_without_merging` | covered |
+| main already above the released version: a visible notice and no branch | `main_already_above_the_released_version_a_visible_notice_and_no_branch` | covered |
+| main below the released version, a tag that is not the run's commit, and a pre-release tag are each stopped or skipped without a branch | `main_below_the_released_version_a_tag_that_is_not_the_runs_commit_and_a_pre_release_tag_are_each_stopped_or_skipped_without_a_branch` | covered |
+| an open pull request for the same branch is not duplicated | `an_open_pull_request_for_the_same_branch_is_not_duplicated` | covered |
+| a version file with a space and regex characters in its path is read, fetched and written with the path encoded | `a_version_file_with_a_space_and_regex_characters_in_its_path_is_read_fetched_and_written_with_the_path_encoded` | covered |
+| a version file with no version line, or with two, is refused before anything is created | `a_version_file_with_no_version_line_or_with_two_is_refused_before_anything_is_created` | covered |
+| a failure after the branch is made and before the pull request is open deletes the branch again | `a_failure_after_the_branch_is_made_and_before_the_pull_request_is_open_deletes_the_branch_again` | covered |
+| a failure after the pull request is open leaves the branch alone | `a_failure_after_the_pull_request_is_open_leaves_the_branch_alone` | covered |
+
+The four files had 70 TypeScript tests (release-workflow 36, promote-workflow 16, publish-release 4, release-bump 14) and are replaced by 70 Rust tests, one for each. The other 255 Rust tests of the crate are those of Phases 7a to 7c.

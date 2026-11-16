@@ -21,7 +21,7 @@ Respect these, in this order of use:
 
 ## Language Preference
 
-- The project's code is Rust. Do not use anything else for new code.
+- The project's code is Rust. Write all new code in Rust.
 - GitHub Actions scripts are Shell scripts under `.github/scripts/`.
 - `runner/` holds the TypeScript release tooling and tests that remain from the earlier runner (run with bun, see `docs/runner-file-sort.md`). Do not add to it. Port new work to Rust.
 
@@ -38,9 +38,9 @@ Respect these, in this order of use:
 - `runner/`: remaining bun tooling and tests (see Language Preference).
 - `docs/`: design and process documents. `README.md` has the reading table.
 - `archive/`: retired work, with its own `README.md`. Do not extend it.
-- `.context/`: gitignored working notes. Never commit it.
+- `.context/`: gitignored working notes. Keep it out of every commit.
 
-## Required Workflow For Agents
+## Agent Workflow
 
 1. Read the relevant doc under `docs/` before changing the code or Builtin it describes.
 2. Write the test or feature first (TDD, BDD), then the change.
@@ -83,15 +83,15 @@ Open pull requests from `.github/pull_request_template.md` and keep its three he
 
 Pull requests are squash-merged, so the title becomes the commit message on `main` and is what release-please reads to pick the version bump and write the changelog. Allowed types are in `.github/commit-types.txt`, which the title workflow copies into a regex and `.github/scripts/check-commit-types.sh` keeps in step. Releases are described in `docs/release-process.md`.
 
-Never include an agent session link, session ID or session trailer in commit messages, pull request descriptions or comments.
+Write commit messages, pull request descriptions and comments without an agent session link, session ID or session trailer.
 
 ## Git Hooks
 
-Pre-commit runs through `hk` (`hk.pkl`): `actionlint` on workflows and `pkl eval` on every package module. Hooks are installed with `hk install`. Do not bypass hooks unless explicitly requested.
+Pre-commit runs through `hk` (`hk.pkl`): `actionlint` on workflows and `pkl eval` on every package module. Hooks are installed with `hk install`. Let every hook run, and bypass one only when explicitly requested.
 
 ## Safety Constraints
 
-- Never move or delete a pushed tag, and never re-publish a version (see `docs/release-process.md`).
-- Never commit secrets, tokens or the names of organisation secrets.
+- Leave a pushed tag where it is, and publish each version once (see `docs/release-process.md`).
+- Keep secrets, tokens and the names of organisation secrets out of every commit.
 - If you detect unrelated dirty changes, do not revert them. Continue safely.
 - If repository conventions conflict, prefer explicit user instructions.

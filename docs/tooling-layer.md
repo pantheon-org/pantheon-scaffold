@@ -23,7 +23,7 @@ In all four repositories `sync-labels.sh` is committed as `100644`, and its work
 
 ## The executable bit as git records it
 
-The runner never reads the git index (it calls git only for the delete guard). The plan's "CI check on `git ls-files -s`" is met a different way: in CI, `check` runs on a checkout, where the mode on disk is the mode in the index, so a committed mode that is wrong is reported as mode drift (exit 4). `runner/test/mode-index.test.ts` shows this with real git: after a render and a commit `git ls-files -s` lists the nine scripts as `100755`, a fresh clone passes `check`, and a script committed as `100644` fails it with `mode`.
+The runner never reads the git index (it calls git only for the delete guard). The plan's "CI check on `git ls-files -s`" is met a different way: in CI, `check` runs on a checkout, where the mode on disk is the mode in the index, so a committed mode that is wrong is reported as mode drift (exit 4). `crates/scaffold-package-tests/tests/mode_index.rs` shows this with real git: after a render and a commit `git ls-files -s` lists the nine scripts as `100755`, a fresh clone passes `check`, and a script committed as `100644` fails it with `mode`.
 
 ## Wave B: `mise.toml`
 

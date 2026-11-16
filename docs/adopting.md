@@ -295,11 +295,11 @@ A claim in this guide, and the test or the proof line that shows it. A path is a
 |---|---|
 | mise installs the runner with checksums and provenance enforced, and a mismatch fails | `release.yml` job "Verify the published release" (three platforms); Report, wave B (real releases installed with checksums and provenance enforced) |
 | Without `lockfile_platforms` the lock names a wrong file for a platform with no runner, and `upgrade` refuses it | `runner/test/lockcheck.test.ts`, `runner/test/upgrade.test.ts` (lock cases), [runner-install.md](runner-install.md) |
-| The package is loaded through its URI and checksum | `runner/test/package-uri.test.ts`; Report, wave A |
+| The package is loaded through its URI and checksum | `crates/scaffold-package-tests/tests/package_uri.rs`; Report, wave A |
 | The first render refuses existing files that differ, and `--force` takes the package's | `runner/test/apply.test.ts`; Report, wave A ("the first render without `--force`") |
 | Owned, seeded and external files behave as the table says | `runner/test/apply.test.ts`, [runner-safety.md](runner-safety.md) |
 | A repeat render writes 0 files, and `check` passes after a render | `runner/test/check.test.ts`; Report, wave D (benefit test: "check", "second render") |
-| `check` writes nothing and exits 4 on drift; it runs on pull requests in CI | `runner/test/check.test.ts`, `runner/test/consumer-check.test.ts`, [check-in-ci.md](check-in-ci.md) |
+| `check` writes nothing and exits 4 on drift; it runs on pull requests in CI | `runner/test/check.test.ts`, `crates/scaffold-package-tests/tests/consumer_check.rs`, [check-in-ci.md](check-in-ci.md) |
 | Workflows keep their triggers, permissions and `run:` scripts when re-rendered | `runner/test/equality.test.ts`, `runner/test/workflows-a.test.ts`, `workflows-b.test.ts`, `workflows-c.test.ts`; Report, wave A (zero uncategorised differences) |
 | Each option adds and removes exactly the files listed | `runner/test/phase5-toggles.test.ts`, [feature-toggles.md](feature-toggles.md); Report, wave A (the four repositories cover the variants) |
 | A toggle that needs a name stops with an error naming the option | `runner/test/phase5-toggles.test.ts` |

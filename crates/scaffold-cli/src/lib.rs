@@ -1598,7 +1598,7 @@ mod tests {
 
     fn minimal() -> String {
         checkout()
-            .join("runner/test/fixtures/minimal/scaffold.pkl")
+            .join("crates/scaffold-package-tests/fixtures/minimal/scaffold.pkl")
             .display()
             .to_string()
     }
@@ -2183,7 +2183,7 @@ mod tests {
         )
         .unwrap();
         let config = checkout()
-            .join("runner/test/fixtures/smoke-detach/scaffold.pkl")
+            .join("crates/scaffold-package-tests/fixtures/smoke-detach/scaffold.pkl")
             .display()
             .to_string();
         let (root, package) = (repo.path().display().to_string(), package());

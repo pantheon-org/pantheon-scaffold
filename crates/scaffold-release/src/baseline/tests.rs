@@ -668,16 +668,36 @@ esac
     script
 }
 
-/// A tree with a root configuration, one fixture and a folder with none.
+/// A tree with a root configuration, one fixture and a folder with none, the fixtures in the crate that holds them.
 fn mini_tree() -> tempfile::TempDir {
+    tree_with_fixtures_in("crates/scaffold-package-tests/fixtures")
+}
+
+/// The same tree, with the fixtures in the given folder.
+fn tree_with_fixtures_in(fixtures: &str) -> tempfile::TempDir {
     let tree = tempfile::tempdir().unwrap();
-    for path in ["scaffold.pkl", "runner/test/fixtures/alpha/scaffold.pkl"] {
+    for path in ["scaffold.pkl", &format!("{fixtures}/alpha/scaffold.pkl")] {
         let full = tree.path().join(path);
         std::fs::create_dir_all(full.parent().unwrap()).unwrap();
         std::fs::write(full, "x").unwrap();
     }
-    std::fs::create_dir_all(tree.path().join("runner/test/fixtures/not-a-config")).unwrap();
+    std::fs::create_dir_all(tree.path().join(format!("{fixtures}/not-a-config"))).unwrap();
     tree
+}
+
+#[test]
+fn a_tree_from_before_the_fixtures_moved_is_read_from_the_old_folder() {
+    let (tree, work) = (
+        tree_with_fixtures_in("runner/test/fixtures"),
+        tempfile::tempdir().unwrap(),
+    );
+    let runner = fake_runner(work.path(), false);
+    let (code, log, err) = snapshot_of(tree.path(), &runner, &work.path().join("out"), &[]);
+    assert_eq!((code, err.as_str()), (0, ""));
+    assert_eq!(
+        log.lines().nth(1),
+        Some("fixture-alpha: contract 0, render 0, check 0, 2 files")
+    );
 }
 
 fn snapshot_of(tree: &Path, runner: &Path, out: &Path, extra: &[&str]) -> (i32, String, String) {

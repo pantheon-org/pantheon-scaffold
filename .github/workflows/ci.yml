@@ -59,7 +59,7 @@ jobs:
       - name: Compare the Rust update-pins with the TypeScript one
         run: mise x -- bash runner/scripts/update-pins-diff.sh target/debug/scaffold-release
       - name: Lint the consumer check sample
-        run: mise x -- actionlint runner/test/fixtures/consumer-check.yml
+        run: mise x -- actionlint crates/scaffold-package-tests/fixtures/consumer-check.yml
       - name: Check the Rust formatting
         run: cargo fmt --all --check
       - name: Lint the Rust code

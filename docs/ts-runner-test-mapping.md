@@ -12,7 +12,7 @@ Bun still runs the release tooling, so these stay, with the `runner/src` modules
 | `runner/scripts/release-assets.ts`, `promote.ts`, `update-pins.ts`, `build-rust.ts`, `smoke.ts` | `release.yml`, `promote.yml`, `update-pins.yml`, `ci.yml` (the Rust build and its smoke test) |
 | `runner/scripts/builtins-baseline/*` | the comparison of a render with the baseline |
 | `runner/src`: `release`, `semver`, `checksums`, `promote`, `knownbad`, `preflight`, `manifest`, `contract`, `schema`, `pinupdate`, `freshness` | imported by the scripts above (`freshness` by the pin update test, which checks the record it writes) |
-| `runner/test/fixtures/**` | the Rust BDD crate, `pkl.rs`, `snapshot.ts` |
+| `crates/scaffold-package-tests/fixtures/**` | the Rust BDD crate, `pkl.rs`, `snapshot.ts` |
 | `runner/package.json` | bun |
 | `equality.ts`, moved to `runner/test/support/` | the package tests that compare a render with the pinned upstream workflows; it is a test helper, not the runner |
 

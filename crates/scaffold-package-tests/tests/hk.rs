@@ -13,11 +13,11 @@ static DEF: LazyLock<Value> = LazyLock::new(|| render("hk"));
 static ALL: LazyLock<Value> = LazyLock::new(|| render("hk-all"));
 
 fn upstream() -> String {
-    read("runner/test/upstream/hk.pkl")
+    read("crates/scaffold-package-tests/upstream/hk.pkl")
 }
 
 fn kit() -> String {
-    read("runner/test/upstream/hk-kit.pkl")
+    read("crates/scaffold-package-tests/upstream/hk-kit.pkl")
 }
 
 /// The text between the line that starts a Mapping and the first closing brace at column 0.

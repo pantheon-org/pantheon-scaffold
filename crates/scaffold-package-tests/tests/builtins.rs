@@ -28,7 +28,9 @@ fn the_slice_renders_the_three_workflows_five_verbatim_files_and_no_external_fil
 }
 
 fn yml_equals_the_pinned_copy(name: &str) {
-    let upstream = read(&format!("runner/test/upstream/workflows/{name}.yml"));
+    let upstream = read(&format!(
+        "crates/scaffold-package-tests/upstream/workflows/{name}.yml"
+    ));
     let rendered = content(&SLICE, &format!(".github/workflows/{name}.yml"));
     let result = compare_workflows(&unpin(&upstream), &unpin(rendered)).unwrap();
     assert!(result.equal, "{:?}", result.differences);

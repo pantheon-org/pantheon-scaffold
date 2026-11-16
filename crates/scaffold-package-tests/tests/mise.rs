@@ -14,7 +14,7 @@ use std::sync::LazyLock;
 static CONTRACT: LazyLock<Value> = LazyLock::new(|| render("mise"));
 
 fn upstream() -> String {
-    read("runner/test/upstream/mise.toml")
+    read("crates/scaffold-package-tests/upstream/mise.toml")
 }
 
 #[test]

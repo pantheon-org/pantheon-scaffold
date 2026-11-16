@@ -4,7 +4,7 @@ The files the four Rust repositories share for local tooling, rendered by `Built
 
 ## Wave A: verbatim files
 
-Every file but one is copied byte for byte from `pantheon-adr` at commit `1e2fd46`, and a test compares the git blob hash of what pkl renders with the pinned upstream blob (`runner/test/upstream/tooling-blobs.json`). All nine files were identical in the four repositories when they were read (baseline SP-0.1, re-checked on 08-11-2026).
+Every file but one is copied byte for byte from `pantheon-adr` at commit `1e2fd46`, and a test compares the git blob hash of what pkl renders with the pinned upstream blob (`crates/scaffold-package-tests/upstream/tooling-blobs.json`). All nine files were identical in the four repositories when they were read (baseline SP-0.1, re-checked on 08-11-2026).
 
 The exception is `.rumdl.toml`. Since 0.1.9 it ends with one `[per-file-ignores]` table that exempts `.github/pull_request_template.md` from MD041 ("first line should be a level 1 heading"). That template starts with an HTML comment and a level 2 heading, so the rule can never pass for it, and the rendered hook failed the first commit of a new project (found on 13-11-2026, in a check of the real 0.1.7 and 0.1.8 releases). The rule stays on for every other file. The test strips exactly that table from the end of the rendered file, checks that it occurs once, and compares what is left with the pinned blob, so any other difference from `pantheon-adr`'s file still fails.
 

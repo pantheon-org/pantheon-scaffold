@@ -25,7 +25,7 @@ pub fn read(rel: &str) -> String {
 /// The `scaffold.pkl` of a fixture.
 pub fn fixture(name: &str) -> PathBuf {
     root()
-        .join("runner/test/fixtures")
+        .join("crates/scaffold-package-tests/fixtures")
         .join(name)
         .join("scaffold.pkl")
 }
@@ -120,10 +120,12 @@ pub fn git_blob_sha(text: &str) -> String {
     String::from_utf8_lossy(&output.stdout).trim().to_owned()
 }
 
-/// A JSON file of the pinned upstream copies, such as `blobs.json`, read from `runner/test/upstream`.
+/// A JSON file of the pinned upstream copies, such as `blobs.json`, read from `crates/scaffold-package-tests/upstream`.
 pub fn upstream_json(name: &str) -> Value {
-    serde_json::from_str(&read(&format!("runner/test/upstream/{name}")))
-        .unwrap_or_else(|e| panic!("{name}: {e}"))
+    serde_json::from_str(&read(&format!(
+        "crates/scaffold-package-tests/upstream/{name}"
+    )))
+    .unwrap_or_else(|e| panic!("{name}: {e}"))
 }
 
 /// The repository-relative path of an asset the package ships, found by name under `pkl/Builtins/<builtin>/assets/`. Panics when there is

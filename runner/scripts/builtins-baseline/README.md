@@ -1,6 +1,6 @@
 # Builtins baseline: render a tree and compare it with origin/main at 0b466dc
 
-These scripts render a tree's own `scaffold.pkl`, every `runner/test/fixtures/*/scaffold.pkl` and an option matrix with one binary, and compare the
+These scripts render a tree's own `scaffold.pkl`, every `crates/scaffold-package-tests/fixtures/*/scaffold.pkl` and an option matrix with one binary, and compare the
 result with a baseline render field by field. They are how the Builtins split (pull request 116) and the presence work show that the default render
 did not change: same binary, same inputs, only `pkl/` differs.
 

@@ -81,7 +81,7 @@ impl ScaffoldWorld {
         {
             return self
                 .checkout
-                .join("runner/test/fixtures")
+                .join("crates/scaffold-package-tests/fixtures")
                 .join(name)
                 .join("scaffold.pkl")
                 .display()

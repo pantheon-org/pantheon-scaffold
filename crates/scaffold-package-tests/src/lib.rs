@@ -1,6 +1,5 @@
 //! Support for the tests of what the pantheon-scaffold package renders (Phase 7 of `docs/ts-tooling-rust-port.md`). The tests are in
-//! `tests/`. They read the package in `pkl/` and the fixtures in `runner/test/fixtures`, which move into this crate in the last step of
-//! the phase. Nothing here is shipped, and it holds no product code, so it is left out of mutation testing.
+//! `tests/`. They read the package in `pkl/` and the fixtures in `fixtures/` and the pinned upstream copies in `upstream/`, both in this crate. Nothing here is shipped, and it holds no product code, so it is left out of mutation testing.
 
 pub mod cli;
 pub mod pkg;

@@ -140,7 +140,11 @@ function aislop(): Workflows.Workflow = aislopBuiltin.workflow()
 
 /// The github-actions entry excludes every workflow file the package renders (`exclude-paths`): the runner owns them, so a Dependabot bump of a
 /// pin in one is drift, and `check` exits 4. Their pins move through Pins.pkl and `upgrade`. Workflows the repository writes itself are still updated.
-function dependabot(opts: Config.Options): GenFiles.GenFile = dependabotBuiltin.file(opts, standardWorkflows(opts).keys.toList())
+function dependabot(opts: Config.Options): GenFiles.GenFile =
+  let (rendered = standardWorkflows(opts).keys.toList())
+  // A workflow the repository would get by default but left out with `without` is probably the repository's own file, outside the exclusion list.
+  let (workflowLeftOut = rendered.length < standardWorkflows((opts) { without = new Listing {} }).keys.toList().length)
+  dependabotBuiltin.file(opts, rendered, workflowLeftOut)
 
 /// The config files that go with the wave B builtins: .agnix.toml (the first line depends on whether the repository has a skill), dependabot.yml,
 /// and, for a repository with a binary, .github/zizmor.yml (the variant with the extra entry for action.yml when there is a composite action).

@@ -23,9 +23,12 @@ for (const repo of ["pantheon-adr", "pantheon-journal", "pantheon-skill-auditor"
   });
 }
 
-test("the library repository, with no binary, has no ignore in the github-actions entry", async () => {
+// The library repository renders every workflow, so its exclusion list would cover them all and Dependabot would fail with
+// dependency_file_not_found: it has no github-actions entry (options.dependabotGithubActions, dependabot-entry.test.ts).
+test("the library repository, with no binary, has no github-actions entry and so no ignore list", async () => {
   const e = await dependabot("real-workflows-pantheon-agentic-harness-dev-kit");
-  expect(e["github-actions"].ignore).toBeUndefined();
+  expect(e["github-actions"]).toBeUndefined();
+  expect(e["cargo"]).toBeDefined();
 });
 
 test("the header says why the two actions are ignored", async () => {
@@ -36,7 +39,7 @@ test("the header says why the two actions are ignored", async () => {
 
 // Dependabot must not edit the workflow files the package renders: the runner owns them, so a bumped pin is drift (`check` exits 4). Their pins
 // move through Pins.pkl (update-pins.yml) and `upgrade`. The list must be exactly the owned workflow files of the same render.
-for (const fixture of ["real-workflows-pantheon-adr", "real-workflows-pantheon-agentic-harness-dev-kit"]) {
+for (const fixture of ["real-workflows-pantheon-adr"]) {
   test(`${fixture}: the github-actions entry excludes exactly the owned workflow files, and the cargo entry excludes nothing`, async () => {
     const contract = await render(fixture);
     const owned = contract.files.filter((f) => f.class === "owned" && /^\.github\/workflows\/[^/]+\.yml$/.test(f.path)).map((f) => f.path).sort();
@@ -47,9 +50,8 @@ for (const fixture of ["real-workflows-pantheon-adr", "real-workflows-pantheon-a
   });
 }
 
-test("a repository with skills excludes audit-skill.yml and one without does not; with a binary it excludes dist-check.yml", async () => {
+test("a repository with skills and a binary excludes audit-skill.yml and dist-check.yml", async () => {
   const withSkills = entries((await render("real-workflows-pantheon-adr")).files.find((f) => f.path === ".github/dependabot.yml")!.content!);
-  const library = entries((await render("real-workflows-pantheon-agentic-harness-dev-kit")).files.find((f) => f.path === ".github/dependabot.yml")!.content!);
   expect(withSkills["github-actions"]["exclude-paths"]).toContain(".github/workflows/dist-check.yml");
-  expect(library["github-actions"]["exclude-paths"]).not.toContain(".github/workflows/dist-check.yml");
+  expect(withSkills["github-actions"]["exclude-paths"]).toContain(".github/workflows/audit-skill.yml");
 });

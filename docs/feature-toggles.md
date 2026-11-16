@@ -80,6 +80,8 @@ Checks: the two new assertions in `runner/test/release-workflow.test.ts`, the mu
 
 ## Decision 86: Dependabot leaves the two artifact actions of release.yml alone
 
+The `github-actions` entry exists only when something is left for it to scan (`options.dependabotGithubActions`, `"auto"` by default): its `exclude-paths` lists every workflow the package renders, so with `binary = false`, no composite action, a release shape other than `draft` and no workflow Builtin left out, nothing is left and Dependabot would fail with `dependency_file_not_found`. `"on"` and `"off"` force it. The header of the file says which case it is, and `runner/test/dependabot-entry.test.ts` covers the cases.
+
 With `binary`, the `github-actions` entry of the rendered `dependabot.yml` has an `ignore` list for `actions/upload-artifact` and `actions/download-artifact`, and the header says why. cargo-dist is the only writer of `release.yml`: those two commits change in `dist-workspace.toml`, followed by `dist generate`. Without `binary` there is no such entry. In the three binary repositories this is a recorded difference from their own `dependabot.yml`.
 
 Known limit, not verified: whether a Dependabot `ignore` entry also stops Dependabot's security updates for these two actions. If it does, a security fix for either action has to be applied through `dist-workspace.toml` by hand. Moving the two commits into `Pins.pkl` (so the pin update workflow keeps them current) was the rejected alternative: it needs `dist` in that workflow to regenerate `release.yml` in the same pull request.

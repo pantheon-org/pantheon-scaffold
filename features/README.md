@@ -15,7 +15,7 @@ CI builds the runner and runs the features on `linux-x64`, `linux-arm64` and `da
 
 ### The baseline
 
-What a repository renders is checked by `runner/scripts/builtins-baseline/` (55 configurations compared with a frozen snapshot), run by the `baseline` job of `ci.yml`; see its README.
+What a repository renders is checked by `crates/scaffold-release/baseline/` (55 configurations compared with a frozen snapshot), run by the `baseline` job of `ci.yml`; see its README.
 
 `SCAFFOLD_SKIP_TAGS` is a comma-separated list of tags, without the `@`. Scenarios carrying any of them are not run, and the harness prints the list at the start. It was used while the Rust build was missing commands: the scenarios for each carried its tag (`@detach`, `@freshness`, `@latest`, `@upgrade`), and the tag left the list in CI when the command was ported. All four are ported. The TypeScript job of CI skips the tag `rust-only`: the scenarios for Presets in the manifest and in `check`, which the TypeScript runner will never get because task 3.4 removes it. The tags stay on the scenarios, and the variable stays in the harness, for the next command that is added to one build before the other.
 

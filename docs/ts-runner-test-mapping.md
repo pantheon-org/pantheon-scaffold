@@ -10,7 +10,7 @@ Bun still runs the release tooling, so these stay, with the `runner/src` modules
 | Kept | Used by |
 |---|---|
 | `runner/scripts/release-assets.ts`, `promote.ts`, `update-pins.ts`, `build-rust.ts`, `smoke.ts` | `release.yml`, `promote.yml`, `update-pins.yml`, `ci.yml` (the Rust build and its smoke test) |
-| `runner/scripts/builtins-baseline/*` | the comparison of a render with the baseline |
+| `crates/scaffold-release/baseline/*` | the comparison of a render with the baseline |
 | `runner/src`: `release`, `semver`, `checksums`, `promote`, `knownbad`, `preflight`, `manifest`, `contract`, `schema`, `pinupdate`, `freshness` | imported by the scripts above (`freshness` by the pin update test, which checks the record it writes) |
 | `crates/scaffold-package-tests/fixtures/**` | the Rust BDD crate, `pkl.rs`, `snapshot.ts` |
 | `runner/package.json` | bun |

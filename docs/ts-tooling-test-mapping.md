@@ -709,3 +709,7 @@ Written on 16-11-2026 for Phase 7e of [ts-tooling-rust-port.md](ts-tooling-rust-
 ### Phase 7e, second part: the fixtures move
 
 On 16-11-2026 `runner/test/fixtures` (37 folders) and `runner/test/upstream` (44 files) moved to `crates/scaffold-package-tests/fixtures` and `upstream` with `git mv`, so their history is kept. Every Rust call site, the `actionlint` step of `ci.yml` and the docs that name them read the new paths. The pkl fixtures amend `../../../../pkl/Config.pkl`, which is the same four levels from the root at the new depth. `scaffold-release baseline snapshot` reads the new folder and falls back to `runner/test/fixtures` for a tree from before the move; a test covers both. The retired work in `archive/` and the corpus `crates/scaffold-core/tests/data/yaml-corpus.json` (a snapshot of text) still name the old paths and were left as they were.
+
+### The baseline moves out of `runner/`
+
+On 16-11-2026 `runner/scripts/builtins-baseline/baseline.json` and `README.md` moved to `crates/scaffold-release/baseline/` with `git mv`, before Phase 8, so that deleting `runner/` cannot delete the frozen snapshot that the `baseline` job of `ci.yml` compares against. The blob hash of `baseline.json` is the same before and after (`beaf9f2`). The `ci.yml` job, the workflow test, the hygiene test and the docs read the new path.

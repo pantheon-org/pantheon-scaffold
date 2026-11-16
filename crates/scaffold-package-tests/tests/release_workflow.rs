@@ -571,7 +571,7 @@ fn the_pull_request_checks_run_the_rust_smoke_and_baseline_scripts_and_no_differ
         CI.text
             .contains("mise x -- target/debug/scaffold-release baseline snapshot")
     );
-    assert!(CI.text.contains("mise x -- target/debug/scaffold-release baseline compare runner/scripts/builtins-baseline/baseline.json"));
+    assert!(CI.text.contains("mise x -- target/debug/scaffold-release baseline compare crates/scaffold-release/baseline/baseline.json"));
     assert!(!CI.text.contains("builtins-baseline/snapshot.ts"));
 }
 

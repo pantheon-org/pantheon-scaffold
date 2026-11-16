@@ -834,7 +834,7 @@ Group A, breakages that are the same in both files (18 runs):
 | the pull request step no longer checks for a change | 10 | 10 | identical |
 | the update job runs cargo | 13 | 13 | identical |
 | the update job does not wait for the tool job | 13 | 13 | identical |
-| **the checksum check ends in `|| true`** | none | 13 | **different: neither TypeScript test nor the first Rust version caught it. The Rust test now pins the step exactly** |
+| **the checksum check ends in `\|\| true`** | none | 13 | **different: neither TypeScript test nor the first Rust version caught it. The Rust test now pins the step exactly** |
 | **the update job runs the tool before it checks it** | none | 13 | **different: same gap; the Rust test now fails if any step before the check runs the tool** |
 
 The first run found three tests that failed in no breakage (the interpolation, pull request step and update job tests) and one breakage that neither suite caught (the checksum). A second round added the interpolation, no-check and cargo breakages and a tightened assertion. After the second round every one of the 18 Rust tests fails in at least one breakage.

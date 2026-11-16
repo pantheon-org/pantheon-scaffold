@@ -98,7 +98,7 @@ exist is an error, not a false.
 ### Which builtins own which tool
 
 A tool is present if any of its owners is. An owner is a builtin that needs the tool locally, through mise. A use on a GitHub runner does not count: a
-workflow `run:` block has its own `jq` and `yq` there. `runner/test/presence-templates.test.ts` compares this table with `Presence.toolOwners` and fails when a
+workflow `run:` block has its own `jq` and `yq` there. `crates/scaffold-package-tests/tests/presence_templates.rs` compares this table with `Presence.toolOwners` and fails when a
 script names a tool outside its comments whose builtin is not an owner.
 
 | Tool in `mise.toml` | Owners | Why |

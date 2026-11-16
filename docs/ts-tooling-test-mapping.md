@@ -545,3 +545,62 @@ Written on 16-11-2026 for Phase 7b of [ts-tooling-rust-port.md](ts-tooling-rust-
 | an external release.yml is never written, and an existing one is left alone | `an_external_release_yml_is_never_written_and_an_existing_one_is_left_alone` | covered |
 
 The seven files had 73 TypeScript tests (hk 12, mise 9, phase5-dependabot 7, phase5-dist 8, phase5-parameterised 19, phase5-toggles 10, phase5-verbatim 8) and are replaced by 73 Rust tests: one for each, because the loops here are over fixed names and are written out. The other 132 Rust tests of the crate are those of Phases 7a and 7b part one.
+
+## Added in Phase 7c: presence and the release options
+
+Written on 16-11-2026 for Phase 7c of [ts-tooling-rust-port.md](ts-tooling-rust-port.md). These three TypeScript test files were ported to `scaffold-package-tests` and deleted. Every row was checked by script: the TypeScript title is the one in the deleted file (read from `origin/main`; a title built in a loop is the template of the loop), and each Rust test is in the list that `cargo test -- --list` prints for the crate. For a plain title the Rust name is the title in snake_case, derived by the script.
+
+### presence
+
+| TypeScript test (`runner/test/presence.test.ts`) | Rust test (`crates/scaffold-package-tests/tests/presence.rs`) | Note |
+|---|---|---|
+| the registry of builtin names in Shared.pkl is the list of folders under pkl/Builtins | `the_registry_of_builtin_names_in_shared_pkl_is_the_list_of_folders_under_pkl_builtins` | covered |
+| every builtin has an entry in the table of what leaving it out removes | `every_builtin_has_an_entry_in_the_table_of_what_leaving_it_out_removes` | covered |
+| leaving a builtin out removes what it owns, changes only dependabot.yml and the files that read presence, and adds nothing | `leaving_a_builtin_out_removes_what_it_owns_changes_only_dependabot_yml_and_the_files_that_read_presence_and_adds_nothing` | covered |
+| dependabot's exclude list follows the workflows that are rendered | `dependabots_exclude_list_follows_the_workflows_that_are_rendered` | covered |
+| a name that is not a builtin is an error that lists the builtins, and so is an empty or a repeated name | `a_name_that_is_not_a_builtin_is_an_error_that_lists_the_builtins_and_so_is_an_empty_or_a_repeated_name` | covered |
+| leaving out a builtin that another needs fails and names both, with the way out | `leaving_out_a_builtin_that_another_needs_fails_and_names_both_with_the_way_out` | covered |
+| mise and hk are not hard requirements: a repository can supply mise.toml and hk.pkl itself | `mise_and_hk_are_not_hard_requirements_a_repository_can_supply_mise_toml_and_hk_pkl_itself` | covered |
+| leaving every builtin out renders nothing and is not an error | `leaving_every_builtin_out_renders_nothing_and_is_not_an_error` | covered |
+| a name that a toggle already removes is fine, and the render equals the toggle alone | `a_name_that_a_toggle_already_removes_is_fine_and_the_render_equals_the_toggle_alone` | covered |
+| features = all with the Rust builtins left out still renders, with no placeholder left in any file | `features_all_with_the_rust_builtins_left_out_still_renders_with_no_placeholder_left_in_any_file` | covered |
+| a Preset that amends a left-out builtin fails and says options.without may have left it out | `a_preset_that_amends_a_left_out_builtin_fails_and_says_options_without_may_have_left_it_out` | covered |
+| a single builtin function still renders when its builtin is left out: without only affects the aggregators | `a_single_builtin_function_still_renders_when_its_builtin_is_left_out_without_only_affects_the_aggregators` | covered |
+| in an adopted repository, leaving a builtin out deletes the files it rendered, and a seeded file stays | `in_an_adopted_repository_leaving_a_builtin_out_deletes_the_files_it_rendered_and_a_seeded_file_stays` | covered |
+| in an adopted repository, a file of a left-out builtin that was edited by hand blocks the render | `in_an_adopted_repository_a_file_of_a_left_out_builtin_that_was_edited_by_hand_blocks_the_render` | covered |
+| turning a builtin back on writes its files again | `turning_a_builtin_back_on_writes_its_files_again` | covered |
+
+### presence-templates
+
+| TypeScript test (`runner/test/presence-templates.test.ts`) | Rust test (`crates/scaffold-package-tests/tests/presence_templates.rs`) | Note |
+|---|---|---|
+| the present mapping has one entry for every builtin folder, and the tools mapping one for every tool of the table | `the_present_mapping_has_one_entry_for_every_builtin_folder_and_the_tools_mapping_one_for_every_tool_of_the_table` | covered |
+| every owner in the table is a builtin | `every_owner_in_the_table_is_a_builtin` | covered |
+| a tool is present while any of its owners is, and gone when all are left out | `a_tool_is_present_while_any_of_its_owners_is_and_gone_when_all_are_left_out` | covered |
+| pkl and the runner are always pinned | `pkl_and_the_runner_are_always_pinned` | covered |
+| every tool a script names outside its comments is owned by that script's builtin | `every_tool_a_script_names_outside_its_comments_is_owned_by_that_scripts_builtin` | covered |
+| .rumdl.toml names mise run lint only when mise is present, and keeps the pull request template ignore either way | `rumdl_toml_names_mise_run_lint_only_when_mise_is_present_and_keeps_the_pull_request_template_ignore_either_way` | covered |
+| by default mise.toml pins the eleven tools and has the five tasks, the env and both hooks | `by_default_mise_toml_pins_the_eleven_tools_and_has_the_five_tasks_the_env_and_both_hooks` | covered |
+| mise.toml with ${c.without.join(" and ")} left out pins ${c.tools.length} tools and keeps the tasks of what is present | `mise_toml_with_hk_left_out_pins_10_tools_and_keeps_the_tasks_of_what_is_present`, `mise_toml_with_hk_and_inline_scripts_left_out_pins_9_tools_and_keeps_the_tasks_of_what_is_present`, `mise_toml_with_hk_and_actionlint_left_out_pins_8_tools_and_keeps_the_tasks_of_what_is_present`, `mise_toml_with_rumdl_left_out_pins_10_tools_and_keeps_the_tasks_of_what_is_present`, `mise_toml_with_rust_ci_left_out_pins_11_tools_and_keeps_the_tasks_of_what_is_present`, `mise_toml_with_rust_ci_and_rust_toolchain_left_out_pins_10_tools_and_keeps_the_tasks_of_what_is_present`, `mise_toml_with_zizmor_left_out_pins_10_tools_and_keeps_the_tasks_of_what_is_present`, `mise_toml_with_agnix_left_out_pins_10_tools_and_keeps_the_tasks_of_what_is_present` | 8 TypeScript tests (a loop over eight cases), 8 Rust tests |
+| jq goes only when all five of its owners are left out | `jq_goes_only_when_all_five_of_its_owners_are_left_out` | covered |
+| the rust comment names check-toolchain-version.sh only with rust-ci, and the actionlint comment names zizmor only with zizmor | `the_rust_comment_names_check_toolchain_version_sh_only_with_rust_ci_and_the_actionlint_comment_names_zizmor_only_with_zizmor` | covered |
+| real mise reads a reduced mise.toml and lists the tools that are left | `real_mise_reads_a_reduced_mise_toml_and_lists_the_tools_that_are_left` | covered |
+| hk.shared.pkl with ${c.without.join(" and ") || "nothing"} left out has the steps ${c.steps.join(", ")}, and real hk accepts it with the seeded hk.pkl | `hk_shared_pkl_with_nothing_left_out_has_all_the_steps_and_real_hk_accepts_it_with_the_seeded_hk_pkl`, `hk_shared_pkl_with_rumdl_left_out_has_the_steps_without_rumdl_and_real_hk_accepts_it_with_the_seeded_hk_pkl`, `hk_shared_pkl_with_actionlint_left_out_has_the_steps_without_actionlint_and_real_hk_accepts_it_with_the_seeded_hk_pkl`, `hk_shared_pkl_with_rust_ci_left_out_has_the_steps_without_clippy_and_test_and_real_hk_accepts_it_with_the_seeded_hk_pkl`, `hk_shared_pkl_with_rust_ci_and_rust_toolchain_left_out_has_the_steps_without_the_rust_ones_and_real_hk_accepts_it_with_the_seeded_hk_pkl`, `hk_shared_pkl_with_rumdl_actionlint_rust_ci_and_rust_toolchain_left_out_has_two_steps_and_real_hk_accepts_it_with_the_seeded_hk_pkl` | 6 TypeScript tests (a loop over six cases), 6 Rust tests |
+| the hk files say where tools are pinned only when mise is present | `the_hk_files_say_where_tools_are_pinned_only_when_mise_is_present` | covered |
+| the pre-push comment names the rust-ci workflow only when rust-ci is present | `the_pre_push_comment_names_the_rust_ci_workflow_only_when_rust_ci_is_present` | covered |
+| the zizmor workflow header runs zizmor through mise, and says it is pinned there, only when mise is present | `the_zizmor_workflow_header_runs_zizmor_through_mise_and_says_it_is_pinned_there_only_when_mise_is_present` | covered |
+
+### release-builtins
+
+| TypeScript test (`runner/test/release-builtins.test.ts`) | Rust test (`crates/scaffold-package-tests/tests/release_builtins.rs`) | Note |
+|---|---|---|
+| the shape follows binary unless it is set, and each shape has its own header | `the_shape_follows_binary_unless_it_is_set_and_each_shape_has_its_own_header` | covered |
+| the draft shape renders the publishing script, the others do not | `the_draft_shape_renders_the_publishing_script_the_others_do_not` | covered |
+| the seeded release-please files are seeds, differ by shape, and are skipped by seedReleaseConfig = false | `the_seeded_release_please_files_are_seeds_differ_by_shape_and_are_skipped_by_seed_release_config_false` | covered |
+| the seed for this repository's options is the committed release-please-config.json | `the_seed_for_this_repositorys_options_is_the_committed_release_please_config_json` | covered |
+| release-automerge: manual by default with a notice when the schedule is off, today's schedule with always | `release_automerge_manual_by_default_with_a_notice_when_the_schedule_is_off_todays_schedule_with_always` | covered |
+| release-bump renders only with versionFile, as a workflow and a script that name the file and the scope | `release_bump_renders_only_with_version_file_as_a_workflow_and_a_script_that_name_the_file_and_the_scope` | covered |
+| the release options are refused, with a message that names what is wrong, whatever is rendered | `the_release_options_are_refused_with_a_message_that_names_what_is_wrong_whatever_is_rendered` | covered |
+| release-bump waits for the workflow that the release shape names | `release_bump_waits_for_the_workflow_that_the_release_shape_names` | covered |
+
+The three files had 50 TypeScript tests (presence 15, presence-templates 27, release-builtins 8) and are replaced by 50 Rust tests, one for each: the loops here are over fixed cases and are written out. The other 205 Rust tests of the crate are those of Phases 7a and 7b.

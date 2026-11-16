@@ -156,7 +156,7 @@ In a repository that already uses the scaffold, leaving a builtin out is a rende
 - `mise.lock` belongs to mise and is not touched: run `mise lock` after you change `mise.toml`, and so after you change `options.without`, because dropping or adding a tool changes the file. A `mise.toml` you edited by hand is refused on the next render (exit 3), as any owned file is.
 - Putting a builtin back writes its files again.
 
-Checks: `runner/test/presence.test.ts` (what each of the 28 builtins removes when it is left out, the errors, and the cases above in a scratch git repository) and `features/without.feature`.
+Checks: `crates/scaffold-package-tests/tests/presence.rs` (what each of the 28 builtins removes when it is left out, the errors, and the cases above in a scratch git repository) and `features/without.feature`.
 
 ## What the render changes in a real repository
 

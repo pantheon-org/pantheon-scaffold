@@ -5,6 +5,7 @@ use scaffold_package_tests::pkg::{
     actionlint, content, expect_pins, file, git_blob_sha, jobs, mode, paths, read, render, unpin,
     upstream_json,
 };
+use scaffold_package_tests::presence::{COMPOSITION, eval_config, render as render_composition};
 use scaffold_package_tests::{compare_directives, compare_workflows, parse_toml};
 use serde_json::Value;
 use std::sync::LazyLock;
@@ -257,4 +258,69 @@ fn plumber_yml_ends_its_header_with_the_notice_that_it_is_generated_and_no_other
     for (name, _) in WORKFLOWS.iter().filter(|(n, _)| *n != "plumber") {
         assert!(!rendered(name).contains(NOTICE), "{name}");
     }
+}
+
+// The title check starts on `options.conventionalCommitsEvent`. The fixture above sets `pull_request_target`, so that the render is compared with the
+// pantheon-adr copy; these tests render the default and the other values.
+const TARGET: &str = "conventionalCommitsEvent = \"pull_request_target\"";
+
+fn title_workflow(extra: &str) -> String {
+    render_composition(&[], extra)
+        .remove(".github/workflows/conventional-commits.yml")
+        .expect("the title workflow is rendered")
+}
+
+/// The job and its steps, which do not depend on the event.
+fn jobs_of(text: &str) -> &str {
+    &text[text.find("\njobs:").expect("a jobs section")..]
+}
+
+#[test]
+fn the_title_check_starts_on_pull_request_by_default_with_no_zizmor_comment() {
+    let text = title_workflow("");
+    assert!(
+        text.contains("\n'on':\n  pull_request:\n    types:\n"),
+        "{text}"
+    );
+    assert!(
+        !text.contains("zizmor"),
+        "no ignore comment is needed: {text}"
+    );
+    assert!(
+        text.contains("options.conventionalCommitsEvent"),
+        "the header says how to change it: {text}"
+    );
+    let trigger = text.split("\njobs:").next().unwrap();
+    let on_lines: Vec<&str> = trigger
+        .lines()
+        .filter(|l| !l.starts_with('#') && l.contains("pull_request_target"))
+        .collect();
+    assert_eq!(on_lines, Vec::<&str>::new(), "{text}");
+}
+
+#[test]
+fn the_option_selects_pull_request_target_and_the_render_is_the_pantheon_adr_workflow_under_the_p1_rule()
+ {
+    let text = title_workflow(TARGET);
+    assert_eq!(text, rendered("conventional-commits"));
+    let result = compare_workflows(&upstream("conventional-commits"), &text).unwrap();
+    assert!(result.equal, "{:?}", result.differences);
+    assert_eq!(
+        compare_directives(&upstream("conventional-commits"), &text),
+        Vec::<String>::new()
+    );
+}
+
+#[test]
+fn the_event_changes_the_trigger_and_the_header_and_nothing_in_the_job() {
+    let default = title_workflow("");
+    let target = title_workflow(TARGET);
+    assert_ne!(default, target);
+    assert_eq!(jobs_of(&default), jobs_of(&target));
+}
+
+#[test]
+fn an_event_that_is_not_one_of_the_two_is_an_error_that_names_the_option() {
+    let err = eval_config(&[], "conventionalCommitsEvent = \"push\"", COMPOSITION, "").unwrap_err();
+    assert!(err.contains("conventionalCommitsEvent"), "{err}");
 }

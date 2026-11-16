@@ -95,7 +95,7 @@
     },
     ".github/workflows/conventional-commits.yml": {
       "class": "owned",
-      "hash": "bdece7e27f2ffb0088f6ff4b3ef9d5ae80b252e945d03d3f96ed81f60614b641"
+      "hash": "fd212be26a4f539156e02243215ac3b11f27d4221851f107d35a7104b77a7f5f"
     },
     ".github/workflows/inline-scripts.yml": {
       "class": "owned",

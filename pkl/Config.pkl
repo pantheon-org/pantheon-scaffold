@@ -68,6 +68,11 @@ class Options {
   /// Whether release-please-config.json and .release-please-manifest.json are seeded (written once, never overwritten). Set it to false when the
   /// repository keeps its release-please configuration somewhere else.
   seedReleaseConfig: Boolean = true
+  /// The event that starts the "Conventional Commit Title" workflow. `pull_request` (the default) needs no token and no checkout, because the workflow only reads
+  /// the pull request title. `pull_request_target` is the trigger the workflow was first written with; GitHub blocks it on public repositories by default
+  /// (brownouts from November 2026, enforced from 2 December 2026) unless an Actions event policy allows it. With `pull_request_target` the workflow is
+  /// the same as the pantheon-adr copy. A `pull_request` run uses the workflow file of the pull request branch; a `pull_request_target` run uses the base branch's.
+  conventionalCommitsEvent: ("pull_request"|"pull_request_target") = "pull_request"
 
   /// Whether dependabot.yml has a github-actions entry, from `dependabotGithubActions`. `workflowLeftOut` is whether `without` leaves out a workflow
   /// the repository would otherwise get (Builtins.dependabot works that out).

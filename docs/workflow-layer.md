@@ -25,7 +25,7 @@ The folder is named after the builtin's key in `standardWorkflows` (`rust-ci`, `
 | `Builtins.prAutoRebase(options)` | `.github/workflows/pr-auto-rebase.yml` | none |
 | `Builtins.releaseAutomerge(options)` | `.github/workflows/release-automerge.yml` | none |
 | `Builtins.commitTypes()` | `.github/workflows/commit-types.yml` | `.github/commit-types.txt` |
-| `Builtins.conventionalCommits()` | `.github/workflows/conventional-commits.yml` | none |
+| `Builtins.conventionalCommits(options)` | `.github/workflows/conventional-commits.yml` | none |
 
 `Builtins.workflowFiles(options)` renders the four config files and `.github/pull_request_template.md`, byte for byte from `pantheon-adr` at `1e2fd46`. The scripts these workflows call stay in `Builtins.toolingFiles()` (phase 3).
 
@@ -34,7 +34,7 @@ Each workflow is compared with the pinned `pantheon-adr` copy under the P.1 rule
 ### What the typed model gained
 
 - `Step.continue-on-error`, used by the Plumber action step.
-- `Workflow.onComment`, a comment on the `on:` line. `conventional-commits.yml` needs it: `on: # zizmor: ignore[dangerous-triggers] ...` is a comment that zizmor itself reads. The renderer fails if the comment is set and there is no `on:` line to put it on.
+- `Workflow.onComment`, a comment on the `on:` line. `conventional-commits.yml` needs it when `options.conventionalCommitsEvent` is `pull_request_target`: `on: # zizmor: ignore[dangerous-triggers] ...` is a comment that zizmor itself reads. With the default, `pull_request`, there is no comment. The renderer fails if the comment is set and there is no `on:` line to put it on.
 - `Options.appClientId`, the client id of the GitHub App that `pr-auto-rebase` and `release-automerge` mint their token from. A public identifier, not a secret. The default is the org's `pantheon-ai-bot` App, as the four repositories use it today.
 - Two pins in `Pins.pkl`: `actions/create-github-app-token` v3.3.0 and `getplumber/plumber` v0.7.16, each the commit of a release tag (checked against GitHub).
 

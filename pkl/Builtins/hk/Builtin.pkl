@@ -10,7 +10,7 @@ import "../Shared.pkl"
 
 /// The hook steps the four Rust repositories share (decision 31): `hk.shared.pkl`, owned by the runner, holds the steps, and `hk.pkl` is
 /// seeded once, imports it and holds only the hooks. Each repository adds its own steps in `hk.pkl`. `options.features = "all"` is the
-/// library repository's `--all-features` in the pre-push clippy and test steps. Checked against real hk in hk.test.ts.
+/// library repository's `--all-features` in the pre-push clippy and test steps. Checked against real hk in crates/scaffold-package-tests/tests/hk.rs.
 function files(opts: Config.Options): Mapping<String, GenFiles.GenFile> =
   let (p = Presence.forOptions(opts))
   new {

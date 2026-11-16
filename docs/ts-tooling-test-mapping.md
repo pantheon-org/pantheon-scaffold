@@ -445,3 +445,103 @@ Written on 16-11-2026 for Phase 7b of [ts-tooling-rust-port.md](ts-tooling-rust-
 | the one script that is not executable upstream is rendered executable on purpose, and it is the only one | `the_one_script_that_is_not_executable_upstream_is_rendered_executable_on_purpose_and_it_is_the_only_one` | covered |
 
 The five files had 103 TypeScript tests (builtins 17, workflows-a 28, workflows-b 32, workflows-c 11, tooling 15) and are replaced by 91 Rust tests. The 12 fewer are the entries of two data-driven loops that one Rust test each now covers: 5 entries in builtins (4 fewer) and 9 in tooling (8 fewer).
+
+## Added in Phase 7b, second part: hk, mise and the phase5 files
+
+Written on 16-11-2026 for Phase 7b of [ts-tooling-rust-port.md](ts-tooling-rust-port.md). These seven TypeScript test files were ported to `scaffold-package-tests` and deleted. Every row was checked by script: the TypeScript title is the one in the deleted file (read from `origin/main`; a title built in a loop is the template of the loop), and each Rust test is in the list that `cargo test -- --list` prints for the crate. For a plain title the Rust name is the title in snake_case, derived by the script, so a name cannot be mistyped.
+
+### hk
+
+| TypeScript test (`runner/test/hk.test.ts`) | Rust test (`crates/scaffold-package-tests/tests/hk.rs`) | Note |
+|---|---|---|
+| the pinned upstream copies are the hk.pkl files of pantheon-adr at 1e2fd46 and of the library repo at 42f48b4 | `the_pinned_upstream_copies_are_the_hk_pkl_files_of_pantheon_adr_at_1e2fd46_and_of_the_library_repo_at_42f48b4` | covered |
+| the hook files are the owned shared steps module and the seeded hk.pkl | `the_hook_files_are_the_owned_shared_steps_module_and_the_seeded_hk_pkl` | covered |
+| the pre-commit steps are byte for byte the ones in pantheon-adr's hk.pkl | `the_pre_commit_steps_are_byte_for_byte_the_ones_in_pantheon_adrs_hk_pkl` | covered |
+| the pre-push steps with the default features are byte for byte the ones in pantheon-adr's hk.pkl | `the_pre_push_steps_with_the_default_features_are_byte_for_byte_the_ones_in_pantheon_adrs_hk_pkl` | covered |
+| the pre-push steps with all features are byte for byte the ones in the library repo's hk.pkl | `the_pre_push_steps_with_all_features_are_byte_for_byte_the_ones_in_the_library_repos_hk_pkl` | covered |
+| the pre-commit steps differ from the library repo's only by one comment, which is wording tied to .github/actionlint.yaml | `the_pre_commit_steps_differ_from_the_library_repos_only_by_one_comment_which_is_wording_tied_to_github_actionlint_yaml` | covered |
+| the seeded hk.pkl is pantheon-adr's hooks block with the steps taken from the shared module | `the_seeded_hk_pkl_is_pantheon_adrs_hooks_block_with_the_steps_taken_from_the_shared_module` | covered |
+| the seeded hk.pkl pins the hk config package, imports the shared module and holds no step of its own | `the_seeded_hk_pkl_pins_the_hk_config_package_imports_the_shared_module_and_holds_no_step_of_its_own` | covered |
+| the shared module says it is rendered and imports the same hk config package | `the_shared_module_says_it_is_rendered_and_imports_the_same_hk_config_package` | covered |
+| real hk validates the render with the default features and with all features | `real_hk_validates_the_render_with_the_default_features_and_with_all_features` | covered |
+| real hk plans the five shared steps, and a step a repository adds to the seeded file next to them | `real_hk_plans_the_five_shared_steps_and_a_step_a_repository_adds_to_the_seeded_file_next_to_them` | covered |
+| the hook fixers and checks over a fresh render pass and change nothing | `the_hook_fixers_and_checks_over_a_fresh_render_pass_and_change_nothing` | covered |
+
+### mise
+
+| TypeScript test (`runner/test/mise.test.ts`) | Rust test (`crates/scaffold-package-tests/tests/mise.rs`) | Note |
+|---|---|---|
+| the mise files are the owned mise.toml, the external mise.lock and the seeded per-repo config | `the_mise_files_are_the_owned_mise_toml_the_external_mise_lock_and_the_seeded_per_repo_config` | covered |
+| the pinned upstream copy is the pantheon-adr mise.toml at 1e2fd46 (git blob 16c264c) | `the_pinned_upstream_copy_is_the_pantheon_adr_mise_toml_at_1e2fd46_git_blob_16c264c` | covered |
+| mise.toml differs from the repositories' current file only by the named additions and the two comments | `mise_toml_differs_from_the_repositories_current_file_only_by_the_named_additions_and_the_two_comments` | covered |
+| the tool specifiers are the ones the repositories use today: exact stays exact and latest stays latest (decision q14, option A) | `the_tool_specifiers_are_the_ones_the_repositories_use_today_exact_stays_exact_and_latest_stays_latest_decision_q14_option_a` | covered |
+| lockfile_platforms is exactly the platforms the runner is built for | `lockfile_platforms_is_exactly_the_platforms_the_runner_is_built_for` | covered |
+| the toolchain option reaches the rust entry | `the_toolchain_option_reaches_the_rust_entry` | covered |
+| the seeded per-repo config says what it is for and holds no tools | `the_seeded_per_repo_config_says_what_it_is_for_and_holds_no_tools` | covered |
+| using the mise builtin without a runner version and not as a released package fails with a clear message | `using_the_mise_builtin_without_a_runner_version_and_not_as_a_released_package_fails_with_a_clear_message` | covered |
+| real mise reads both files, adds the repo's own tool and lets the owned mise.toml win a conflict | `real_mise_reads_both_files_adds_the_repos_own_tool_and_lets_the_owned_mise_toml_win_a_conflict` | covered |
+
+### phase5-dependabot
+
+| TypeScript test (`runner/test/phase5-dependabot.test.ts`) | Rust test (`crates/scaffold-package-tests/tests/phase5_dependabot.rs`) | Note |
+|---|---|---|
+| ${repo}: with a binary, Dependabot ignores upload-artifact and download-artifact in the github-actions entry only | `pantheon_adr_with_a_binary_dependabot_ignores_upload_artifact_and_download_artifact_in_the_github_actions_entry_only`, `pantheon_journal_with_a_binary_dependabot_ignores_upload_artifact_and_download_artifact_in_the_github_actions_entry_only`, `pantheon_skill_auditor_with_a_binary_dependabot_ignores_upload_artifact_and_download_artifact_in_the_github_actions_entry_only` | 3 TypeScript tests (a loop over three repositories), 3 Rust tests |
+| the library repository, with no binary, has no github-actions entry and so no ignore list | `the_library_repository_with_no_binary_has_no_github_actions_entry_and_so_no_ignore_list` | covered |
+| the header says why the two actions are ignored | `the_header_says_why_the_two_actions_are_ignored` | covered |
+| ${fixture}: the github-actions entry excludes exactly the owned workflow files, and the cargo entry excludes nothing | `real_workflows_pantheon_adr_the_github_actions_entry_excludes_exactly_the_owned_workflow_files_and_the_cargo_entry_excludes_nothing` | 1 TypeScript test (a loop over one fixture), 1 Rust test |
+| a repository with skills and a binary excludes audit-skill.yml and dist-check.yml | `a_repository_with_skills_and_a_binary_excludes_audit_skill_yml_and_dist_check_yml` | covered |
+
+### phase5-dist
+
+| TypeScript test (`runner/test/phase5-dist.test.ts`) | Rust test (`crates/scaffold-package-tests/tests/phase5_dist.rs`) | Note |
+|---|---|---|
+| dist-check.yml is rendered for a repository with a binary and not for one without | `dist_check_yml_is_rendered_for_a_repository_with_a_binary_and_not_for_one_without` | covered |
+| scaffold-check.yml is rendered for every repository | `scaffold_check_yml_is_rendered_for_every_repository` | covered |
+| the dist version the check installs is the one dist-workspace.toml names | `the_dist_version_the_check_installs_is_the_one_dist_workspace_toml_names` | covered |
+| dist-check.yml runs dist generate --check, on a pull request, a push to main or by hand, and never on pull_request_target | `dist_check_yml_runs_dist_generate_check_on_a_pull_request_a_push_to_main_or_by_hand_and_never_on_pull_request_target` | covered |
+| dist-check.yml uses no secrets, reads contents only, pins every action and keeps no checkout credentials | `dist_check_yml_uses_no_secrets_reads_contents_only_pins_every_action_and_keeps_no_checkout_credentials` | covered |
+| scaffold-check.yml equals the consumer-check sample under P.1, with the pins masked, and the directive comments | `scaffold_check_yml_equals_the_consumer_check_sample_under_p1_with_the_pins_masked_and_the_directive_comments` | covered |
+| scaffold-check.yml is the same for every repository | `scaffold_check_yml_is_the_same_for_every_repository` | covered |
+| the pins the two workflows use are the cache, checkout, mise and nothing unlisted | `the_pins_the_two_workflows_use_are_the_cache_checkout_mise_and_nothing_unlisted` | covered |
+
+### phase5-parameterised
+
+| TypeScript test (`runner/test/phase5-parameterised.test.ts`) | Rust test (`crates/scaffold-package-tests/tests/phase5_parameterised.rs`) | Note |
+|---|---|---|
+| the pinned upstream copies are the repositories' files at the surveyed commits | `the_pinned_upstream_copies_are_the_repositories_files_at_the_surveyed_commits` | covered |
+| ${r}: audit-skill.yml equals the repository's file under P.1, with the directive comments and job names | `pantheon_adr_skill::audit_skill_yml_equals_the_repositorys_file_under_p1_with_the_directive_comments_and_job_names`, `pantheon_journal_skill::audit_skill_yml_equals_the_repositorys_file_under_p1_with_the_directive_comments_and_job_names`, `pantheon_skill_auditor_skill::audit_skill_yml_equals_the_repositorys_file_under_p1_with_the_directive_comments_and_job_names` | 3 and 3: a loop over the three repositories with a skill, one Rust module for each |
+| ${r}: tag-release.sh is byte for byte the repository's file and executable | `pantheon_adr_skill::tag_release_sh_is_byte_for_byte_the_repositorys_file_and_executable`, `pantheon_journal_skill::tag_release_sh_is_byte_for_byte_the_repositorys_file_and_executable`, `pantheon_skill_auditor_skill::tag_release_sh_is_byte_for_byte_the_repositorys_file_and_executable` | 3 and 3, as above |
+| ${r}: .coderabbit.yaml is byte for byte the repository's file | `pantheon_adr_coderabbit_yaml_is_byte_for_byte_the_repositorys_file`, `pantheon_journal_coderabbit_yaml_is_byte_for_byte_the_repositorys_file`, `pantheon_skill_auditor_coderabbit_yaml_is_byte_for_byte_the_repositorys_file`, `pantheon_agentic_harness_dev_kit_coderabbit_yaml_is_byte_for_byte_the_repositorys_file` | 4 and 4: a loop over the four repositories |
+| SECURITY.md is seeded, so a repository that words its scope differently keeps its own text | `security_md_is_seeded_so_a_repository_that_words_its_scope_differently_keeps_its_own_text` | covered |
+| ${r}: SECURITY.md is byte for byte the repository's file | `pantheon_adr_security_md_is_byte_for_byte_the_repositorys_file`, `pantheon_journal_security_md_is_byte_for_byte_the_repositorys_file`, `pantheon_agentic_harness_dev_kit_security_md_is_byte_for_byte_the_repositorys_file` | 3 and 3: a loop over the three repositories whose file is the pinned one |
+| pantheon-skill-auditor: SECURITY.md differs only in the three scope lines that name its crates, skill and composite action | `pantheon_skill_auditor_security_md_differs_only_in_the_three_scope_lines_that_name_its_crates_skill_and_composite_action` | covered |
+| the library repository, with no binary and no skill, gets no audit-skill.yml and no tag-release.sh | `the_library_repository_with_no_binary_and_no_skill_gets_no_audit_skill_yml_and_no_tag_release_sh` | covered |
+| the composite-action variant runs the repository's own action and the bootstrap binary, the others use the released action | `the_composite_action_variant_runs_the_repositorys_own_action_and_the_bootstrap_binary_the_others_use_the_released_action` | covered |
+| every other file is unchanged by the new builtins: the rendered set grows by exactly the new files | `every_other_file_is_unchanged_by_the_new_builtins_the_rendered_set_grows_by_exactly_the_new_files` | covered |
+
+### phase5-toggles
+
+| TypeScript test (`runner/test/phase5-toggles.test.ts`) | Rust test (`crates/scaffold-package-tests/tests/phase5_toggles.rs`) | Note |
+|---|---|---|
+| ${label}: removes and changes exactly the files that toggle owns, and adds none | `skills_off_removes_and_changes_exactly_the_files_that_toggle_owns_and_adds_none`, `binary_off_removes_and_changes_exactly_the_files_that_toggle_owns_and_adds_none`, `features_all_removes_and_changes_exactly_the_files_that_toggle_owns_and_adds_none`, `composite_action_on_removes_and_changes_exactly_the_files_that_toggle_owns_and_adds_none` | 4 TypeScript tests (a loop over the four toggles), 4 Rust tests |
+| a base configuration renders the same twice: the toggles have no hidden input | `a_base_configuration_renders_the_same_twice_the_toggles_have_no_hidden_input` | covered |
+| skills on without skillName is a clear error that names the option and the way out | `skills_on_without_skill_name_is_a_clear_error_that_names_the_option_and_the_way_out` | covered |
+| skills off needs no skillName, and binary off needs no crateName | `skills_off_needs_no_skill_name_and_binary_off_needs_no_crate_name` | covered |
+| binary on without crateName is a clear error that names the option and the way out | `binary_on_without_crate_name_is_a_clear_error_that_names_the_option_and_the_way_out` | covered |
+| turning skills and binary off deletes only the files they owned, and never touches the external release.yml | `turning_skills_and_binary_off_deletes_only_the_files_they_owned_and_never_touches_the_external_release_yml` | covered |
+| turning a toggle back on writes its files again | `turning_a_toggle_back_on_writes_its_files_again` | covered |
+
+### phase5-verbatim
+
+| TypeScript test (`runner/test/phase5-verbatim.test.ts`) | Rust test (`crates/scaffold-package-tests/tests/phase5_verbatim.rs`) | Note |
+|---|---|---|
+| a repository with a binary gets .gitignore, actionlint.yaml, dist-workspace.toml and release.yml | `a_repository_with_a_binary_gets_gitignore_actionlint_yaml_dist_workspace_toml_and_release_yml` | covered |
+| a repository without a binary gets .gitignore only | `a_repository_without_a_binary_gets_gitignore_only` | covered |
+| ${path} is byte for byte the pinned pantheon-adr file, owned and not executable | `actionlint_yaml_is_byte_for_byte_the_pinned_pantheon_adr_file_owned_and_not_executable` | 1 TypeScript test (a loop over the one entry of `BLOBS`, `.github/actionlint.yaml`), 1 Rust test |
+| dist-workspace.toml is the pantheon-adr file with exactly the two action commits that release.yml uses | `dist_workspace_toml_is_the_pantheon_adr_file_with_exactly_the_two_action_commits_that_release_yml_uses` | covered |
+| .gitignore is the pantheon-adr file plus exactly the line .pkl-gen/cache/, owned and not executable | `gitignore_is_the_pantheon_adr_file_plus_exactly_the_line_pkl_gen_cache_owned_and_not_executable` | covered |
+| .gitignore is the same in both kinds of repository: target/ is the decided pick (decision 74) | `gitignore_is_the_same_in_both_kinds_of_repository_target_is_the_decided_pick_decision_74` | covered |
+| release.yml is external: listed with no content, because dist generate writes it | `release_yml_is_external_listed_with_no_content_because_dist_generate_writes_it` | covered |
+| an external release.yml is never written, and an existing one is left alone | `an_external_release_yml_is_never_written_and_an_existing_one_is_left_alone` | covered |
+
+The seven files had 73 TypeScript tests (hk 12, mise 9, phase5-dependabot 7, phase5-dist 8, phase5-parameterised 19, phase5-toggles 10, phase5-verbatim 8) and are replaced by 73 Rust tests: one for each, because the loops here are over fixed names and are written out. The other 132 Rust tests of the crate are those of Phases 7a and 7b part one.

@@ -17,7 +17,7 @@ Phase 5. The toggles are the options `skills`, `binary`, `features` and `composi
 
 Known limit (see wave D): `dist-workspace.toml` pins `actions/checkout`, `upload-artifact` and `download-artifact` by commit in its `[dist.github-action-commits]` table. Those commits are not in `pkl/Pins.pkl`, so the pin update workflow does not move them and they are not checked against a release tag. They change with the file.
 
-Checks: `runner/test/phase5-verbatim.test.ts` (git blobs of the pinned files, both kinds of repository, `release.yml` never written) and the mutation check in `archive/spikes/phase-5-wave-a`.
+Checks: `crates/scaffold-package-tests/tests/phase5_verbatim.rs` (git blobs of the pinned files, both kinds of repository, `release.yml` never written) and the mutation check in `archive/spikes/phase-5-wave-a`.
 
 ## Wave B: the parameterised files
 
@@ -32,7 +32,7 @@ The new option `skillName` is the folder under `skills/` that the files below na
 
 The skill auditor action is a typed pin built from `pkl/Tools.pkl` (commit, version and the binary's SHA-256 together), and is not in `pkl/Pins.pkl`: the pin update workflow would otherwise move the action without its binary. The runner still writes its `# v0.3.1` comment from the contract's pins.
 
-`SECURITY.md` is a seed, so the skill auditor repository, which words its scope bullets differently, keeps its own text. The report in [real-repo-workflows.md](../archive/proof/docs/real-repo-workflows.md) lists it and the library `.gitignore` as recorded differences. Checks: `runner/test/phase5-parameterised.test.ts`, the mutation check in `archive/spikes/phase-5-wave-b`, and the real-repository render.
+`SECURITY.md` is a seed, so the skill auditor repository, which words its scope bullets differently, keeps its own text. The report in [real-repo-workflows.md](../archive/proof/docs/real-repo-workflows.md) lists it and the library `.gitignore` as recorded differences. Checks: `runner/test/crates/scaffold-package-tests/tests/phase5_parameterised.rs`, the mutation check in `archive/spikes/phase-5-wave-b`, and the real-repository render.
 
 ## Wave C: the toggles
 
@@ -53,7 +53,7 @@ A toggle stays inside the builtins it switches: `binary` off does not leave `act
 
 The external `release.yml` is never written, hashed or deleted, so turning `binary` off leaves a `release.yml` that `dist generate` wrote. Removing it is the repository's own change.
 
-Checks: `runner/test/phase5-toggles.test.ts` flips each toggle from a base configuration and asserts the exact files removed and changed and none added, the two error messages, and, in a scratch git repository, the files deleted when `skills` and `binary` go off (and that the external `release.yml` stays) and that turning a toggle back on writes its files again. The mutation check is in `archive/spikes/phase-5-wave-c`. The real-repository render, now through the two standard builtins, gives the same result as before.
+Checks: `crates/scaffold-package-tests/tests/phase5_toggles.rs` flips each toggle from a base configuration and asserts the exact files removed and changed and none added, the two error messages, and, in a scratch git repository, the files deleted when `skills` and `binary` go off (and that the external `release.yml` stays) and that turning a toggle back on writes its files again. The mutation check is in `archive/spikes/phase-5-wave-c`. The real-repository render, now through the two standard builtins, gives the same result as before.
 
 ## Wave D: the drift check and `check` in CI
 
@@ -70,7 +70,7 @@ Both are new files: no repository has them yet, so the real-repository report li
 
 Known limit: Dependabot will keep bumping actions inside `release.yml` and cannot edit `dist-workspace.toml`, so the next such bump fails `dist-check.yml` until `dist-workspace.toml` and `release.yml` are regenerated together. The failure is the point of the check. To stop a failing Dependabot pull request each time, the rendered `dependabot.yml` of a repository with a binary now ignores those two actions (decision 86, below).
 
-Checks: `runner/test/phase5-dist.test.ts`, the updated `phase5-verbatim.test.ts`, the mutation check in `archive/spikes/phase-5-wave-d` (11 of 11 caught), actionlint and zizmor 1.32.0 over both workflows, and the real-repository render.
+Checks: `crates/scaffold-package-tests/tests/phase5_dist.rs`, the updated `crates/scaffold-package-tests/tests/phase5_verbatim.rs`, the mutation check in `archive/spikes/phase-5-wave-d` (11 of 11 caught), actionlint and zizmor 1.32.0 over both workflows, and the real-repository render.
 
 ## Wave E: the consumer smoke test
 
@@ -86,7 +86,7 @@ With `binary`, the `github-actions` entry of the rendered `dependabot.yml` has a
 
 Known limit, not verified: whether a Dependabot `ignore` entry also stops Dependabot's security updates for these two actions. If it does, a security fix for either action has to be applied through `dist-workspace.toml` by hand. Moving the two commits into `Pins.pkl` (so the pin update workflow keeps them current) was the rejected alternative: it needs `dist` in that workflow to regenerate `release.yml` in the same pull request.
 
-Checks: `runner/test/phase5-dependabot.test.ts`, the adjusted equality test in `crates/scaffold-package-tests/tests/workflows_b.rs`, the mutation check in `archive/spikes/phase-5-dependabot` (5 of 5 caught) and the real-repository render.
+Checks: `crates/scaffold-package-tests/tests/phase5_dependabot.rs`, the adjusted equality test in `crates/scaffold-package-tests/tests/workflows_b.rs`, the mutation check in `archive/spikes/phase-5-dependabot` (5 of 5 caught) and the real-repository render.
 
 ## Presence inside templates: what a left-out builtin changes in the files that stay
 

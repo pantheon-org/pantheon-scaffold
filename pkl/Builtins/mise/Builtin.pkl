@@ -11,7 +11,7 @@ import "../Shared.pkl"
 
 /// mise.toml, owned by the runner, and the files around it: mise.lock (written by mise, so external) and a per-repository mise config,
 /// seeded once. mise reads both config files, the second adds tools, and for a tool listed in both mise.toml wins (decision 29, checked
-/// against real mise in mise.test.ts). The tool pins come from Tools.pkl and the runner pin from the package version.
+/// against real mise in crates/scaffold-package-tests/tests/mise.rs). The tool pins come from Tools.pkl and the runner pin from the package version.
 function files(opts: Config.Options): Mapping<String, GenFiles.GenFile> =
   let (p = Presence.forOptions(opts))
   let (runner = opts.runnerVersion ?? packageVersion ?? throw("runnerVersion is not set and the package version cannot be read from a package URI: set options.runnerVersion when the package is loaded from a folder"))

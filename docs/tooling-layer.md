@@ -35,7 +35,7 @@ The runner never reads the git index (it calls git only for the delete guard). T
 | `mise.lock` | external | Written by mise, listed in the manifest and never written, hashed or deleted by the runner. |
 | `.mise/conf.d/repo.toml` | seed | Written once, empty `[tools]`, for the tools one repository needs on top. |
 
-The per-repo file is read by mise together with `mise.toml`. For a tool listed in both, `mise.toml` wins, so a repository can add tools but cannot override a shared pin. `mise.test.ts` checks this with the real mise, using an empty data directory so the result does not depend on what is installed.
+The per-repo file is read by mise together with `mise.toml`. For a tool listed in both, `mise.toml` wins, so a repository can add tools but cannot override a shared pin. `crates/scaffold-package-tests/tests/mise.rs` checks this with the real mise, using an empty data directory so the result does not depend on what is installed.
 
 ### Pins (decision q14, option A)
 
@@ -45,7 +45,7 @@ The runner is pinned at the version of the package that rendered the file, becau
 
 ### Differences from the file the four repositories share today
 
-The rendered file equals the current one except for these lines (asserted exactly by `mise.test.ts`):
+The rendered file equals the current one except for these lines (asserted exactly by `crates/scaffold-package-tests/tests/mise.rs`):
 
 - Two comments no longer say "keep in sync with the workflow": the version is pinned in the package now (`zizmor` and `agnix`).
 - `"github:pantheon-org/pantheon-scaffold" = "<package version>"`, with its comment.

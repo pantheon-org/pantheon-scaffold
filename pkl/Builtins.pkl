@@ -81,13 +81,13 @@ function toolingFiles(opts: Config.Options): Mapping<String, GenFiles.GenFile> =
 
 /// mise.toml, owned by the runner, and the files around it: mise.lock (written by mise, so external) and a per-repository mise config,
 /// seeded once. mise reads both config files, the second adds tools, and for a tool listed in both mise.toml wins (decision 29, checked
-/// against real mise in mise.test.ts). The tool pins come from Tools.pkl and the runner pin from the package version.
+/// against real mise in crates/scaffold-package-tests/tests/mise.rs). The tool pins come from Tools.pkl and the runner pin from the package version.
 function miseFiles(opts: Config.Options): Mapping<String, GenFiles.GenFile> =
   if (Presence.forOptions(opts).has("mise")) miseBuiltin.files(opts) else new Mapping {}
 
 /// The hook steps the four Rust repositories share (decision 31): `hk.shared.pkl`, owned by the runner, holds the steps, and `hk.pkl` is
 /// seeded once, imports it and holds only the hooks. Each repository adds its own steps in `hk.pkl`. `options.features = "all"` is the
-/// library repository's `--all-features` in the pre-push clippy and test steps. Checked against real hk in hk.test.ts.
+/// library repository's `--all-features` in the pre-push clippy and test steps. Checked against real hk in crates/scaffold-package-tests/tests/hk.rs.
 function hkFiles(opts: Config.Options): Mapping<String, GenFiles.GenFile> =
   if (Presence.forOptions(opts).has("hk")) hkBuiltin.files(opts) else new Mapping {}
 

@@ -91,3 +91,28 @@ pub fn tracked_files() -> Vec<String> {
         .map(str::to_owned)
         .collect()
 }
+
+/// Writes a file under a directory, making the folders it needs.
+pub fn put(root: &Path, rel: &str, text: &str) {
+    let path = root.join(rel);
+    std::fs::create_dir_all(path.parent().expect("a parent folder")).unwrap();
+    std::fs::write(path, text).unwrap();
+}
+
+pub fn get(root: &Path, rel: &str) -> String {
+    std::fs::read_to_string(root.join(rel)).unwrap_or_else(|e| panic!("{rel}: {e}"))
+}
+
+pub fn has(root: &Path, rel: &str) -> bool {
+    root.join(rel).exists()
+}
+
+/// A temporary directory that is a git repository with one commit of every file given.
+pub fn git_repo(files: &[(&str, &str)]) -> tempfile::TempDir {
+    let dir = git_init();
+    for (rel, text) in files {
+        put(dir.path(), rel, text);
+    }
+    commit_all(dir.path(), "init");
+    dir
+}

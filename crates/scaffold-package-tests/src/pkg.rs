@@ -203,3 +203,24 @@ pub fn jobs(workflow: &str) -> Vec<(String, Option<String>)> {
         .map(|(id, job)| (id.clone(), job["name"].as_str().map(str::to_owned)))
         .collect()
 }
+
+/// The lines that differ between two texts, from `diff -U0`: the ones only in `a` and the ones only in `b`.
+pub fn line_diff(a: &str, b: &str) -> (Vec<String>, Vec<String>) {
+    let dir = crate::repo::temp_dir();
+    std::fs::write(dir.path().join("a"), a).unwrap();
+    std::fs::write(dir.path().join("b"), b).unwrap();
+    let output = std::process::Command::new("diff")
+        .arg("-U0")
+        .arg(dir.path().join("a"))
+        .arg(dir.path().join("b"))
+        .output()
+        .expect("diff runs");
+    let text = String::from_utf8_lossy(&output.stdout).into_owned();
+    let pick = |sign: &str, header: &str| -> Vec<String> {
+        text.lines()
+            .filter(|l| l.starts_with(sign) && !l.starts_with(header))
+            .map(|l| l[1..].to_owned())
+            .collect()
+    };
+    (pick("-", "---"), pick("+", "+++"))
+}

@@ -228,6 +228,12 @@ fn the_update_job_which_holds_the_app_token_never_runs_cargo_and_downloads_the_t
         steps[verify]["env"]["EXPECTED"],
         "${{ needs.tool.outputs.sha256 }}"
     );
+    // Stronger than the TypeScript test (found by the breakage comparison of 6b, where a check ended in `|| true` failed neither suite): the
+    // step is exactly the check and the permission to run the tool, so a check that cannot fail the job fails here.
+    assert_eq!(
+        run_of(&steps[verify]),
+        "echo \"$EXPECTED  tool/scaffold-release\" | sha256sum --check --strict -\nchmod +x tool/scaffold-release\n"
+    );
     let first_run = steps
         .iter()
         .position(|s| run_of(s).contains(RUST_WRITE))

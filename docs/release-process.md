@@ -54,7 +54,7 @@ The rendered header of `release-please.yml` describes the Builtin for repositori
 
 ## Safety properties
 
-They are asserted by `runner/test/release-workflow.test.ts` and kept honest by `archive/spikes/phase-2b-wave-d/mutate.ts`:
+They are asserted by `crates/scaffold-package-tests/tests/release_workflow.rs` and kept honest by `archive/spikes/phase-2b-wave-d/mutate.ts`:
 
 - Only a `v[0-9]*` tag push or a manual run starts it, never `pull_request_target`.
 - Every job asks for its own permissions, and only `release` can write.

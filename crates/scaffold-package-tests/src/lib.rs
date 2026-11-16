@@ -14,4 +14,6 @@ pub use scaffold_core::equality::{compare_workflows, parse_yaml};
 pub fn parse_toml(text: &str) -> toml::Table {
     text.parse().expect("the TOML parses")
 }
+pub mod b64;
 pub mod presence;
+pub mod workflow;

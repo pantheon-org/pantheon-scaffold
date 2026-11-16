@@ -47,7 +47,7 @@ versions, already there) or in a new `pkl/Values.pkl` (everything else), and rea
 | `rumdl.toml` | `disable` rule list | yes | `rumdlDisabled` (`Values.pkl`) | per-repository taste |
 | | `per-file-ignores` path | yes | `prTemplatePath` | couples to the `pull-request-template` builtin (presence part 2) |
 | | `include`, `exclude`, `MD010` | no | in the template | structure |
-| `plumber.yaml` | `trustedGithubActions` list | yes | `plumberTrustedActions` (`Values.pkl`) | tracks which workflows the repo uses |
+| `plumber.yaml` | `trustedGithubActions` list | yes | `plumberTrustedActions` (`Values.pkl`) | tracks which workflows the repo uses; a test fails when a used action is neither official, same-org nor listed |
 | | `trustedUrls` list, `trustedOwners` list | yes | `plumberTrustedUrls`, `plumberTrustedOwners` | same |
 | | `minimumStars`, `forbiddenVariables`, each control's `enabled` | no | in the template | policy switches, not values |
 | `agnix.toml` | `target = "ClaudeCode"` | yes | `agnixTarget` | the linted agent |

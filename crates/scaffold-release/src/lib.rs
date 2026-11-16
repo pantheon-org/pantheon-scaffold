@@ -4,7 +4,10 @@
 //! The command is `scaffold-release release-assets <version | check-tag <tag> | checksums <dir> <version>>`. It reads
 //! `pkl/PklProject` under the directory it is run from, so the workflow runs it from the checkout root.
 
+pub mod baseline;
+pub mod json;
 pub mod promote;
+pub mod smoke;
 pub mod update_pins;
 
 use std::io::Write;
@@ -201,6 +204,8 @@ pub fn run(args: &[String], root: &Path, out: &mut dyn Write, err: &mut dyn Writ
         Some((&"release-assets", rest)) => rest,
         Some((&"promote", rest)) => return promote::command(rest, root, out, err),
         Some((&"update-pins", rest)) => return update_pins::command(rest, root, out, err),
+        Some((&"smoke", rest)) => return smoke::command(rest, root, out, err),
+        Some((&"baseline", rest)) => return baseline::command(rest, root, out, err),
         _ => {
             let _ = writeln!(err, "{ALL_USAGE}");
             return 2;
@@ -216,6 +221,46 @@ pub fn run(args: &[String], root: &Path, out: &mut dyn Write, err: &mut dyn Writ
             let _ = writeln!(err, "{message}");
             1
         }
+    }
+}
+
+/// Helpers for the tests that write a script and run it.
+#[cfg(test)]
+pub(crate) mod testutil {
+    use std::os::unix::fs::PermissionsExt;
+    use std::path::Path;
+    use std::process::{Command, Stdio};
+
+    /// The line that makes a script do nothing when it is run as a probe.
+    const GUARD: &str = "[ -z \"${SCRIPT_PROBE:-}\" ] || exit 0\n";
+
+    /// Makes a script that was just written ready to run. Running a file fails with ETXTBSY ("text file busy") while any process still
+    /// holds it open for writing, and a test thread that forks at the wrong moment holds a copy of the descriptor until its own exec. So
+    /// the script gets a guard line that makes a probe run exit at once, and the probe is repeated until it is no longer refused.
+    pub(crate) fn settle(path: &Path) {
+        let text = std::fs::read_to_string(path).unwrap();
+        let (shebang, rest) = text
+            .split_once('\n')
+            .expect("a script starts with a shebang line");
+        std::fs::write(path, format!("{shebang}\n{GUARD}{rest}")).unwrap();
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        for _ in 0..500 {
+            let probe = Command::new(path)
+                .env("SCRIPT_PROBE", "1")
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status();
+            match probe {
+                Err(e) if e.raw_os_error() == Some(26) => {
+                    std::thread::sleep(std::time::Duration::from_millis(10));
+                }
+                other => {
+                    other.unwrap();
+                    return;
+                }
+            }
+        }
+        panic!("{} stayed busy for five seconds", path.display());
     }
 }
 
@@ -578,6 +623,26 @@ mod tests {
             assert_eq!(out, "", "{args:?}");
             assert_eq!(err, format!("{USAGE}\n"), "{args:?}");
         }
+    }
+
+    #[test]
+    fn the_baseline_and_smoke_commands_are_reached_through_run() {
+        let root = project("0.2.0");
+        let (code, out, err) = run_in(root.path(), &["baseline"]);
+        assert_eq!((code, out.as_str()), (2, ""));
+        assert!(
+            err.starts_with("usage: scaffold-release baseline snapshot"),
+            "{err}"
+        );
+        let (code, out, err) = run_in(root.path(), &["smoke"]);
+        assert_eq!((code, out.as_str()), (2, ""));
+        assert_eq!(err, format!("{}\n", smoke::USAGE));
+        let (code, _, err) = run_in(root.path(), &["baseline", "compare", "one"]);
+        assert_eq!(code, 2);
+        assert!(
+            err.starts_with("usage: scaffold-release baseline compare"),
+            "{err}"
+        );
     }
 
     #[test]

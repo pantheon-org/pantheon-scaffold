@@ -8,4 +8,15 @@ exclude_globs = ["crates/scaffold-features/**", "crates/scaffold-cli/src/main.rs
 # writes can only refuse if a file changes between the two calls. No test can cause that without a race; the guard is kept so that a
 # refusal in that case still removes the scaffold.pkl it wrote. The mutant that makes the guard always true behaves the same on every
 # run that reaches it. The mutant that makes it always false is caught (the successful write test).
-exclude_re = ["replace match guard done\\.refusals\\.is_empty\\(\\) with true in run_migrate"]
+
+# Phase 4 of docs/ts-tooling-rust-port.md (decision D3: say up front which functions are excluded). These functions only drive other
+# programs, the runner, pkl, unzip and a local web server, and what they check is a verdict about a real run. A mutation such as `&&`
+# to `||` in one of their checks changes nothing while the checks pass, and a test that would tell it needs the whole scenario, about
+# twenty seconds, for each of the 190 mutants: too slow for the 45 minute limit of the mutation job. They are proved another way, by
+# differential runs against the TypeScript originals on the three platforms (runner/scripts/smoke-diff.sh and baseline-diff.sh, with
+# inputs made to fail), and by the integration tests of crates/scaffold-release/tests/smoke.rs. The helpers around them are not excluded.
+exclude_re = [
+    "replace match guard done\\.refusals\\.is_empty\\(\\) with true in run_migrate",
+    "crates/scaffold-release/src/smoke\\.rs:\\d+:\\d+: .*\\b(in|replace) (suite|basics|render_flow|lock_flow|case_flow|orphan_clean|orphan_dirty)( |$)",
+    "crates/scaffold-release/src/baseline/packaged\\.rs:\\d+:\\d+: .*\\b(in|replace) (run|compare_set|check_zip|packaged)( |$)",
+]

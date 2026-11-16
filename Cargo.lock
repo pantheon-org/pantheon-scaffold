@@ -1210,6 +1210,7 @@ version = "0.0.0"
 dependencies = [
  "regex",
  "scaffold-core",
+ "serde",
  "serde_json",
  "sha2",
  "tempfile",

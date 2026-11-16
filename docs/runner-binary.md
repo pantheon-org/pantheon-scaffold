@@ -18,7 +18,7 @@ The Rust build downloads crates, whose versions `Cargo.lock` fixes (`--locked`) 
 
 ## Smoke suite
 
-`bun runner/scripts/smoke.ts <binary> [--version <x.y.z>] [--repo <checkout>]`
+`scaffold-release smoke <binary> [--version <x.y.z>] [--repo <checkout>]` (from `crates/scaffold-release`; `cargo build --release -p scaffold-release` makes it)
 
 It runs the compiled binary from a directory unrelated to the source tree, against the fixtures and the pkl package of a checkout, and needs `pkl` and `git` on the PATH. 16 checks:
 

@@ -49,7 +49,8 @@ const plumberTrustedActions: List<String> = List(
   "googleapis/release-please-action # Release automation (release-please.yml)",
   "peter-evans/find-comment # PR comment lookup (agnix.yml)",
   "peter-evans/create-or-update-comment # PR comment upsert (agnix.yml)",
-  "zizmorcore/zizmor-action # Workflow security scan (zizmor.yml); published by the zizmor project's own org, pinned by SHA")
+  "zizmorcore/zizmor-action # Workflow security scan (zizmor.yml); published by the zizmor project's own org, pinned by SHA",
+  "jdx/mise-action # mise setup (scaffold-check.yml, dist-check.yml, upgrade.yml); published by the mise project, pinned by SHA in Pins.pkl")
 const plumberTrustedUrls: List<String> = List("https://github.com/axodotdev/cargo-dist/releases/download/*", "https://sh.rustup.rs")
 
 // agnix (.agnix.toml)

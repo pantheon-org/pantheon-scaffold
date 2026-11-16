@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.2](https://github.com/pantheon-org/pantheon-scaffold/compare/v0.4.1...v0.4.2) (2026-11-16)
+
+
+### Features
+
+* **release:** build the runner with scaffold-release build-rust ([#142](https://github.com/pantheon-org/pantheon-scaffold/issues/142)) ([0d499f3](https://github.com/pantheon-org/pantheon-scaffold/commit/0d499f3472c0cd52d038effa0b419b20536d1927))
+
+
+### Bug Fixes
+
+* **pkl:** trust jdx/mise-action in the Plumber configuration ([#153](https://github.com/pantheon-org/pantheon-scaffold/issues/153)) ([d77a8ee](https://github.com/pantheon-org/pantheon-scaffold/commit/d77a8eeaf27cc84fcc82ddf6903904997e3f8041))
+
 ## [0.4.1](https://github.com/pantheon-org/pantheon-scaffold/compare/v0.4.0...v0.4.1) (2026-11-16)
 
 

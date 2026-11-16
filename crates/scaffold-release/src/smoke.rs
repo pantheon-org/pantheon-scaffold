@@ -86,7 +86,7 @@ struct Smoke<'a> {
 impl Smoke<'_> {
     fn fixture(&self, name: &str) -> String {
         self.repo
-            .join("runner/test/fixtures")
+            .join("crates/scaffold-package-tests/fixtures")
             .join(name)
             .join("scaffold.pkl")
             .to_string_lossy()
@@ -572,7 +572,7 @@ mod more_tests {
         assert_eq!(s.package(), "/r/pkl");
         assert_eq!(
             s.fixture("minimal"),
-            "/r/runner/test/fixtures/minimal/scaffold.pkl"
+            "/r/crates/scaffold-package-tests/fixtures/minimal/scaffold.pkl"
         );
     }
 

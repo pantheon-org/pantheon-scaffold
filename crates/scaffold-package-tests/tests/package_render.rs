@@ -29,7 +29,9 @@ fn the_rendered_workflows_carry_version_comments_and_still_equal_the_pinned_upst
             std::fs::read_to_string(repo.path().join(format!(".github/workflows/{name}.yml")))
                 .unwrap();
         assert!(version_comment.is_match(&text), "{name}");
-        let upstream = read(&format!("runner/test/upstream/workflows/{name}.yml"));
+        let upstream = read(&format!(
+            "crates/scaffold-package-tests/upstream/workflows/{name}.yml"
+        ));
         let comparison = compare_workflows(&unpin(&upstream), &unpin(&text)).unwrap();
         assert!(comparison.equal, "{name}: {:?}", comparison.differences);
         assert!(comparison.duplicate_keys.is_empty(), "{name}");

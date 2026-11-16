@@ -279,7 +279,7 @@ mod tests {
 
     #[test]
     fn the_minimal_fixture_evaluates_to_a_contract() {
-        let fixture = root().join("runner/test/fixtures/minimal/scaffold.pkl");
+        let fixture = root().join("crates/scaffold-package-tests/fixtures/minimal/scaffold.pkl");
         let json = eval_contract_json(&fixture, &root(), &EvalOptions::default()).unwrap();
         assert_eq!(json["schemaVersion"], 2);
         assert!(json["files"].as_array().unwrap().len() >= 4);
@@ -288,7 +288,7 @@ mod tests {
     // The two "restricted resources" tests of the TypeScript contract tests, deleted in Phase 7e (docs/ts-tooling-test-mapping.md). The fixture reads /etc/hosts.
     #[test]
     fn a_scaffold_pkl_cannot_read_arbitrary_files() {
-        let fixture = root().join("runner/test/fixtures/read-file/scaffold.pkl");
+        let fixture = root().join("crates/scaffold-package-tests/fixtures/read-file/scaffold.pkl");
         let error = eval_contract_json(&fixture, &root(), &EvalOptions::default()).unwrap_err();
         assert!(
             error.to_string().contains("Refusing to read resource"),
@@ -298,7 +298,7 @@ mod tests {
 
     #[test]
     fn allowing_files_under_the_package_folder_does_not_open_the_rest_of_the_disk() {
-        let fixture = root().join("runner/test/fixtures/read-file/scaffold.pkl");
+        let fixture = root().join("crates/scaffold-package-tests/fixtures/read-file/scaffold.pkl");
         let opts = EvalOptions {
             allow_files_under: vec![root().join("pkl")],
             ..EvalOptions::default()

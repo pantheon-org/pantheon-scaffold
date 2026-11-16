@@ -28,7 +28,9 @@ fn rendered(repo: &str) -> &'static Value {
 }
 
 fn upstream(repo: &str, path: &str) -> String {
-    read(&format!("runner/test/upstream/phase5/{repo}/{path}"))
+    read(&format!(
+        "crates/scaffold-package-tests/upstream/phase5/{repo}/{path}"
+    ))
 }
 
 const BLOBS: [(&str, &str, &str); 14] = [

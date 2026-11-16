@@ -14,7 +14,7 @@ static KIT: LazyLock<Value> = LazyLock::new(|| render("workflows-b-kit"));
 static AUDITOR: LazyLock<Value> = LazyLock::new(|| render("workflows-b-auditor"));
 
 fn text(rel: &str) -> String {
-    read(&format!("runner/test/upstream/{rel}"))
+    read(&format!("crates/scaffold-package-tests/upstream/{rel}"))
 }
 
 // The pinned copies: pantheon-adr at 1e2fd46 (the other two repositories with a binary and a skill have the same blobs, except for a comment

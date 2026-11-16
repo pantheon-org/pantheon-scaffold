@@ -5,7 +5,7 @@ use scaffold_package_tests::parse_yaml;
 use scaffold_package_tests::pkg::read;
 use serde_json::{Value, json};
 
-const PATH: &str = "runner/test/fixtures/consumer-check.yml";
+const PATH: &str = "crates/scaffold-package-tests/fixtures/consumer-check.yml";
 
 fn text() -> String {
     read(PATH)

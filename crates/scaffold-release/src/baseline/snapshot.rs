@@ -1,7 +1,7 @@
 //! Renders a pantheon-scaffold tree with one binary and writes what came out, one JSON file per configuration. Ported from
 //! `runner/scripts/builtins-baseline/snapshot.ts`: the folder it writes is byte for byte the one the TypeScript writes.
 //!
-//! Configurations: the tree's own `scaffold.pkl`, every `runner/test/fixtures/*/scaffold.pkl`, and an option matrix written into
+//! Configurations: the tree's own `scaffold.pkl`, every `crates/scaffold-package-tests/fixtures/*/scaffold.pkl` (or `runner/test/fixtures/*/scaffold.pkl` in a tree from before they moved), and an option matrix written into
 //! `<out dir>/_matrix` (skills, binary, compositeAction, features, plus error paths), all built on the tree's `pkl/` folder. Per
 //! configuration: the exit code, stdout and stderr of `contract`, `render` and `check`, every file written (path, mode, sha256) and the
 //! manifest as text. The tree path and the render directory are replaced by placeholders.
@@ -299,6 +299,16 @@ pub(super) fn placeholders_for_test(text: &str) -> String {
 }
 
 /// Renders every configuration and writes the snapshot. Returns the exit code.
+/// The folder of fixture configurations in a tree: the crate that holds them, or, in a tree from before they moved, `runner/test/fixtures`.
+fn fixtures_dir(tree: &Path) -> PathBuf {
+    let moved = tree.join("crates/scaffold-package-tests/fixtures");
+    if moved.is_dir() {
+        moved
+    } else {
+        tree.join("runner/test/fixtures")
+    }
+}
+
 pub fn snapshot(args: &Args, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     match snapshot_inner(args, out) {
         Ok(()) => 0,
@@ -330,7 +340,7 @@ fn snapshot_inner(args: &Args, out: &mut dyn Write) -> Result<(), String> {
     if tree.join("scaffold.pkl").exists() {
         configs.push(("root".to_owned(), tree.join("scaffold.pkl")));
     }
-    let fixtures = tree.join("runner/test/fixtures");
+    let fixtures = fixtures_dir(tree);
     let mut names: Vec<String> = std::fs::read_dir(&fixtures)
         .map_err(io(&fixtures))?
         .filter_map(|e| e.ok().map(|e| e.file_name().to_string_lossy().into_owned()))

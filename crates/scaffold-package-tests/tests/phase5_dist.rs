@@ -104,7 +104,7 @@ fn dist_check_yml_uses_no_secrets_reads_contents_only_pins_every_action_and_keep
 #[test]
 fn scaffold_check_yml_equals_the_consumer_check_sample_under_p1_with_the_pins_masked_and_the_directive_comments()
  {
-    let sample = read("runner/test/fixtures/consumer-check.yml");
+    let sample = read("crates/scaffold-package-tests/fixtures/consumer-check.yml");
     let mine = content(&ADR, CHECK);
     let result = compare_workflows(&unpin(&sample), &unpin(mine)).unwrap();
     assert!(result.equal, "{:?}", result.differences);

@@ -21,7 +21,7 @@ What a repository renders is checked by `runner/scripts/builtins-baseline/` (55 
 
 ## Write a scenario
 
-The step definitions are in `crates/scaffold-features/tests/features.rs`. They stay thin and say nothing about the language of the runner. A command line may use `<repo>` (the repository under test), `<package>` (this repository's `pkl` folder) and `<fixture:NAME>` (the `scaffold.pkl` in the fixture folder of that name under `runner/test/fixtures`). In a file written with `I write "..." to the file "..."`, `\n` is a newline.
+The step definitions are in `crates/scaffold-features/tests/features.rs`. They stay thin and say nothing about the language of the runner. A command line may use `<repo>` (the repository under test), `<package>` (this repository's `pkl` folder) and `<fixture:NAME>` (the `scaffold.pkl` in the fixture folder of that name under `crates/scaffold-package-tests/fixtures`). In a file written with `I write "..." to the file "..."`, `\n` is a newline.
 
 | File | What it covers |
 |---|---|

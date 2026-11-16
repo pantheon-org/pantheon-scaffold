@@ -56,7 +56,8 @@ fn actionlint_yaml_is_byte_for_byte_the_pinned_pantheon_adr_file_owned_and_not_e
 #[test]
 fn dist_workspace_toml_is_the_pantheon_adr_file_with_exactly_the_two_action_commits_that_release_yml_uses()
  {
-    let upstream = read("runner/test/upstream/phase5/pantheon-adr/dist-workspace.toml");
+    let upstream =
+        read("crates/scaffold-package-tests/upstream/phase5/pantheon-adr/dist-workspace.toml");
     assert_eq!(
         git_blob_sha(&upstream),
         "e08f6a76e797aebe650685131f709dc53e0dcb20"
@@ -82,7 +83,7 @@ fn dist_workspace_toml_is_the_pantheon_adr_file_with_exactly_the_two_action_comm
 #[test]
 fn gitignore_is_the_pantheon_adr_file_plus_exactly_the_line_pkl_gen_cache_owned_and_not_executable()
 {
-    let upstream = read("runner/test/upstream/phase5/pantheon-adr/.gitignore");
+    let upstream = read("crates/scaffold-package-tests/upstream/phase5/pantheon-adr/.gitignore");
     assert_eq!(
         git_blob_sha(&upstream),
         "66e8098804d3b4b7ddc5cf4f00cfa8dd94d2c49f"

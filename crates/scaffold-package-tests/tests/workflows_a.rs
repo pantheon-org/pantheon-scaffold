@@ -27,7 +27,9 @@ const WORKFLOWS: [(&str, &str); 6] = [
 ];
 
 fn upstream(name: &str) -> String {
-    read(&format!("runner/test/upstream/workflows/{name}.yml"))
+    read(&format!(
+        "crates/scaffold-package-tests/upstream/workflows/{name}.yml"
+    ))
 }
 
 fn rendered(name: &str) -> &'static str {

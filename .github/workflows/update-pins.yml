@@ -4,38 +4,27 @@ name: update-pins
 # then records the date of the last successful check on the `freshness` branch. A failed check writes neither, so a failing check never reads as fresh.
 # Writes use the pantheon-ai-bot App token (contents and pull-requests write), so the pull request starts the required checks.
 #
-# Phase 3 of docs/ts-tooling-rust-port.md: the tool is the Rust one (crates/scaffold-release). It is built in a job of its own that can read the
-# repository and nothing else, and the update job downloads it and checks its checksum before it runs it.
-# A manual run is a dry run unless told otherwise: it checks every pin with both tools, writes nothing, and fails if the two disagree. A real run
-# (the schedule, or a manual run with dry_run off) uses the Rust tool, or the TypeScript one when `implementation` says so, which is the way back.
+# Phases 3 and 6b of docs/ts-tooling-rust-port.md: the tool is the Rust one (crates/scaffold-release), and the only one. It is built in a job of
+# its own that can read the repository and nothing else, and the update job downloads it and checks its checksum before it runs it.
+# A manual run is a dry run unless told otherwise: it checks every pin, writes nothing and mints no token. A real run is the schedule, or a
+# manual run with dry_run off.
 # There is no push trigger on purpose. It used to run the workflow when the workflow or its tool changed on main, and so merging the change that
-# moved the tool would have started a real run, with the App token, of a tool nobody had watched run yet. Restore it after the first real run.
+# moved the tool would have started a real run, with the App token, of a tool nobody had watched run yet. A later change may restore it.
 on:
   schedule:
     - cron: "23 4 * * 1"
   workflow_dispatch:
     inputs:
       dry_run:
-        description: Check every pin with both tools and write nothing (no pull request, no freshness record)
+        description: Check every pin and write nothing (no pull request, no freshness record)
         type: boolean
         default: true
-      implementation:
-        description: Which tool writes in a real run. A dry run runs both
-        type: choice
-        options:
-          - rust
-          - typescript
-        default: rust
 
 permissions: {}
 
 concurrency:
   group: update-pins
   cancel-in-progress: false
-
-env:
-  # mise cannot lock Rust, so `mise install --locked` must skip it. Jobs that need Rust install it with rustup (see rust-toolchain.toml).
-  MISE_DISABLE_TOOLS: rust
 
 jobs:
   # The release tool is built here, in a job that can read the repository and nothing else: no write permission and no token in its
@@ -101,49 +90,18 @@ jobs:
         run: |
           echo "$EXPECTED  tool/scaffold-release" | sha256sum --check --strict -
           chmod +x tool/scaffold-release
-      # mise and bun are needed only by the TypeScript tool: in a dry run, which runs both, and when a real run asks for it.
-      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
-        if: ${{ github.event_name == 'workflow_dispatch' && (inputs.dry_run || inputs.implementation == 'typescript') }}
-        with:
-          version: 2026.10.25
-          install: false
-          cache: false
-      - name: Install the pinned tools from the lock file
-        if: ${{ github.event_name == 'workflow_dispatch' && (inputs.dry_run || inputs.implementation == 'typescript') }}
-        run: mise install --locked
-      # Both tools run, the Rust one is the answer, and a difference between them fails the job. The TypeScript tool goes when Phase 6 of
-      # docs/ts-tooling-rust-port.md deletes it.
-      - name: Check every pin with both tools, write nothing
+      # A dry run checks every pin and writes nothing. It prints the pins it checked and the moves it would make, in the log of this step.
+      - name: Check every pin, write nothing
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          rust_code=0
-          tool/scaffold-release update-pins --no-write > "$RUNNER_TEMP/rust.out" 2> "$RUNNER_TEMP/rust.err" || rust_code=$?
-          ts_code=0
-          mise x -- bun runner/scripts/update-pins.ts --no-write > "$RUNNER_TEMP/ts.out" 2> "$RUNNER_TEMP/ts.err" || ts_code=$?
-          cat "$RUNNER_TEMP/rust.out"
-          cat "$RUNNER_TEMP/rust.err" >&2
-          if [ "$rust_code" != "$ts_code" ] || ! cmp -s "$RUNNER_TEMP/rust.out" "$RUNNER_TEMP/ts.out" || ! cmp -s "$RUNNER_TEMP/rust.err" "$RUNNER_TEMP/ts.err"; then
-            echo "The Rust and the TypeScript tool disagree (exit $rust_code and $ts_code). The TypeScript tool printed:" >&2
-            cat "$RUNNER_TEMP/ts.out" "$RUNNER_TEMP/ts.err" >&2
-            exit 1
-          fi
-          exit "$rust_code"
+        run: tool/scaffold-release update-pins --no-write
       - name: Check every pin and rewrite the ones that moved
-        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry_run) && inputs.implementation != 'typescript' }}
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           tool/scaffold-release update-pins \
-            --freshness-out "$RUNNER_TEMP/freshness.json" --summary "$RUNNER_TEMP/summary.md"
-      # The way back: the TypeScript tool, as before Phase 3.
-      - name: Check every pin and rewrite the ones that moved (TypeScript)
-        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry_run) && inputs.implementation == 'typescript' }}
-        env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: |
-          mise x -- bun runner/scripts/update-pins.ts \
             --freshness-out "$RUNNER_TEMP/freshness.json" --summary "$RUNNER_TEMP/summary.md"
       - name: Open or update the pin pull request
         if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry_run) }}

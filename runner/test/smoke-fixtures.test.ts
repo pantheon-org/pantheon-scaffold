@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { join } from "node:path";
 import { evalContractJson } from "./support/contract";
 
-// The fixtures the compiled-binary smoke suite (runner/scripts/smoke.ts) renders. Kept honest here, where bun test can see them.
+// The fixtures the compiled-binary smoke suite (`scaffold-release smoke`) renders. Kept honest here, where bun test can see them.
 const root = join(import.meta.dir, "../..");
 const paths = async (name: string) =>
   ((await evalContractJson(join(import.meta.dir, "fixtures", name, "scaffold.pkl"), root, { allowFilesUnder: [join(root, "pkl")] })) as { files: { path: string }[] }).files.map((f) => f.path);

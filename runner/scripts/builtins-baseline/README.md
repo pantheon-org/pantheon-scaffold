@@ -4,14 +4,15 @@ These scripts render a tree's own `scaffold.pkl`, every `runner/test/fixtures/*/
 result with a baseline render field by field. They are how the Builtins split (pull request 116) and the presence work show that the default render
 did not change: same binary, same inputs, only `pkl/` differs.
 
-| Script | What it does |
+| Command | What it does |
 |---|---|
-| `snapshot.ts` | Renders a tree (`snapshot.ts <tree> <binary> <out dir> [--api old\|new]`) into one JSON file per configuration: exit codes, stdout, stderr, files (path, mode, sha256) and the manifest. `--api` is how the matrix calls the aggregators that gained a parameter. |
-| `compare.ts` | Compares two snapshot folders. pkl stack frames, line numbers and source snippets may differ; nothing else may. Exit 1 on any difference. |
-| `check.sh` | `snapshot.ts` on the current directory, then `compare.ts` against a baseline. |
-| `packaged.ts` | Builds the package, serves it locally in place of GitHub, renders through the package URI and compares it with the folder render. |
+| `scaffold-release baseline snapshot` | Renders a tree (`snapshot <tree> <binary> <out dir> [--api old\|new]`) into one JSON file per configuration: exit codes, stdout, stderr, files (path, mode, sha256) and the manifest. `--api` is how the matrix calls the aggregators that gained a parameter. |
+| `scaffold-release baseline compare` | Compares two snapshot folders, or a frozen baseline with a folder. pkl stack frames, line numbers and source snippets may differ; nothing else may. Exit 1 on any difference. |
+| `scaffold-release baseline freeze` | Writes the frozen form of a snapshot folder (`baseline.json`). |
+| `scaffold-release baseline check` | `snapshot` on the current directory, then `compare` against a baseline. |
+| `scaffold-release baseline packaged` | Builds the package, serves it locally in place of GitHub, renders through the package URI and compares it with the folder render. |
 
-Run them with `command bun` (`bun` is an alias in some shells).
+The commands are in `crates/scaffold-release`; `cargo build -p scaffold-release` makes the binary. They were TypeScript scripts (`snapshot.ts`, `compare.ts`, `freeze.ts`, `packaged.ts` and `check.sh`) until Phase 6 of `docs/ts-tooling-rust-port.md` deleted them; the Rust ones wrote the same snapshot folders byte for byte, which was checked on every pull request until then.
 
 ## Making the baseline
 
@@ -45,7 +46,7 @@ It was made from main at 1259a90, where it equalled the baseline above (0 differ
 scaffold-release baseline freeze /tmp/baseline > runner/scripts/builtins-baseline/baseline.json
 ```
 
-The `baseline` job of `.github/workflows/ci.yml` builds the Rust runner, renders the 61 configurations with `scaffold-release baseline snapshot` and compares them with `baseline.json` using `scaffold-release baseline compare`; it then runs `runner/scripts/baseline-diff.sh`, which runs these scripts and the TypeScript ones (`snapshot.ts`, `compare.ts`, `freeze.ts`, `packaged.ts`, `check.sh`, kept here as the reference until Phase 6 of `docs/ts-tooling-rust-port.md` deletes them) on the same tree and fails on any difference.
+The `baseline` job of `.github/workflows/ci.yml` builds the Rust runner, renders the 61 configurations with `scaffold-release baseline snapshot` and compares them with `baseline.json` using `scaffold-release baseline compare`.
 Run the same two commands locally to check a change:
 
 ```bash

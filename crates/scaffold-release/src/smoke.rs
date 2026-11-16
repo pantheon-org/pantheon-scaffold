@@ -1,5 +1,5 @@
 //! Smoke suite for a compiled runner binary. Ported from `runner/scripts/smoke.ts` (Phase 4 of `docs/ts-tooling-rust-port.md`): the checks,
-//! their names and their order, and the lines it prints, are the TypeScript's, so the two can be compared (`runner/scripts/smoke-diff.sh`).
+//! their names and their order, and the lines it prints, were the TypeScript's, so the two could be compared on three platforms before Phase 6 deleted the TypeScript.
 //!
 //! It runs the binary from a directory unrelated to the source tree, so anything the binary needs (the schema, the version) has to be inside
 //! it. It needs `pkl` and `git` on the PATH and a checkout of this repository for the pkl package and the fixtures. Run it on every target:

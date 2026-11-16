@@ -4,7 +4,7 @@
 //! Every guard runs before anything is edited, and each is recorded. The edit is the flag, the title and the notes: the assets are
 //! never touched. After it the same checks run again, and the checksums file must be byte for byte the one that was attested before
 //! the edit. The guards, their order, the calls made to `gh` and the report lines follow the TypeScript, so the two can be compared
-//! (`runner/scripts/promote-diff.sh`).
+//! (which Phase 6 deleted, with the differential script that compared it with this).
 
 use std::cell::Cell;
 use std::io::Write;

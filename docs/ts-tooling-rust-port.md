@@ -1,6 +1,6 @@
 # Plan: port the remaining TypeScript tooling to Rust
 
-**Status (15-11-2026): draft 2, revised after a three-lens review (Technical, Strategic, Risk). The owner chose to port everything (D0 and D1) and named themselves for D5 (see "Decisions for the owner"). Phases 0 to 4 are done and merged; the gate after Phase 2 was decided go on 15-11-2026 (see "The gate after Phase 2"). Phase 5 is in progress.** Written against `origin/main` at `8eae6ad`.
+**Status (15-11-2026): draft 2, revised after a three-lens review (Technical, Strategic, Risk). The owner chose to port everything (D0 and D1) and named themselves for D5 (see "Decisions for the owner"). Phases 0 to 5 are done and merged; the gate after Phase 2 was decided go on 15-11-2026 (see "The gate after Phase 2"). Phase 6 is in progress.** Written against `origin/main` at `8eae6ad`.
 
 ## Why, and the case against
 
@@ -31,7 +31,7 @@ The Rust crates have a module with the same name as most of the TypeScript modul
 
 | TypeScript file | Lines | Rust counterpart today | Action |
 |---|---|---|---|
-| `src/checksums.ts` | 34 | `scaffold-core/checksums.rs` | Phase 0 parity check; delete in Phase 6 |
+| `src/checksums.ts` | 34 | `scaffold-core/checksums.rs` | Phase 0 parity check; **deleted in Phase 6** |
 | `src/semver.ts` | 31 | `semver.rs` | Phase 0; delete in Phase 6 |
 | `src/contract.ts`, `src/schema.ts` | 40, 45 | `contract.rs`, `schema.rs` | Phase 0; delete in Phase 7 (the package tests import them) |
 | `src/manifest.ts` | 43 | `manifest.rs` | Phase 0; delete in Phase 6. Rust hashes text only, and release and promote hash files, so a bytes variant is needed |
@@ -98,7 +98,7 @@ One pull request per phase, each from a branch cut from fast-forwarded `main`. I
 | 3 | Fresh port of `update-pins` and `pinupdate` (see the table). Add a `dry_run` input to `update-pins.yml` in the same pull request. Update the `paths:` filter of that workflow, which lists the TypeScript files | A run with `dry_run` before merge; the merge itself does not trigger a writing run (drop the `push` trigger for that commit) | about 1.5 days |
 | 4 | Port `smoke` and the four baseline scripts with `check.sh`. Choose an HTTP server for `packaged` using the Phase 0 `cargo-deny` answer. `smoke-fixtures.test.ts` needs the harness that Phase 7 replaces, so the Phase 7 design (a cargo test on `contract --json`) must exist before this phase ports it | `smoke` and the 55-configuration baseline pass on all three platforms | about 1 day |
 | 5 | Port `build-rust` (zig wrapper scripts, build, static-link check), and give `TARGETS` and `binaryName` a Rust home. **Decided by the owner on 16-11-2026: `release.ts` and `build-rust.ts` stay as the reference until Phase 6**, as in Phases 1 to 4, because `release.ts` still has users that belong to other phases (`release-assets.ts` and `release-assets-diff.sh`, `package-uri.test.ts`, `promote.test.ts`, `release.test.ts`). The D5 deadline still holds | Byte-identity: a binary built by the Rust tool equals one built by the TypeScript tool from the same commit, on all three targets (release-process.md says builds are reproducible from one commit). The `ci.yml` rust-binary job already builds and smoke-tests it on every pull request | about 1 day |
-| 6 | Delete the duplicated TypeScript modules, `known-bad.bundled.json`, and the T1 tests, with the mapping file as evidence. **Gated on one real tagged release and one real promotion made by the Rust tools** | `grep` finds no import of a deleted module | about half a day |
+| 6 | Delete the duplicated TypeScript modules, `known-bad.bundled.json`, and the T1 tests, with the mapping file as evidence. **Gated on one real tagged release and one real promotion made by the Rust tools** (met by v0.4.0 on 15-11-2026). **Decided by the owner on 16-11-2026: Phase 6 deletes `release-assets.ts`, `promote.ts` (script and module), `smoke.ts`, `build-rust.ts`, the baseline scripts and `check.sh`, `knownbad.ts` with `known-bad.bundled.json`, `checksums.ts`, their tests (`build-rust`, `checksums`, `knownbad`, `promote`, and `release.test.ts` except `pklProjectVersion`), the five differential scripts and the `implementation` input of `promote.yml`; `release.ts` is cut down to `pklProjectVersion`. Phase 6b, after the first real writing run of the Rust update-pins, deletes `pinupdate.ts`, `update-pins.ts`, `freshness.ts` (`pinupdate.test.ts` imports it), their tests, `update-pins-diff.sh`, the fake API and the `implementation` input of `update-pins.yml`. `contract`, `schema`, `manifest`, `preflight`, `semver` and `equality` stay until Phase 7: the package tests import them, and `package-uri.test.ts` also imports `preflight` and `pklProjectVersion`** | `grep` finds no import of a deleted module | about half a day |
 | 7 | Port T3 (D1: no TypeScript is left). The tests become a cargo integration test on `contract --json`. Move fixtures only together with the three Rust call sites that read them | No `.ts` file is left under `runner/` | 2 to 3 days |
 | 8 | If bun is gone: remove the `bun` pin from `mise.toml`, **regenerate `mise.lock`** (it carries `[[tools.bun]]` entries), delete `runner/package.json` and the `bun test` steps. Update the docs below | `grep -rn bun` finds only history | about 3 hours |
 
@@ -149,9 +149,9 @@ Phase 6 still waits for Phases 4 and 5, because the TypeScript release code is i
 | File | What calls bun today | Phase |
 |---|---|---|
 | `release.yml` | `bun test` (the `package` job). The release assets (Phase 1), the smoke suite (Phase 4) and the runner build (Phase 5) run `scaffold-release` | 8 |
-| `promote.yml` | `promote.ts check` and `promote.ts promote` | 2 |
+| `promote.yml` | none: the Rust tool only since Phase 2, and the TypeScript way back was deleted in Phase 6 | |
 | `update-pins.yml` | `update-pins.ts`, and `on.push.paths` lists `runner/scripts/update-pins.ts` and `runner/src/pinupdate.ts` | 3 |
-| `ci.yml` | `bun test`, and actionlint on `runner/test/fixtures/consumer-check.yml`. The baseline, smoke and runner build steps run `scaffold-release` since Phases 4 and 5; the TypeScript `snapshot.ts`, `compare.ts`, `freeze.ts`, `packaged.ts`, `check.sh`, `smoke.ts` and `build-rust.ts` run only inside `baseline-diff.sh`, `smoke-diff.sh` and `build-rust-diff.sh` until Phase 6 | 8, 7, 6 |
+| `ci.yml` | `bun test`, and actionlint on `runner/test/fixtures/consumer-check.yml`. The baseline, smoke and runner build steps run `scaffold-release` since Phases 4 and 5, and the TypeScript twins and their differential scripts were deleted in Phase 6. Only `update-pins-diff.sh` remains, until Phase 6b | 8, 7, 6b |
 
 `release.yml` (the `prepare` and `Attest and publish` jobs), `promote.yml` and `update-pins.yml` install no Rust today. Each needs the artifact download from D2, not a toolchain step.
 

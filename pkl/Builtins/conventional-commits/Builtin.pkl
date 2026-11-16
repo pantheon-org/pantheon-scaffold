@@ -5,54 +5,76 @@
 @ModuleInfo { minPklVersion = "0.32.0" }
 module pantheon.scaffold.builtins.ConventionalCommits
 
+import "../../Config.pkl"
 import "../../Workflows.pkl"
 
 /// Checks that the pull request title is a conventional commit. The job name is the required status check, so it must not change.
-function workflow(): Workflows.Workflow = new {
-  header = #"""
-    Pull requests are squash-merged, so the title becomes the commit message on
-    main and is what release-please parses to pick the version bump and write
-    the changelog. A malformed title produces a wrong bump or no release at all,
-    silently.
-
-    The allowed types are copied into the regex below from .github/commit-types.txt.
-    The copy is deliberate: this runs on pull_request_target, where the workflow
-    has a privileged token, so it checks out nothing and reads only the event
-    payload. .github/scripts/check-commit-types.sh fails if the copy drifts, and
-    the Commit Types workflow runs that check on pull requests.
-    """#
-  name = "Conventional Commit Title"
-  onComment = "zizmor: ignore[dangerous-triggers] reads only the PR title; checks out and runs no PR code"
-  on = new Mapping<String, Any?> {
-    ["pull_request_target"] = new Mapping {
-      ["types"] = new Listing { "opened"; "edited"; "reopened"; "synchronize" }
+///
+/// The event is `options.conventionalCommitsEvent`. `pull_request_target` renders the same workflow as pantheon-adr has. `pull_request`
+/// (the default) renders the same job and steps on the event GitHub does not block by default: the check reads only the title and needs no token.
+function workflow(opts: Config.Options): Workflows.Workflow =
+  let (target = opts.conventionalCommitsEvent == "pull_request_target")
+  new {
+    header = if (target) targetHeader else pullRequestHeader
+    name = "Conventional Commit Title"
+    onComment = if (target) "zizmor: ignore[dangerous-triggers] reads only the PR title; checks out and runs no PR code" else null
+    on = new Mapping<String, Any?> {
+      [opts.conventionalCommitsEvent] = new Mapping {
+        ["types"] = new Listing { "opened"; "edited"; "reopened"; "synchronize" }
+      }
     }
-  }
-  permissions = new Mapping {}
-  concurrency = new Mapping {
-    ["group"] = "${{ github.workflow }}-${{ github.event.pull_request.number }}"
-    ["cancel-in-progress"] = true
-  }
-  jobs {
-    ["title"] {
-      name = "Conventional Commit Title"
-      `timeout-minutes` = 5
-      steps {
-        new {
-          name = "Check the pull request title"
-          env = new Mapping { ["PR_TITLE"] = "${{ github.event.pull_request.title }}" }
-          run = #"""
-            pattern='^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([[:alnum:]][[:alnum:]./_-]*\))?!?: [[:lower:]](.*[[:graph:]])?$'
-            if [[ ! "$PR_TITLE" =~ $pattern ]]; then
-              echo "::error title=Invalid pull request title::The title does not match the required format."
-              printf 'Received title: %q\n' "$PR_TITLE"
-              echo "Use: <type>[optional scope][optional !]: <summary starting lowercase>"
-              echo "Types: build chore ci docs feat fix perf refactor revert style test"
-              exit 1
-            fi\#n
-            """#
+    permissions = new Mapping {}
+    concurrency = new Mapping {
+      ["group"] = "${{ github.workflow }}-${{ github.event.pull_request.number }}"
+      ["cancel-in-progress"] = true
+    }
+    jobs {
+      ["title"] {
+        name = "Conventional Commit Title"
+        `timeout-minutes` = 5
+        steps {
+          new {
+            name = "Check the pull request title"
+            env = new Mapping { ["PR_TITLE"] = "${{ github.event.pull_request.title }}" }
+            run = #"""
+              pattern='^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([[:alnum:]][[:alnum:]./_-]*\))?!?: [[:lower:]](.*[[:graph:]])?$'
+              if [[ ! "$PR_TITLE" =~ $pattern ]]; then
+                echo "::error title=Invalid pull request title::The title does not match the required format."
+                printf 'Received title: %q\n' "$PR_TITLE"
+                echo "Use: <type>[optional scope][optional !]: <summary starting lowercase>"
+                echo "Types: build chore ci docs feat fix perf refactor revert style test"
+                exit 1
+              fi\#n
+              """#
+          }
         }
       }
     }
   }
-}
+
+local targetHeader: String = #"""
+  Pull requests are squash-merged, so the title becomes the commit message on
+  main and is what release-please parses to pick the version bump and write
+  the changelog. A malformed title produces a wrong bump or no release at all,
+  silently.
+
+  The allowed types are copied into the regex below from .github/commit-types.txt.
+  The copy is deliberate: this runs on pull_request_target, where the workflow
+  has a privileged token, so it checks out nothing and reads only the event
+  payload. .github/scripts/check-commit-types.sh fails if the copy drifts, and
+  the Commit Types workflow runs that check on pull requests.
+  """#
+
+local pullRequestHeader: String = #"""
+  Pull requests are squash-merged, so the title becomes the commit message on
+  main and is what release-please parses to pick the version bump and write
+  the changelog. A malformed title produces a wrong bump or no release at all,
+  silently.
+
+  The allowed types are copied into the regex below from .github/commit-types.txt.
+  The copy is deliberate: this runs on pull_request, which needs no token and no
+  checkout, so it reads only the event payload. GitHub blocks pull_request_target
+  on public repositories by default; set options.conventionalCommitsEvent to
+  pull_request_target to use it. .github/scripts/check-commit-types.sh fails if
+  the copy drifts, and the Commit Types workflow runs that check on pull requests.
+  """#

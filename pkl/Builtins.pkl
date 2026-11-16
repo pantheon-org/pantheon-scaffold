@@ -110,7 +110,7 @@ function releaseBump(opts: Config.Options): Workflows.Workflow = releaseBumpBuil
 function commitTypes(): Workflows.Workflow = commitTypesBuiltin.workflow()
 
 /// Checks that the pull request title is a conventional commit. The job name is the required status check, so it must not change.
-function conventionalCommits(): Workflows.Workflow = conventionalCommitsBuiltin.workflow()
+function conventionalCommits(opts: Config.Options): Workflows.Workflow = conventionalCommitsBuiltin.workflow(opts)
 
 /// The verbatim config files the wave A workflows use, from pantheon-adr at 1e2fd46.
 function workflowFiles(opts: Config.Options): Mapping<String, GenFiles.GenFile> =
@@ -200,7 +200,7 @@ function standardWorkflows(opts: Config.Options): Mapping<String, Workflows.Work
     when (p.has("release-automerge")) { ["release-automerge"] = releaseAutomerge(opts) }
     when (opts.versionFile != null && p.has("release-bump")) { ["release-bump"] = releaseBump(opts) }
     when (p.has("commit-types")) { ["commit-types"] = commitTypes() }
-    when (p.has("conventional-commits")) { ["conventional-commits"] = conventionalCommits() }
+    when (p.has("conventional-commits")) { ["conventional-commits"] = conventionalCommits(opts) }
     when (p.has("release-please")) { ["release-please"] = releasePlease(opts) }
     when (p.has("zizmor")) { ["zizmor"] = zizmor(opts) }
     when (p.has("agnix")) { ["agnix"] = agnix(opts) }

@@ -4,13 +4,14 @@
 # silently.
 #
 # The allowed types are copied into the regex below from .github/commit-types.txt.
-# The copy is deliberate: this runs on pull_request_target, where the workflow
-# has a privileged token, so it checks out nothing and reads only the event
-# payload. .github/scripts/check-commit-types.sh fails if the copy drifts, and
-# the Commit Types workflow runs that check on pull requests.
+# The copy is deliberate: this runs on pull_request, which needs no token and no
+# checkout, so it reads only the event payload. GitHub blocks pull_request_target
+# on public repositories by default; set options.conventionalCommitsEvent to
+# pull_request_target to use it. .github/scripts/check-commit-types.sh fails if
+# the copy drifts, and the Commit Types workflow runs that check on pull requests.
 name: Conventional Commit Title
-'on': # zizmor: ignore[dangerous-triggers] reads only the PR title; checks out and runs no PR code
-  pull_request_target:
+'on':
+  pull_request:
     types:
     - opened
     - edited

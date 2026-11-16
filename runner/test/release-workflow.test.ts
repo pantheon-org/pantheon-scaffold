@@ -148,14 +148,14 @@ test("the runner is built on a machine of each target, in a matrix, and a failur
   expect((wf.jobs.smoke as Job & { strategy: { matrix: { include: unknown[] } } }).strategy.matrix.include).toEqual(targets);
 });
 
-test("each build installs the pinned Rust toolchain, builds with the shared script, and uploads its own binary", () => {
+test("each build installs the pinned Rust toolchain, builds with the release tool, and uploads its own binary", () => {
   const steps = wf.jobs.build.steps;
   const toolchain = steps.find((s) => s.run?.includes("rustup toolchain install"));
   // Every version in the step, the one installed and the one made the default, is the one rust-toolchain.toml pins.
   const channel = /channel\s*=\s*"([^"]+)"/.exec(readFileSync(join(import.meta.dir, "../../rust-toolchain.toml"), "utf8"))?.[1];
   expect(channel).toMatch(/^\d+\.\d+\.\d+$/);
   expect(toolchain?.run?.match(/\d+\.\d+\.\d+/g)).toEqual([channel, channel]);
-  const build = steps.find((s) => s.run?.includes("build-rust.ts"));
+  const build = steps.find((s) => s.run?.includes("scaffold-release build-rust"));
   expect(build?.run).toContain('--target "${{ matrix.target }}"');
   expect(build?.run).toContain('--version "$VERSION"');
   const upload = steps.find((s) => s.uses?.startsWith("actions/upload-artifact@"));
@@ -223,7 +223,7 @@ test("smoke tests the binary built for its own target, and the release gets the 
 
 test("the release workflow and the pull request checks build the binary with the same script", () => {
   const ci = readFileSync(join(import.meta.dir, "../../.github/workflows/ci.yml"), "utf8");
-  expect(ci).toContain("runner/scripts/build-rust.ts");
+  expect(ci).toContain("scaffold-release build-rust --target");
   expect(ci).toContain("scaffold-release smoke");
 });
 
@@ -236,6 +236,30 @@ test("the smoke job runs the Rust release tool built for its own target, and the
   expect(run).toContain('tool/scaffold-release smoke "dist/pantheon-scaffold-${{ matrix.target }}" --version "$VERSION"');
   expect(run).not.toContain("smoke.ts");
   expect(text).not.toContain("smoke.ts");
+});
+
+// Phase 5 of docs/ts-tooling-rust-port.md: the runner is built by the Rust release tool, which the same job builds first.
+test("the build job builds the release tool before it builds the runner with it, and runs no TypeScript to do so", () => {
+  const steps = wf.jobs.build.steps;
+  const tool = steps.findIndex((s) => s.run?.includes("cargo build --release --locked -p scaffold-release"));
+  const runner = steps.findIndex((s) => s.run?.includes("scaffold-release build-rust"));
+  expect(tool).toBeGreaterThan(-1);
+  expect(runner).toBeGreaterThan(tool);
+  expect(steps[runner]!.run).toContain("target/release/scaffold-release build-rust");
+  expect(steps.map((s) => s.run ?? "").join("\n")).not.toMatch(/\bbun\b|build-rust\.ts/);
+  expect(text).not.toContain("build-rust.ts");
+});
+
+test("the pull request checks build the tool before the runner, and compare the Rust build with the TypeScript one on every platform", () => {
+  const steps = ci.jobs["rust-binary"]!.steps;
+  const tool = steps.findIndex((s) => s.run?.includes("cargo build --release --locked -p scaffold-release"));
+  const runner = steps.findIndex((s) => s.run?.includes("scaffold-release build-rust"));
+  expect(tool).toBeGreaterThan(-1);
+  expect(runner).toBeGreaterThan(tool);
+  const diff = steps.find((s) => s.run?.includes("runner/scripts/build-rust-diff.sh"));
+  expect(diff?.run).toContain('target/release/scaffold-release --version "$BUILD_VERSION"');
+  expect(steps.indexOf(diff!)).toBeGreaterThan(runner);
+  expect(JSON.stringify(ci.jobs["rust-binary"]!.strategy?.matrix)).toContain("darwin-arm64");
 });
 
 test("the release tool for the smoke job is built where nothing can write, and its artifact is kept out of the released files", () => {

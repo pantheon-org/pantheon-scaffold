@@ -4,7 +4,7 @@ Added in phase 2b, wave C; the build changed in phase 2, task 2.5. The runner is
 
 ## Build
 
-`bun runner/scripts/build-rust.ts --target <linux-x64|linux-arm64|darwin-arm64> [--version <x.y.z>] [--out <dir>]`
+`scaffold-release build-rust --target <linux-x64|linux-arm64|darwin-arm64> [--version <x.y.z>] [--out <dir>]` (from `crates/scaffold-release`; `cargo build --release -p scaffold-release` makes it). `--print-plan` prints what it would run, as JSON, and exits.
 
 - It builds on a machine of the target and nowhere else: Rust does not cross-compile to macOS from Linux, and a native build can be run at once. The release workflow and `ci.yml` run it on `ubuntu-latest`, `ubuntu-24.04-arm` and `macos-latest`.
 - One binary per target, named `pantheon-scaffold-<target>`, as before, so `mise` picks the same files. 4.9 MB for macOS and 5.8 to 6.2 MB for the static Linux builds (measured on the release dry run of 11-11-2026, which musl makes larger than the macOS one because libc is inside), against about 60 MB for the TypeScript build.

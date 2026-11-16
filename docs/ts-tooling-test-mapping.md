@@ -813,7 +813,7 @@ The last differential output before deletion, from the same commit, was `30 comp
 
 On 16-11-2026, in plain clones, a deliberate breakage of `update-pins.yml` was applied to the branch (Rust tests) and, with the same text where the line is the same in both files, to a clone of `origin/main` at f6a24a6 (TypeScript tests). The failing tests of the two suites were paired by the table above. Both trees were left clean.
 
-Group A, breakages that are the same in both files (18 runs):
+Group A, breakages that are the same in both files (19 runs):
 
 | Breakage | TypeScript failing | Rust failing | Result |
 |---|---|---|---|

@@ -247,7 +247,8 @@ fn build(plan: &Plan, version: &str, out: &Path) -> Result<String, String> {
             quote(&reported)
         ));
     }
-    if plan.must_be_static && std::env::consts::OS == "linux" {
+    // Only a musl build is static, and a musl target is only built on Linux (the host check of `command`), where `ldd` is.
+    if plan.must_be_static {
         let ldd = Command::new("ldd").arg(&plan.asset).output();
         let said = ldd.map_or_else(
             |e| e.to_string(),

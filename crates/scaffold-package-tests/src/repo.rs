@@ -1,0 +1,93 @@
+//! Temporary repositories and git for the tests.
+
+use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+
+/// An empty temporary directory, removed when it is dropped.
+pub fn temp_dir() -> tempfile::TempDir {
+    tempfile::Builder::new()
+        .prefix("scaffold-test-")
+        .tempdir()
+        .expect("a temporary directory")
+}
+
+/// Runs git in a directory with the `GIT_*` variables removed, so a hook or a worktree environment cannot redirect it. Returns stdout.
+pub fn git(dir: &Path, args: &[&str]) -> String {
+    let mut command = Command::new("git");
+    command
+        .arg("-C")
+        .arg(dir)
+        .args([
+            "-c",
+            "user.name=test",
+            "-c",
+            "user.email=test@example.invalid",
+            "-c",
+            "commit.gpgsign=false",
+        ])
+        .args(args);
+    for (key, _) in std::env::vars() {
+        if key.starts_with("GIT_") {
+            command.env_remove(key);
+        }
+    }
+    let output = command.output().expect("git runs");
+    assert!(
+        output.status.success(),
+        "git {} failed: {}",
+        args.join(" "),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    String::from_utf8_lossy(&output.stdout).into_owned()
+}
+
+/// A temporary directory that is a git repository on `main`.
+pub fn git_init() -> tempfile::TempDir {
+    let dir = temp_dir();
+    git(dir.path(), &["init", "-q", "-b", "main"]);
+    dir
+}
+
+pub fn commit_all(dir: &Path, message: &str) {
+    git(dir, &["add", "-A"]);
+    git(dir, &["commit", "-q", "-m", message]);
+}
+
+/// The file modes git has in its index, by path.
+pub fn modes(dir: &Path) -> BTreeMap<String, String> {
+    git(dir, &["ls-files", "-s"])
+        .lines()
+        .map(|line| {
+            let (meta, path) = line.split_once('\t').expect("a tab before the path");
+            let mode = meta.split(' ').next().expect("a mode");
+            (path.to_owned(), mode.to_owned())
+        })
+        .collect()
+}
+
+/// A fresh clone of a repository, in a temporary directory that is kept as long as the first value of the pair.
+pub fn clone_of(source: &Path) -> (tempfile::TempDir, PathBuf) {
+    let holder = temp_dir();
+    let target = holder.path().join("clone");
+    git(
+        source,
+        &[
+            "clone",
+            "-q",
+            &source.to_string_lossy(),
+            &target.to_string_lossy(),
+        ],
+    );
+    (holder, target)
+}
+
+/// The files git tracks in the repository, relative to its root, leaving out `archive/`.
+pub fn tracked_files() -> Vec<String> {
+    let root = crate::pkg::root();
+    git(&root, &["ls-files", "-z"])
+        .split('\0')
+        .filter(|f| !f.is_empty() && !f.starts_with("archive/"))
+        .map(str::to_owned)
+        .collect()
+}

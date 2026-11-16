@@ -1,0 +1,23 @@
+[package]
+name = "scaffold-package-tests"
+version = "0.0.0"
+description = "Tests of what the pantheon-scaffold package renders, run in process through the core library. Not shipped: it holds no product code."
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lib]
+name = "scaffold_package_tests"
+path = "src/lib.rs"
+
+[dependencies]
+scaffold-core = { path = "../scaffold-core" }
+scaffold-cli = { path = "../scaffold-cli" }
+regex = "1"
+serde_json = { version = "1", features = ["preserve_order"] }
+sha2 = "0.11"
+tempfile = "3"
+
+[lints]
+workspace = true

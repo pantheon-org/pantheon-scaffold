@@ -1205,6 +1205,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "scaffold-package-tests"
+version = "0.0.0"
+dependencies = [
+ "regex",
+ "scaffold-cli",
+ "scaffold-core",
+ "serde_json",
+ "sha2",
+ "tempfile",
+]
+
+[[package]]
 name = "scaffold-release"
 version = "0.0.0"
 dependencies = [

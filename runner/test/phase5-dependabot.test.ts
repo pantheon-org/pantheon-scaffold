@@ -24,7 +24,7 @@ for (const repo of ["pantheon-adr", "pantheon-journal", "pantheon-skill-auditor"
 }
 
 // The library repository renders every workflow, so its exclusion list would cover them all and Dependabot would fail with
-// dependency_file_not_found: it has no github-actions entry (options.dependabotGithubActions, dependabot-entry.test.ts).
+// dependency_file_not_found: it has no github-actions entry (options.dependabotGithubActions, crates/scaffold-package-tests/tests/dependabot_entry.rs).
 test("the library repository, with no binary, has no github-actions entry and so no ignore list", async () => {
   const e = await dependabot("real-workflows-pantheon-agentic-harness-dev-kit");
   expect(e["github-actions"]).toBeUndefined();

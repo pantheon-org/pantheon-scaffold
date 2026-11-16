@@ -23,7 +23,7 @@ Respect these, in this order of use:
 
 - The project's code is Rust. Write all new code in Rust.
 - GitHub Actions scripts are Shell scripts under `.github/scripts/`.
-- `runner/` holds the TypeScript release tooling and tests that remain from the earlier runner (run with bun, see `docs/runner-file-sort.md`). Do not add to it. Port new work to Rust.
+- No tool or test of this repository is TypeScript any more. `runner/` holds only `package.json`, which Phase 8 of `docs/ts-tooling-rust-port.md` deletes with the bun pin (history: `docs/runner-file-sort.md`). Do not add to it. Write new work in Rust.
 
 ## Repository Map
 
@@ -35,7 +35,7 @@ Respect these, in this order of use:
 - `pkl/`: the package. `pkl/Builtins/<name>/` is one Builtin. `pkl/PklProject` holds the package version.
 - `presets/`: this repository's own Presets, applied by `scaffold.pkl`.
 - `scaffold.pkl`: this repository, rendered by its own scaffold.
-- `runner/`: remaining bun tooling and tests (see Language Preference).
+- `runner/`: only `package.json` is left (see Language Preference).
 - `docs/`: design and process documents. `README.md` has the reading table.
 - `archive/`: retired work, with its own `README.md`. Do not extend it.
 - `.context/`: gitignored working notes. Keep it out of every commit.
@@ -71,7 +71,6 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo build --workspace --locked
 cargo test --workspace --exclude scaffold-features --locked
 cargo build -p scaffold-cli && SCAFFOLD_BIN=target/debug/pantheon-scaffold cargo test -p scaffold-features
-mise x -- bun test
 rumdl check .
 ```
 

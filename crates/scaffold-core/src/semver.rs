@@ -1,4 +1,4 @@
-//! Semantic versions, ported from `runner/src/semver.ts`. Build metadata is not accepted.
+//! Semantic versions, ported from `runner/src/semver.ts`, deleted in Phase 6b. Build metadata is not accepted.
 
 use std::cmp::Ordering;
 
@@ -151,7 +151,7 @@ mod tests {
         assert_eq!(cmp("0.1.0-rc.1", "0.1.0-rc.1"), Ordering::Equal);
     }
 
-    // Two deliberate differences from runner/src/semver.ts, found in the Phase 0 review of the TypeScript port plan
+    // Two deliberate differences from the deleted runner/src/semver.ts, found in the Phase 0 review of the TypeScript port plan
     // (docs/ts-tooling-test-mapping.md). The TypeScript side is the wrong one in both.
     #[test]
     fn the_order_of_two_numbers_that_differ_only_in_leading_zeros_is_the_same_both_ways_round() {

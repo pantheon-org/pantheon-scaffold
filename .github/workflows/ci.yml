@@ -47,17 +47,8 @@ jobs:
         run: |
           rustup toolchain install 1.96.1 --profile minimal --component rustfmt,clippy
           rustup default 1.96.1
-      # The bun tests that are left are the update-pins ones (Phase 6b of docs/ts-tooling-rust-port.md deletes them). The package tests are
-      # cargo tests, in crates/scaffold-package-tests, and run with the other Rust tests below.
-      - name: Run the runner tests
-        working-directory: runner
-        run: mise x -- bun test
-      # Phase 3 of docs/ts-tooling-rust-port.md: the TypeScript update-pins tool is the reference until it is deleted (Phase 6b). This runs it
-      # and the Rust tool on the same inputs and fails on any difference in output or exit code.
-      - name: Build the Rust release tool
-        run: cargo build -p scaffold-release --locked
-      - name: Compare the Rust update-pins with the TypeScript one
-        run: mise x -- bash runner/scripts/update-pins-diff.sh target/debug/scaffold-release
+      # No test of this repository is TypeScript any more. The package tests and the workflow tests are cargo tests, in
+      # crates/scaffold-package-tests, and run with the other Rust tests below.
       - name: Lint the consumer check sample
         run: mise x -- actionlint crates/scaffold-package-tests/fixtures/consumer-check.yml
       - name: Check the Rust formatting

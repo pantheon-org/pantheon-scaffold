@@ -130,11 +130,7 @@ jobs:
           cache: false
       - name: Install the pinned tools from the lock file
         run: mise install --locked
-      # The bun tests that are left are the update-pins ones (Phase 6b of docs/ts-tooling-rust-port.md deletes them). The package tests are
-      # cargo tests and run in ci.yml, on every pull request.
-      - name: Run the runner tests
-        working-directory: runner
-        run: mise x -- bun test
+      # The package tests are cargo tests and run in ci.yml, on every pull request.
       - name: Build the package
         run: mise x -- pkl project package pkl --output-path dist
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

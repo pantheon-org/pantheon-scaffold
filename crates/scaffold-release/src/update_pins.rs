@@ -1,11 +1,11 @@
 //! Pin updates. Ported from `runner/src/pinupdate.ts` and `runner/scripts/update-pins.ts` (Phase 3 of
-//! `docs/ts-tooling-rust-port.md`).
+//! `docs/ts-tooling-rust-port.md`), which Phase 6b deleted (the last commit that has them is f6a24a6).
 //!
 //! For each action pinned in `pkl/Pins.pkl`: find its latest published release, resolve the tag to a commit, check that the commit
 //! belongs to the upstream repository and that the tag is a release, and move the pin only to a newer release. A pin whose commit is
 //! not the commit of its recorded tag is a problem too. Nothing here writes to GitHub, and a GitHub error is a problem, never
-//! "unchanged". The messages, the order of the requests and the exit codes follow the TypeScript, so the two can be compared
-//! (`runner/scripts/update-pins-diff.sh`).
+//! "unchanged". The messages, the order of the requests and the exit codes are those of the TypeScript tool, which was compared with this
+//! one on 30 scenarios until Phase 6b (`docs/ts-tooling-test-mapping.md` maps each scenario to a test).
 
 use std::io::Write;
 use std::path::{Path, PathBuf};

@@ -1,5 +1,7 @@
 # The TypeScript runner's tests, and where each one went
 
+> **Update (16-11-2026):** the section "What stays in TypeScript, and why" is history. Phases 6, 7 and 6b of [ts-tooling-rust-port.md](ts-tooling-rust-port.md) deleted everything in it; `runner/` holds only `package.json`, which Phase 8 deletes.
+
 Written on 13-11-2026 for pull request A of the minijinja goal (retire the TypeScript rendering runner). A test of a module is deleted only when the
 module is deleted, and only when the Rust runner covers what it asserted. This page is the evidence, and the merge gate: one row for every deleted test.
 

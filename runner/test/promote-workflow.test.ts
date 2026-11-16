@@ -11,9 +11,8 @@ const wf = Bun.YAML.parse(text) as { on: Record<string, { inputs?: Record<string
 const jobs = Object.entries(wf.jobs);
 const allSteps = jobs.flatMap(([name, j]) => j.steps.map((s) => ({ job: name, ...s })));
 
-// The two ways a run can ask a tool to edit a release, and to check only.
+// How a run asks the tool to edit a release.
 const RUST_EDIT = 'tool/scaffold-release promote promote "$TAG"';
-const TS_EDIT = 'mise x -- bun runner/scripts/promote.ts promote "$TAG"';
 
 test("it runs by hand only, never on a push, a pull request or pull_request_target", () => {
   expect(Object.keys(wf.on)).toEqual(["workflow_dispatch"]);
@@ -47,36 +46,23 @@ test("the promote job runs only after the tool and guards jobs, and only when th
   expect(wf.jobs.promote.if).toBe("inputs.dry_run == false");
 });
 
-test("both tools check in the guards job, and only the promote job can ask a tool to edit", () => {
+test("the guards job checks with the release tool, and only the promote job can ask it to edit", () => {
   const guards = wf.jobs.guards.steps.map((s) => s.run ?? "").join("\n");
   expect(guards).toContain('tool/scaffold-release promote check "$TAG"');
-  expect(guards).toContain('mise x -- bun runner/scripts/promote.ts check "$TAG"');
-  const edits = allSteps.filter((s) => s.run?.includes("promote promote") || s.run?.includes("promote.ts promote"));
-  expect(edits.map((s) => [s.job, s.run])).toEqual([["promote", RUST_EDIT], ["promote", TS_EDIT]]);
+  const edits = allSteps.filter((s) => s.run?.includes("promote promote"));
+  expect(edits.map((s) => [s.job, s.run])).toEqual([["promote", RUST_EDIT]]);
 });
 
-test("the tool that edits is chosen by an input that defaults to the Rust one, and each tool has its own steps", () => {
-  expect(wf.on.workflow_dispatch.inputs!.implementation).toMatchObject({ type: "choice", options: ["rust", "typescript"], default: "rust" });
-  const steps = wf.jobs.promote.steps;
-  expect(steps.find((s) => s.run === RUST_EDIT)?.if).toBe("inputs.implementation == 'rust'");
-  expect(steps.find((s) => s.run === TS_EDIT)?.if).toBe("inputs.implementation == 'typescript'");
-  // What only the TypeScript way needs (mise and its tools) is installed only for it.
-  const toolchain = steps.filter((s) => s.uses?.startsWith("jdx/mise-action@") || s.run === "mise install --locked");
-  expect(toolchain).toHaveLength(2);
-  for (const s of toolchain) expect(s.if, s.name ?? s.uses).toBe("inputs.implementation == 'typescript'");
+// Phase 6 of docs/ts-tooling-rust-port.md: the TypeScript promote tool and the way back to it are gone. There is one tool, so there is no
+// input that chooses one, nothing that compares two, and no step that installs bun or mise for a TypeScript run.
+test("there is one tool: no input chooses it, no step compares two, and nothing installs bun or mise", () => {
+  expect(Object.keys(wf.on.workflow_dispatch.inputs!)).toEqual(["tag", "dry_run"]);
+  expect(text).not.toMatch(/implementation|promote\.ts|\bbun\b|\bmise\b|disagree/);
+  expect(allSteps.filter((s) => s.uses?.startsWith("jdx/mise-action@"))).toEqual([]);
+  const check = wf.jobs.guards.steps.find((s) => s.run?.includes("promote check"));
+  expect(check?.run).toBe('tool/scaffold-release promote check "$TAG"');
 });
 
-test("the guards job fails when the two tools disagree, whatever the Rust one says", () => {
-  const run = wf.jobs.guards.steps.find((s) => s.run?.includes("scaffold-release promote check"))?.run ?? "";
-  expect(run).toContain('[ "$rust_code" != "$ts_code" ]');
-  expect(run).toContain("cmp -s");
-  expect(run).toContain("disagree");
-  expect(run.trimEnd().endsWith('exit "$rust_code"')).toBe(true);
-});
-
-// Phase 2 of docs/ts-tooling-rust-port.md: the promote tool is the Rust crate crates/scaffold-release. Building it runs the build scripts
-// of every crate it depends on, so it is built in a job that cannot write and has no token, and the jobs that use it only download the
-// finished binary and check its checksum before they run it.
 test("the release tool is built in a job that cannot write and holds no token", () => {
   const tool = wf.jobs.tool;
   expect(tool.permissions).toEqual({ contents: "read" });
@@ -114,8 +100,8 @@ test("no job has a job-wide token in its environment: each step that needs one n
 
 test("every action is pinned by a 40 character SHA", () => {
   const uses = allSteps.map((s) => s.uses).filter((u): u is string => !!u && !u.startsWith("./"));
-  // checkout in three jobs, the tool upload, the tool download in two jobs, and mise in two jobs (guards, and the TypeScript way back).
-  expect(uses.length).toBe(8);
+  // checkout in three jobs, the tool upload, and the tool download in two jobs.
+  expect(uses.length).toBe(6);
   for (const u of uses) expect(u, u).toMatch(/@[0-9a-f]{40}$/);
 });
 
@@ -126,7 +112,7 @@ test("it uses no secrets and persists no checkout credentials", () => {
 
 test("no run script interpolates text a dispatcher controls: the tag goes through env", () => {
   for (const s of allSteps.filter((s) => s.run)) expect(s.run, `${s.job}: ${s.name}`).not.toMatch(/\$\{\{/);
-  for (const s of allSteps.filter((s) => s.run?.includes("promote.ts") || s.run?.includes("scaffold-release promote"))) expect(s.env?.TAG, `${s.job}: ${s.name}`).toBe("${{ inputs.tag }}");
+  for (const s of allSteps.filter((s) => s.run?.includes("scaffold-release promote"))) expect(s.env?.TAG, `${s.job}: ${s.name}`).toBe("${{ inputs.tag }}");
 });
 
 test("runs never overlap and are never cancelled half way", () => {

@@ -55,16 +55,10 @@ jobs:
         env:
           SCAFFOLD_BIN: ${{ github.workspace }}/target/debug/pantheon-scaffold
         run: mise x -- bun test
-      # Phase 1 of docs/ts-tooling-rust-port.md: the TypeScript release-assets tool is the reference until it is deleted. This runs it
+      # Phase 3 of docs/ts-tooling-rust-port.md: the TypeScript update-pins tool is the reference until it is deleted (Phase 6b). This runs it
       # and the Rust tool on the same inputs and fails on any difference in output or exit code.
       - name: Build the Rust release tool
         run: cargo build -p scaffold-release --locked
-      - name: Compare the Rust release tool with the TypeScript one
-        run: mise x -- bash runner/scripts/release-assets-diff.sh target/debug/scaffold-release
-      # Phase 2: the same for promote, against a fake gh that records its calls (jq is preinstalled on the runner).
-      - name: Compare the Rust promote with the TypeScript one
-        run: mise x -- bash runner/scripts/promote-diff.sh target/debug/scaffold-release
-      # Phase 3: the same for update-pins, against a fake GitHub API (a small bun server, jq is preinstalled on the runner).
       - name: Compare the Rust update-pins with the TypeScript one
         run: mise x -- bash runner/scripts/update-pins-diff.sh target/debug/scaffold-release
       - name: Lint the consumer check sample
@@ -194,17 +188,13 @@ jobs:
         run: |
           mise x -- target/debug/scaffold-release baseline snapshot . target/debug/pantheon-scaffold "$RUNNER_TEMP/candidate"
           mise x -- target/debug/scaffold-release baseline compare runner/scripts/builtins-baseline/baseline.json "$RUNNER_TEMP/candidate"
-      # Phase 4 of docs/ts-tooling-rust-port.md: the TypeScript baseline scripts are the reference until they are deleted. This runs them
-      # and the Rust ones on the same tree and the same runner, and fails on any difference in the folders, the output or the exit code.
-      - name: Compare the Rust baseline scripts with the TypeScript ones
-        run: mise x -- bash runner/scripts/baseline-diff.sh target/debug/scaffold-release target/debug/pantheon-scaffold
 
   # The release binary, built the way a release builds it (scaffold-release build-rust: static musl on Linux with zig cc, native on macOS),
   # with the smoke suite (scaffold-release smoke) run against it, on every pull request. The release workflow runs the same steps on a tag.
   rust-binary:
     name: Rust binary ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 40
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
@@ -241,11 +231,3 @@ jobs:
         run: mise x -- target/release/scaffold-release build-rust --target "${{ matrix.target }}" --version "$BUILD_VERSION" --out dist
       - name: Run the smoke suite against it
         run: mise x -- target/release/scaffold-release smoke "dist/pantheon-scaffold-${{ matrix.target }}" --version "$BUILD_VERSION"
-      # Phase 4: the TypeScript smoke suite is the reference until it is deleted. The same binary, both suites, on every platform:
-      # the filesystem is part of the test.
-      - name: Compare the Rust smoke suite with the TypeScript one
-        run: mise x -- bash runner/scripts/smoke-diff.sh target/release/scaffold-release "dist/pantheon-scaffold-${{ matrix.target }}" --version "$BUILD_VERSION"
-      # Phase 5: the TypeScript build script is the reference until it is deleted. Both tools build the runner for this platform, each from
-      # nothing in a copy of the checkout at the same path, and the two binaries must be byte for byte the same.
-      - name: Compare the Rust build with the TypeScript one
-        run: mise x -- bash runner/scripts/build-rust-diff.sh target/release/scaffold-release --version "$BUILD_VERSION"

@@ -249,15 +249,14 @@ test("the build job builds the release tool before it builds the runner with it,
   expect(text).not.toContain("build-rust.ts");
 });
 
-test("the pull request checks build the tool before the runner, and compare the Rust build with the TypeScript one on every platform", () => {
+test("the pull request checks build the tool before the runner, and build and smoke-test the runner on every platform", () => {
   const steps = ci.jobs["rust-binary"]!.steps;
   const tool = steps.findIndex((s) => s.run?.includes("cargo build --release --locked -p scaffold-release"));
   const runner = steps.findIndex((s) => s.run?.includes("scaffold-release build-rust"));
   expect(tool).toBeGreaterThan(-1);
   expect(runner).toBeGreaterThan(tool);
-  const diff = steps.find((s) => s.run?.includes("runner/scripts/build-rust-diff.sh"));
-  expect(diff?.run).toContain('target/release/scaffold-release --version "$BUILD_VERSION"');
-  expect(steps.indexOf(diff!)).toBeGreaterThan(runner);
+  const smoke = steps.findIndex((s) => s.run?.includes("scaffold-release smoke"));
+  expect(smoke).toBeGreaterThan(runner);
   expect(JSON.stringify(ci.jobs["rust-binary"]!.strategy?.matrix)).toContain("darwin-arm64");
 });
 
@@ -275,10 +274,11 @@ test("the release tool for the smoke job is built where nothing can write, and i
   expect(wf.jobs.release.needs).not.toContain("build");
 });
 
-test("the pull request checks run the Rust smoke and baseline scripts and compare them with the TypeScript ones", () => {
+// Phase 6 of docs/ts-tooling-rust-port.md: the TypeScript twins are deleted, and so are the differential scripts that compared them with the Rust tools.
+test("the pull request checks run the Rust smoke and baseline scripts, and no differential script of a deleted tool", () => {
   const ci = readFileSync(join(import.meta.dir, "../../.github/workflows/ci.yml"), "utf8");
-  expect(ci).toContain("runner/scripts/smoke-diff.sh target/release/scaffold-release");
-  expect(ci).toContain("runner/scripts/baseline-diff.sh target/debug/scaffold-release target/debug/pantheon-scaffold");
+  for (const gone of ["release-assets-diff", "promote-diff", "smoke-diff", "baseline-diff", "build-rust-diff"]) expect(ci, gone).not.toContain(gone);
+  expect(ci).toContain("scaffold-release smoke");
   // The runner needs pkl, which only mise puts on the PATH: without it every render exits 1.
   expect(ci).toContain("mise x -- target/debug/scaffold-release baseline snapshot");
   expect(ci).toContain("mise x -- target/debug/scaffold-release baseline compare runner/scripts/builtins-baseline/baseline.json");

@@ -152,7 +152,7 @@ jobs:
 
   # What a repository renders must not change by accident: this repository, the fixtures and an option matrix (55 configurations) are rendered
   # with the Rust runner and compared with a frozen snapshot of exit codes, file hashes and the manifest hash, made from main at 1259a90.
-  # runner/scripts/builtins-baseline/README.md says how the snapshot was made and how to refresh it on purpose.
+  # crates/scaffold-release/baseline/README.md says how the snapshot was made and how to refresh it on purpose.
   baseline:
     name: Baseline render
     runs-on: ubuntu-latest
@@ -184,7 +184,7 @@ jobs:
       - name: Render the 61 configurations and compare them with the frozen snapshot
         run: |
           mise x -- target/debug/scaffold-release baseline snapshot . target/debug/pantheon-scaffold "$RUNNER_TEMP/candidate"
-          mise x -- target/debug/scaffold-release baseline compare runner/scripts/builtins-baseline/baseline.json "$RUNNER_TEMP/candidate"
+          mise x -- target/debug/scaffold-release baseline compare crates/scaffold-release/baseline/baseline.json "$RUNNER_TEMP/candidate"
 
   # The release binary, built the way a release builds it (scaffold-release build-rust: static musl on Linux with zig cc, native on macOS),
   # with the smoke suite (scaffold-release smoke) run against it, on every pull request. The release workflow runs the same steps on a tag.

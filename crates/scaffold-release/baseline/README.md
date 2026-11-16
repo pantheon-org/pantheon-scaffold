@@ -43,7 +43,7 @@ file written (path, mode, sha256) and the sha256 of the manifest. Messages are l
 It was made from main at 1259a90, where it equalled the baseline above (0 differences), was extended with the six `w-*` configurations for the presence work, and was refreshed once for the rename of `pantheon.pkl` to `scaffold.pkl`, which changes the text of four rendered files (the plumber and hk headers, scaffold-check and upgrade), and once more for the plural class modules, where only the root manifest hash moved because it records the hashes of this repository's own `presets/*.pkl`, which were edited (no rendered file changed). It was refreshed again for the release Builtins (`releaseShape`, `releaseAutomerge`, `versionFile`, the seeded `release-please-config.json` and `.release-please-manifest.json`, the schedule gate of `release-automerge.yml`): 29 of the 61 configurations changed, only in `release-automerge.yml`, the two seeds (the configurations that render `release-please`), the manifest hash, and, for this repository's own render, `publish-release.sh`, `release-bump.yml`, `release-bump.sh`, `release-please.yml` and `dependabot.yml`. The fixture that is compared with the pantheon-adr copy sets `releaseAutomerge = "always"`, so its `release-automerge.yml` did not change. The per-configuration list was kept as evidence of the refresh. It was refreshed once more for `options.dependabotGithubActions`: 6 of the 61 configurations changed (the dev-kit fixture, `workflows-b-kit` and the four matrix entries with `binary = false` and no composite action), only in `dependabot.yml` (the github-actions entry is left out because every workflow is rendered) and the manifest hash; the root render and every other configuration did not change. It was refreshed again for the trusted `jdx/mise-action` entry in `.plumber.yaml`: 29 of the 61 configurations changed (every one that renders the plumber Builtin), only in `.plumber.yaml` (one added line, the same in all of them: one old and one new sha256) and the manifest hash. The rename was proved first by rendering `origin/main` with the same substitution applied to its sources and comparing the two snapshot folders: 55 configurations on both sides, 0 differences. To refresh it:
 
 ```bash
-scaffold-release baseline freeze /tmp/baseline > runner/scripts/builtins-baseline/baseline.json
+scaffold-release baseline freeze /tmp/baseline > crates/scaffold-release/baseline/baseline.json
 ```
 
 The `baseline` job of `.github/workflows/ci.yml` builds the Rust runner, renders the 61 configurations with `scaffold-release baseline snapshot` and compares them with `baseline.json` using `scaffold-release baseline compare`.
@@ -51,7 +51,7 @@ Run the same two commands locally to check a change:
 
 ```bash
 scaffold-release baseline snapshot . target/debug/pantheon-scaffold /tmp/candidate
-scaffold-release baseline compare runner/scripts/builtins-baseline/baseline.json /tmp/candidate
+scaffold-release baseline compare crates/scaffold-release/baseline/baseline.json /tmp/candidate
 ```
 
 Refresh `baseline.json` only when a change is meant to alter what a repository renders, in the same commit as that change so no commit has a red baseline job, and say why in the pull request.

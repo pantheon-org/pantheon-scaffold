@@ -151,4 +151,4 @@ the toolchain or the runner.
   after changing `options.without`. A `mise.toml` edited by hand is refused on the next render.
 - `Presets.amendContext` refuses the keys `present` and `tools`: the package sets them from `options.without`, so `mise.toml` cannot disagree with the files
   that are rendered. Change `options.without` instead.
-- `runner/scripts/builtins-baseline` freezes six configurations with builtins left out (`w-*`), so a later change to these files shows as a difference.
+- `crates/scaffold-release/baseline` freezes six configurations with builtins left out (`w-*`), so a later change to these files shows as a difference.

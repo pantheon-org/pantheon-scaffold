@@ -47,7 +47,7 @@ fn allowed() -> BTreeMap<&'static str, &'static str> {
             "a frozen snapshot of old workflows, text and parsed",
         ),
         (
-            "runner/scripts/builtins-baseline/README.md",
+            "crates/scaffold-release/baseline/README.md",
             "the account of the one baseline refresh for the rename",
         ),
     ])

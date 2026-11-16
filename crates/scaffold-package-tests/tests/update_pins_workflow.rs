@@ -321,7 +321,9 @@ fn a_real_run_uses_the_one_tool_with_the_app_token_and_no_step_installs_mise() {
 fn there_is_one_tool_nothing_chooses_it_and_nothing_names_a_second_one_or_bun() {
     let named =
         Regex::new(r"implementation|update-pins\.ts|\bbun\b|\bmise\b|disagree|typescript").unwrap();
-    for line in WF.text.lines().filter(|l| named.is_match(l)) {
-        panic!("the workflow still names a second tool: {line}");
-    }
+    let lines: Vec<&str> = WF.text.lines().filter(|l| named.is_match(l)).collect();
+    assert!(
+        lines.is_empty(),
+        "the workflow still names a second tool: {lines:?}"
+    );
 }

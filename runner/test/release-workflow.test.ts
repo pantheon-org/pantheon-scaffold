@@ -224,7 +224,41 @@ test("smoke tests the binary built for its own target, and the release gets the 
 test("the release workflow and the pull request checks build the binary with the same script", () => {
   const ci = readFileSync(join(import.meta.dir, "../../.github/workflows/ci.yml"), "utf8");
   expect(ci).toContain("runner/scripts/build-rust.ts");
-  expect(ci).toContain("runner/scripts/smoke.ts");
+  expect(ci).toContain("scaffold-release smoke");
+});
+
+// Phase 4 of docs/ts-tooling-rust-port.md: smoke runs from the Rust release tool, built per target in the unprivileged build job.
+test("the smoke job runs the Rust release tool built for its own target, and the TypeScript smoke suite is no longer run by the release", () => {
+  const smoke = wf.jobs.smoke.steps;
+  const tool = smoke.find((s) => s.uses?.startsWith("actions/download-artifact@") && s.with?.name === "release-tool-${{ matrix.target }}");
+  expect(tool?.with?.path).toBe("tool/");
+  const run = smoke.map((s) => s.run ?? "").join("\n");
+  expect(run).toContain('tool/scaffold-release smoke "dist/pantheon-scaffold-${{ matrix.target }}" --version "$VERSION"');
+  expect(run).not.toContain("smoke.ts");
+  expect(text).not.toContain("smoke.ts");
+});
+
+test("the release tool for the smoke job is built where nothing can write, and its artifact is kept out of the released files", () => {
+  const build = wf.jobs.build;
+  expect(build.permissions).toEqual({ contents: "read" });
+  expect(build.steps.some((s) => s.run?.includes("cargo build --release --locked -p scaffold-release"))).toBe(true);
+  const upload = build.steps.find((s) => s.uses?.startsWith("actions/upload-artifact@") && String(s.with?.name).startsWith("release-tool-"));
+  expect(upload?.with?.name).toBe("release-tool-${{ matrix.target }}");
+  expect(upload?.with?.path).toBe("target/release/scaffold-release");
+  // The release job downloads by the pattern binary-*; a name that matches it would be attested and published.
+  const published = wf.jobs.release.steps.find((s) => s.with?.pattern)?.with?.pattern as string;
+  expect(published).toBe("binary-*");
+  expect("release-tool-linux-x64".startsWith(published.replace("*", ""))).toBe(false);
+  expect(wf.jobs.release.needs).not.toContain("build");
+});
+
+test("the pull request checks run the Rust smoke and baseline scripts and compare them with the TypeScript ones", () => {
+  const ci = readFileSync(join(import.meta.dir, "../../.github/workflows/ci.yml"), "utf8");
+  expect(ci).toContain("runner/scripts/smoke-diff.sh target/release/scaffold-release");
+  expect(ci).toContain("runner/scripts/baseline-diff.sh target/debug/scaffold-release target/debug/pantheon-scaffold");
+  expect(ci).toContain("scaffold-release baseline snapshot");
+  expect(ci).toContain("scaffold-release baseline compare runner/scripts/builtins-baseline/baseline.json");
+  expect(ci).not.toContain("builtins-baseline/snapshot.ts");
 });
 
 test("the release is verified from the outside after it is published, on all three platforms", () => {

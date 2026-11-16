@@ -130,18 +130,10 @@ jobs:
           cache: false
       - name: Install the pinned tools from the lock file
         run: mise install --locked
-      # rustup is preinstalled on GitHub-hosted runners. The version must match rust-toolchain.toml.
-      - name: Install the Rust toolchain
-        run: |
-          rustup toolchain install 1.96.1 --profile minimal
-          rustup default 1.96.1
-      # The package tests read what the package renders through the Rust runner (runner/test/support/contract.ts).
-      - name: Build the Rust runner for the package tests
-        run: cargo build -p scaffold-cli --locked
+      # The bun tests that are left are the update-pins ones (Phase 6b of docs/ts-tooling-rust-port.md deletes them). The package tests are
+      # cargo tests and run in ci.yml, on every pull request.
       - name: Run the runner tests
         working-directory: runner
-        env:
-          SCAFFOLD_BIN: ${{ github.workspace }}/target/debug/pantheon-scaffold
         run: mise x -- bun test
       - name: Build the package
         run: mise x -- pkl project package pkl --output-path dist

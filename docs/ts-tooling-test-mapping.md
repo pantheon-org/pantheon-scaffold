@@ -699,3 +699,9 @@ Written on 16-11-2026 for Phase 7d of [ts-tooling-rust-port.md](ts-tooling-rust-
 | a failure after the pull request is open leaves the branch alone | `a_failure_after_the_pull_request_is_open_leaves_the_branch_alone` | covered |
 
 The four files had 70 TypeScript tests (release-workflow 36, promote-workflow 16, publish-release 4, release-bump 14) and are replaced by 70 Rust tests, one for each. The other 255 Rust tests of the crate are those of Phases 7a to 7c.
+
+## Phase 7e: the module tests with a Rust twin are deleted
+
+Written on 16-11-2026 for Phase 7e of [ts-tooling-rust-port.md](ts-tooling-rust-port.md). The TypeScript test files of `contract`, `equality`, `manifest`, `preflight` and `schema` (80 tests) and their modules were deleted. The evidence is the tables of Phase 0 above. Before deleting, a script checked that every one of the 80 TypeScript titles is in those tables, and that the Rust test named by each row exists in the list that `cargo test --workspace -- --list` prints: equality 21 of 21, preflight 22 of 22, schema 10 of 10, manifest 10 of 11 and contract 15 of 16. The two rows with no Rust test are the ones Phase 0 recorded as "not applicable": the export of an error type, in `manifest` and in `contract`, which is a property of the TypeScript module system and not a behaviour.
+
+`semver` and `freshness`, with their tests, stay until Phase 6b: `pinupdate.ts` imports both. `helpers.ts` is cut down to the four functions the update-pins script test uses.

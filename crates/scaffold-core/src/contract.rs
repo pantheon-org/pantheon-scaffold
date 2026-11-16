@@ -240,7 +240,7 @@ mod tests {
 
     #[test]
     fn a_lifecycle_field_with_the_wrong_shape_is_refused() {
-        // The cases of "a lifecycle field with the wrong shape is rejected" in runner/test/contract.test.ts.
+        // The cases of "a lifecycle field with the wrong shape is rejected" in the TypeScript contract tests, deleted in Phase 7e (docs/ts-tooling-test-mapping.md).
         let cases: [(&str, Value, &str); 6] = [
             ("packageUri", json!(3), "packageUri"),
             ("requires", json!({}), "missing runner"),

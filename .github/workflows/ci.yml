@@ -47,13 +47,10 @@ jobs:
         run: |
           rustup toolchain install 1.96.1 --profile minimal --component rustfmt,clippy
           rustup default 1.96.1
-      # The package tests read what the package renders through the Rust runner (runner/test/support/contract.ts).
-      - name: Build the Rust runner for the package tests
-        run: cargo build -p scaffold-cli --locked
+      # The bun tests that are left are the update-pins ones (Phase 6b of docs/ts-tooling-rust-port.md deletes them). The package tests are
+      # cargo tests, in crates/scaffold-package-tests, and run with the other Rust tests below.
       - name: Run the runner tests
         working-directory: runner
-        env:
-          SCAFFOLD_BIN: ${{ github.workspace }}/target/debug/pantheon-scaffold
         run: mise x -- bun test
       # Phase 3 of docs/ts-tooling-rust-port.md: the TypeScript update-pins tool is the reference until it is deleted (Phase 6b). This runs it
       # and the Rust tool on the same inputs and fails on any difference in output or exit code.

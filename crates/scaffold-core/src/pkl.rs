@@ -285,7 +285,7 @@ mod tests {
         assert!(json["files"].as_array().unwrap().len() >= 4);
     }
 
-    // The two "restricted resources" tests of runner/test/contract.test.ts. The fixture reads /etc/hosts.
+    // The two "restricted resources" tests of the TypeScript contract tests, deleted in Phase 7e (docs/ts-tooling-test-mapping.md). The fixture reads /etc/hosts.
     #[test]
     fn a_scaffold_pkl_cannot_read_arbitrary_files() {
         let fixture = root().join("runner/test/fixtures/read-file/scaffold.pkl");

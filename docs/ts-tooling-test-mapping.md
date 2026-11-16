@@ -783,3 +783,62 @@ Written on 16-11-2026 for Phase 6b of [ts-tooling-rust-port.md](ts-tooling-rust-
 | a line of Pins.pkl that cannot be read (exit code only) | `a_pins_file_that_is_missing_or_has_a_line_that_cannot_be_read_exits_1` | covered |
 
 The last differential output before deletion, from the same commit, was `30 comparisons, 0 differ`. The commit that still holds the TypeScript tool is f6a24a6 on `origin/main`. What the differential script proved at the byte level for the requests (order, Accept and Authorization headers) is covered in Rust by `a_request_carries_the_accept_header_and_the_token_when_there_is_one` and `the_whole_update_runs_against_a_server_standing_in_for_github`; the TypeScript tool has no other reference once it is deleted.
+
+### update-pins-workflow
+
+`runner/test/update-pins-workflow.test.ts` (17 tests) is ported to `crates/scaffold-package-tests/tests/update_pins_workflow.rs` (18 tests), written against `update-pins.yml` as Phase 6b leaves it: one tool, no `implementation` input, no mise or bun step. Fourteen titles are ported (five of them adjusted because the TypeScript write step is gone), three are rewritten and one test is new.
+
+| TypeScript test | Rust test | Note |
+|---|---|---|
+| it runs on a schedule or by hand, and on no push: merging a change to the tool must not start a real run | `it_runs_on_a_schedule_or_by_hand_and_on_no_push_merging_a_change_to_the_tool_must_not_start_a_real_run` | covered |
+| a manual run is a dry run unless told otherwise, and says which tool writes in a real run, the Rust one by default | `a_manual_run_is_a_dry_run_unless_told_otherwise_and_dry_run_is_its_only_input` | rewritten: there is one tool, so the `implementation` choice is gone and `dry_run` is the only input |
+| nothing has permissions by default and every job reads contents only: writes use the App token | `nothing_has_permissions_by_default_and_every_job_reads_contents_only_writes_use_the_app_token` | covered |
+| the only secret is the App key, and the default token is never used to write | `the_only_secret_is_the_app_key_and_the_default_token_is_never_used_to_write` | covered |
+| every action is pinned by a 40 character SHA and checkout keeps no credentials | `every_action_is_pinned_by_a_40_character_sha_and_checkout_keeps_no_credentials` | covered |
+| no run script interpolates an expression, and each is 15 lines or fewer | `no_run_script_interpolates_an_expression_and_each_is_15_lines_or_fewer` | covered |
+| the freshness record is written only after the pins were checked and the pull request step ran | `the_freshness_record_is_written_only_after_the_pins_were_checked_and_the_pull_request_step_ran` | adjusted: the TypeScript write step is not in the order |
+| each writing step asks for the record and the summary, and a failing check fails the job | `the_writing_step_asks_for_the_record_and_the_summary_and_a_failing_check_fails_the_job` | adjusted: one writing step |
+| the record goes to the freshness branch, never main | `the_record_goes_to_the_freshness_branch_never_main` | covered |
+| the pull request step does nothing when no pin changed | `the_pull_request_step_does_nothing_when_no_pin_changed` | covered |
+| the pull request is a conventional commit and is opened with the App token | `the_pull_request_is_a_conventional_commit_and_is_opened_with_the_app_token` | covered |
+| the release tool is built in a job that holds no token | `the_release_tool_is_built_in_a_job_that_holds_no_token` | covered |
+| the update job, which holds the App token, never runs cargo and downloads the tool and checks its checksum before it runs it | `the_update_job_which_holds_the_app_token_never_runs_cargo_and_downloads_the_tool_and_checks_its_checksum_before_it_runs_it` | covered, and stronger: the checksum step is pinned exactly and no step before it runs the tool (see breakages A6 and C4) |
+| no job has a job-wide token in its environment: each step that needs one names it | `no_job_has_a_job_wide_token_in_its_environment_each_step_that_needs_one_names_it` | covered |
+| a dry run reaches nothing that writes: no App token, no write step, no pull request, no freshness record | `a_dry_run_reaches_nothing_that_writes_no_app_token_no_write_step_no_pull_request_no_freshness_record` | adjusted: the TypeScript write step is not among the writers; the conditions are exact strings |
+| a dry run runs both tools and fails when they disagree, whatever the Rust one says | `a_dry_run_runs_the_one_tool_with_no_write_and_the_step_fails_with_the_tool` | rewritten: there is no second tool to compare with. The step is exactly `tool/scaffold-release update-pins --no-write` with the read-only token |
+| a real run uses the Rust tool unless asked for the TypeScript one, with the App token, and mise is installed only for the TypeScript tool | `a_real_run_uses_the_one_tool_with_the_app_token_and_no_step_installs_mise` | rewritten: the real run has the `NOT_DRY` condition alone, the App token, and no step installs mise |
+| (new in 6b) | `there_is_one_tool_nothing_chooses_it_and_nothing_names_a_second_one_or_bun` | new: the workflow names no `implementation`, `update-pins.ts`, `bun`, `mise`, `typescript` or `disagree` |
+
+#### Breakage comparison of the workflow test
+
+On 16-11-2026, in plain clones, a deliberate breakage of `update-pins.yml` was applied to the branch (Rust tests) and, with the same text where the line is the same in both files, to a clone of `origin/main` at f6a24a6 (TypeScript tests). The failing tests of the two suites were paired by the table above. Both trees were left clean.
+
+Group A, breakages that are the same in both files (18 runs):
+
+| Breakage | TypeScript failing | Rust failing | Result |
+|---|---|---|---|
+| the mint condition loses its `!` | 15 | 15 | identical |
+| the mint step has no `if` | 15 | 15 | identical |
+| workflow permissions are `write-all` | 3 | 3 | identical |
+| the tool job may write contents | 3, 12 | 3, 12 | identical |
+| checkout keeps credentials | 5 | 5 | identical |
+| the record goes to `main` | 7, 9, 15 | 7, 9, 15 | identical |
+| the pull request step has no `if` | 15 | 15 | identical |
+| the freshness step has no `if` | 15 | 15 | identical |
+| the dry run uses the default secret token | 4, 15 | 4, 15 and the rewritten 16 | identical on the ported tests |
+| a push trigger is added | 1 | 1 | identical |
+| the update job has a job-wide token | 14 | 14 | identical |
+| the writing step ignores a failure | 8 | 8 | identical |
+| the pull request is not a conventional commit | 11 | 11 | identical |
+| a run script interpolates an expression | 6 | 6 and the rewritten 16 | identical on the ported tests |
+| the pull request step no longer checks for a change | 10 | 10 | identical |
+| the update job runs cargo | 13 | 13 | identical |
+| the update job does not wait for the tool job | 13 | 13 | identical |
+| **the checksum check ends in `|| true`** | none | 13 | **different: neither TypeScript test nor the first Rust version caught it. The Rust test now pins the step exactly** |
+| **the update job runs the tool before it checks it** | none | 13 | **different: same gap; the Rust test now fails if any step before the check runs the tool** |
+
+The first run found three tests that failed in no breakage (the interpolation, pull request step and update job tests) and one breakage that neither suite caught (the checksum). A second round added the interpolation, no-check and cargo breakages and a tightened assertion. After the second round every one of the 18 Rust tests fails in at least one breakage.
+
+Group B, breakages on the branch only, for the rewritten and new tests: an `implementation` input back (fails the input test and the new test), a mise step back (the real run test and the new test), `--no-write` dropped from the dry run (the dry run tests), the App token given to the dry run (the dry run tests), the real run depending on an `implementation` input (the dry run reach test, the real run test and the new test), the dry run condition loosened (the dry run reach test) and bun named in a comment (the new test). Each fails what it should.
+
+The script was `breakage-update-pins.ts` (TypeScript on bun) in the session scratchpad; the breakages are the one-line `perl` substitutions named in the table.

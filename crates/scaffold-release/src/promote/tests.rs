@@ -469,7 +469,6 @@ fn the_report_is_printed_the_way_the_typescript_printed_it() {
 
 /// A stand-in `gh` that records every call, one line per call with the arguments joined by U+001F, and answers like the real one.
 fn fake_gh(dir: &Path) -> (PathBuf, PathBuf) {
-    use std::os::unix::fs::PermissionsExt;
     let log = dir.join("gh.log");
     let script = dir.join("gh");
     std::fs::write(
@@ -492,7 +491,7 @@ esac
         ),
     )
     .unwrap();
-    std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+    crate::testutil::settle(&script);
     (script, log)
 }
 
@@ -610,13 +609,12 @@ fn a_gh_call_that_fails_says_which_call_and_why() {
     let dir = tempfile::tempdir().unwrap();
     let script = dir.path().join("gh");
     {
-        use std::os::unix::fs::PermissionsExt;
         std::fs::write(
             &script,
             "#!/bin/sh\necho 'HTTP 404: Not Found' >&2\nexit 1\n",
         )
         .unwrap();
-        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+        crate::testutil::settle(&script);
     }
     let gh = Gh::new(&script, "o/r", dir.path()).unwrap();
     assert_eq!(
@@ -639,9 +637,8 @@ fn a_gh_that_is_killed_has_no_exit_code_and_is_reported_as_exit_minus_1() {
     let dir = tempfile::tempdir().unwrap();
     let script = dir.path().join("gh");
     {
-        use std::os::unix::fs::PermissionsExt;
         std::fs::write(&script, "#!/bin/sh\nkill -9 $$\n").unwrap();
-        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+        crate::testutil::settle(&script);
     }
     let gh = Gh::new(&script, "o/r", dir.path()).unwrap();
     assert_eq!(
@@ -663,13 +660,12 @@ fn a_run_with_no_finished_release_run_is_none() {
     let dir = tempfile::tempdir().unwrap();
     let script = dir.path().join("gh");
     {
-        use std::os::unix::fs::PermissionsExt;
         std::fs::write(
             &script,
             "#!/bin/sh\necho '[{\"databaseId\":1,\"status\":\"queued\",\"conclusion\":\"\"}]'\n",
         )
         .unwrap();
-        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+        crate::testutil::settle(&script);
     }
     let gh = Gh::new(&script, "o/r", dir.path()).unwrap();
     assert_eq!(gh.release_run(TAG).unwrap(), None);

@@ -578,11 +578,10 @@ mod more_tests {
 
     #[test]
     fn a_runner_that_is_killed_has_no_exit_code_and_is_reported_as_exit_minus_1() {
-        use std::os::unix::fs::PermissionsExt;
         let dir = tempfile::tempdir().unwrap();
         let script = dir.path().join("runner");
         std::fs::write(&script, "#!/bin/sh\nkill -9 $$\n").unwrap();
-        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+        crate::testutil::settle(&script);
         let mut out = Vec::new();
         let s = Smoke {
             binary: &script,
@@ -597,7 +596,6 @@ mod more_tests {
 
     #[test]
     fn the_runner_gets_the_environment_of_this_process_without_the_git_variables() {
-        use std::os::unix::fs::PermissionsExt;
         let dir = tempfile::tempdir().unwrap();
         let script = dir.path().join("runner");
         std::fs::write(
@@ -605,7 +603,7 @@ mod more_tests {
             "#!/bin/sh\nenv | grep -c '^GIT_' || true\nenv | grep -c '^PATH=' || true\n",
         )
         .unwrap();
-        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+        crate::testutil::settle(&script);
         let mut out = Vec::new();
         let s = Smoke {
             binary: &script,

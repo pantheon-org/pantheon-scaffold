@@ -640,7 +640,6 @@ fn the_directory_is_replaced_before_the_out_folder_and_the_tree() {
 /// A stand-in for the runner: it prints what the commands print, writes a file and a manifest into the render root, and fails for the
 /// configuration `e-no-crate-name`.
 fn fake_runner(dir: &Path, extra_file: bool) -> PathBuf {
-    use std::os::unix::fs::PermissionsExt;
     let script = dir.join("runner");
     let extra = if extra_file {
         "echo more > \"$root/extra.txt\""
@@ -665,7 +664,7 @@ esac
         ),
     )
     .unwrap();
-    std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+    crate::testutil::settle(&script);
     script
 }
 

@@ -66,12 +66,12 @@ They are asserted by `runner/test/release-workflow.test.ts` and kept honest by `
 
 Added in phase 8. A release stays a pre-release until it is promoted. The promotion is the workflow `promote.yml`, run by hand from `main`, and it is the only thing that edits a release. It never changes the assets: it removes the pre-release flag, drops "(pre-release)" from the title and "Pre-" from the first words of the notes.
 
-Since Phase 2 of the Rust port ([ts-tooling-rust-port.md](ts-tooling-rust-port.md)) the tool is the Rust crate `crates/scaffold-release` (`scaffold-release promote check <tag>` and `promote promote <tag>`). A `tool` job builds it with read permission and no token, and the other jobs download it and check its sha256. The TypeScript tool (`runner/scripts/promote.ts`) stays as the reference until Phase 6: the dry-run job runs both and fails if their output or exit code differ, and a real run can use it instead of the Rust tool with the `implementation` input (`typescript`), which is the way back if the Rust tool misbehaves on a real promotion.
+Since Phase 2 of the Rust port ([ts-tooling-rust-port.md](ts-tooling-rust-port.md)) the tool is the Rust crate `crates/scaffold-release` (`scaffold-release promote check <tag>` and `promote promote <tag>`). A `tool` job builds it with read permission and no token, and the other jobs download it and check its sha256. The TypeScript tool and the `implementation` input that chose it were deleted in Phase 6, after v0.4.0 was released and promoted by the Rust tools. If the Rust tool misbehaves on a real promotion, the way back is to revert that change: the files are in git history.
 
 1. **Dry run.** Run `promote` with the tag (for example `v0.1.5`) and `dry_run` left true. One job runs every guard and edits nothing. It never touches the environment.
 2. **Real run.** Run it again with `dry_run` false. The first job repeats the guards, then the `promote` job runs in the environment `promote`. That environment has no protection rules today, so the job starts at once (see "Who approves" below). It runs every guard again, edits the release, and checks the result.
 
-The guards, all before the edit (`crates/scaffold-release/src/promote.rs`, with tests and a mutation check; the TypeScript `runner/src/promote.ts` is the reference until Phase 6):
+The guards, all before the edit (`crates/scaffold-release/src/promote.rs`, with tests and a mutation check):
 
 | Guard | Refuses when |
 |---|---|

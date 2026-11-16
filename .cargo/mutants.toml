@@ -12,9 +12,11 @@ exclude_globs = ["crates/scaffold-features/**", "crates/scaffold-cli/src/main.rs
 # Phase 4 of docs/ts-tooling-rust-port.md (decision D3: say up front which functions are excluded). These functions only drive other
 # programs, the runner, pkl, unzip and a local web server, and what they check is a verdict about a real run. A mutation such as `&&`
 # to `||` in one of their checks changes nothing while the checks pass, and a test that would tell it needs the whole scenario, about
-# twenty seconds, for each of the 190 mutants: too slow for the 45 minute limit of the mutation job. They are proved another way, by
-# differential runs against the TypeScript originals on the three platforms (runner/scripts/smoke-diff.sh and baseline-diff.sh, with
-# inputs made to fail), and by the integration tests of crates/scaffold-release/tests/smoke.rs. The helpers around them are not excluded.
+# twenty seconds, for each of the 190 mutants: too slow for the 45 minute limit of the mutation job. They are proved another way, by the
+# integration tests of crates/scaffold-release/tests/smoke.rs (a wrong version, a broken wrapper, an unrunnable binary, a failing setup)
+# and by the rust-binary job of ci.yml, which runs the smoke suite against the release binary on the three platforms. In Phases 4 and 5
+# they were also compared with the TypeScript originals on the three platforms, before Phase 6 deleted those. The helpers around them
+# are not excluded.
 exclude_re = [
     "replace match guard done\\.refusals\\.is_empty\\(\\) with true in run_migrate",
     "crates/scaffold-release/src/smoke\\.rs:\\d+:\\d+: .*\\b(in|replace) (suite|basics|render_flow|lock_flow|case_flow|orphan_clean|orphan_dirty)( |$)",

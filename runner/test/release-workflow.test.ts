@@ -1,7 +1,6 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { stableWording } from "../src/promote";
 
 // Properties of .github/workflows/release.yml that make publishing safe. They are read from the file, so a change that breaks one fails here.
 const path = join(import.meta.dir, "../../.github/workflows/release.yml");
@@ -250,15 +249,14 @@ test("the build job builds the release tool before it builds the runner with it,
   expect(text).not.toContain("build-rust.ts");
 });
 
-test("the pull request checks build the tool before the runner, and compare the Rust build with the TypeScript one on every platform", () => {
+test("the pull request checks build the tool before the runner, and build and smoke-test the runner on every platform", () => {
   const steps = ci.jobs["rust-binary"]!.steps;
   const tool = steps.findIndex((s) => s.run?.includes("cargo build --release --locked -p scaffold-release"));
   const runner = steps.findIndex((s) => s.run?.includes("scaffold-release build-rust"));
   expect(tool).toBeGreaterThan(-1);
   expect(runner).toBeGreaterThan(tool);
-  const diff = steps.find((s) => s.run?.includes("runner/scripts/build-rust-diff.sh"));
-  expect(diff?.run).toContain('target/release/scaffold-release --version "$BUILD_VERSION"');
-  expect(steps.indexOf(diff!)).toBeGreaterThan(runner);
+  const smoke = steps.findIndex((s) => s.run?.includes("scaffold-release smoke"));
+  expect(smoke).toBeGreaterThan(runner);
   expect(JSON.stringify(ci.jobs["rust-binary"]!.strategy?.matrix)).toContain("darwin-arm64");
 });
 
@@ -276,10 +274,11 @@ test("the release tool for the smoke job is built where nothing can write, and i
   expect(wf.jobs.release.needs).not.toContain("build");
 });
 
-test("the pull request checks run the Rust smoke and baseline scripts and compare them with the TypeScript ones", () => {
+// Phase 6 of docs/ts-tooling-rust-port.md: the TypeScript twins are deleted, and so are the differential scripts that compared them with the Rust tools.
+test("the pull request checks run the Rust smoke and baseline scripts, and no differential script of a deleted tool", () => {
   const ci = readFileSync(join(import.meta.dir, "../../.github/workflows/ci.yml"), "utf8");
-  expect(ci).toContain("runner/scripts/smoke-diff.sh target/release/scaffold-release");
-  expect(ci).toContain("runner/scripts/baseline-diff.sh target/debug/scaffold-release target/debug/pantheon-scaffold");
+  for (const gone of ["release-assets-diff", "promote-diff", "smoke-diff", "baseline-diff", "build-rust-diff"]) expect(ci, gone).not.toContain(gone);
+  expect(ci).toContain("scaffold-release smoke");
   // The runner needs pkl, which only mise puts on the PATH: without it every render exits 1.
   expect(ci).toContain("mise x -- target/debug/scaffold-release baseline snapshot");
   expect(ci).toContain("mise x -- target/debug/scaffold-release baseline compare runner/scripts/builtins-baseline/baseline.json");
@@ -327,15 +326,14 @@ test("verify-release imports Builtins from the same package URI, with the same c
 });
 
 // The notes of a release are the only text a consumer sees on the release page, so they link the Upgrading section, and promote must keep that
-// sentence: it rewrites only the leading "Pre-release of".
+// sentence: it rewrites only the leading "Pre-release of" (`stable_wording` in crates/scaffold-release/src/promote.rs, which its own tests cover).
 test("the release notes start with the pre-release wording, link the Upgrading section, and keep the link when promoted", () => {
   const step = allSteps.find((s) => s.run?.includes("publish-release.sh"))!;
   const notes = String(step.env?.RELEASE_NOTES).replaceAll("${{ github.repository }}", "$GH_REPO").replaceAll("${{ github.ref_name }}", "$TAG");
   expect(notes.startsWith("Pre-release of ")).toBe(true);
   expect(notes).toContain("https://github.com/$GH_REPO/blob/$TAG/docs/adopting.md#upgrading");
   expect(notes).not.toMatch(/[`]|\$\(|\$\{/);
-  const stable = stableWording({ tagName: "v0.2.0", name: "v0.2.0 (pre-release)", body: notes, isPrerelease: true, isDraft: false, assets: [] });
-  expect(stable.notes.startsWith("Release of ")).toBe(true);
-  expect(stable.notes).toContain("docs/adopting.md#upgrading");
-  expect(stable.title).toBe("v0.2.0");
+  const promoted = notes.replace(/^Pre-release of/, "Release of");
+  expect(promoted.startsWith("Release of ")).toBe(true);
+  expect(promoted).toContain("docs/adopting.md#upgrading");
 });

@@ -217,3 +217,63 @@ Not probed: whether two successive real releases of the same source have identic
 ## How to re-derive this page
 
 For a module, list the TypeScript tests with `grep -nE '^\s*(test|it)\(' runner/test/<module>.test.ts` and the Rust tests with `grep -nE 'fn ' crates/scaffold-core/src/<module>.rs` after the line `mod tests`. Most Rust tests are named after the TypeScript title in snake case. The rows with a note are the ones that are not.
+
+## Added in Phase 6: the release tooling tests
+
+Written on 16-11-2026 for Phase 6 of [ts-tooling-rust-port.md](ts-tooling-rust-port.md). The three test files below were ported with their modules in Phases 1, 2 and 5; this is the evidence, before they are deleted, that each TypeScript test has a named Rust test. Every row was checked against the file: the Rust name exists.
+
+### release
+
+| TypeScript test (`runner/test/release.test.ts`) | Rust test (`crates/scaffold-release/src/lib.rs`) | Note |
+|---|---|---|
+| pklProjectVersion reads the one version line of the package block | `pkl_project_version_reads_the_one_version_line_of_the_package_block` | covered; the TypeScript test stays, because `package-uri.test.ts` still imports `pklProjectVersion` (Phase 7) |
+| a tag that matches the PklProject version passes, pre-release tags included | `a_tag_that_matches_the_pkl_project_version_passes_pre_release_tags_included` | covered |
+| a tag that is not v followed by a version is refused | `a_tag_that_is_not_v_followed_by_a_version_is_refused` | covered |
+| a tag that differs from the PklProject version is refused, so the package URI cannot point at the wrong release | `a_tag_that_differs_from_the_pkl_project_version_is_refused` | covered |
+| the release carries the package files, the three binaries and the checksums | `the_release_carries_the_package_files_the_three_binaries_and_the_checksums` | covered |
+| checksums.txt lists the binaries, the package metadata and the zip, and parseChecksums reads it back | `checksums_list_the_binaries_the_package_metadata_and_the_zip_and_parse_back` | covered |
+| the metadata checksum is the one pkl checks with ::sha256, the same as the .sha256 file | `the_metadata_checksum_is_the_one_pkl_checks_with_the_same_as_the_sha256_file` | covered |
+| a missing binary or package file is an error that lists what is missing | `a_missing_binary_or_package_file_is_an_error_that_lists_what_is_missing` | covered |
+| a zip that does not match the checksum in the metadata is refused | `a_zip_that_does_not_match_the_checksum_in_the_metadata_is_refused` | covered |
+| a .sha256 file that does not match its file is refused | `a_sha256_file_that_does_not_match_its_file_is_refused` | covered |
+| metadata for another version is refused | `metadata_for_another_version_is_refused_even_when_its_sha256_file_matches` | covered |
+| the wrapper prints the version for a matching tag and fails with exit 1 for another | `the_command_prints_the_version_for_a_matching_tag_and_exits_1_for_another` | covered |
+| the wrapper writes checksums.txt into the release folder | `the_command_writes_checksums_txt_into_the_release_folder_and_prints_it` | covered |
+| the wrapper reports a usage error with exit 2 | `a_usage_error_exits_2_with_the_usage_line` | covered |
+| the wrapper prints the PklProject version for a dry run that has no tag | `the_command_prints_the_pkl_project_version_for_a_dry_run_that_has_no_tag` | covered |
+| a .zip.sha256 file that does not match the zip is refused | `a_zip_sha256_file_that_does_not_match_the_zip_is_refused` | covered |
+
+### promote
+
+| TypeScript test (`runner/test/promote.test.ts`) | Rust test (`crates/scaffold-release/src/promote/tests.rs`) | Note |
+|---|---|---|
+| a dry run passes every guard and edits nothing | `a_dry_run_passes_every_guard_and_edits_nothing` | covered |
+| a promotion edits the flag, the title and the notes once, and checks the result | `a_promotion_edits_the_flag_the_title_and_the_notes_once_and_checks_the_result` | covered |
+| it runs only from main | `it_runs_only_from_main` | covered |
+| a tag that is not a release tag is refused | `a_tag_that_is_not_a_release_tag_is_refused` | covered |
+| a release that is already stable, or a draft, is not promoted | `a_release_that_is_already_stable_or_a_draft_is_not_promoted` | covered |
+| the release must carry exactly the files a release carries | `the_release_must_carry_exactly_the_files_a_release_carries` | covered |
+| a checksums file without a valid attestation stops the promotion | `a_checksums_file_without_a_valid_attestation_stops_the_promotion` | covered |
+| an asset whose bytes do not match checksums.txt stops the promotion | `an_asset_whose_bytes_do_not_match_checksums_txt_stops_the_promotion` | covered |
+| a version on the known-bad list is refused with its reason | `a_version_on_the_known_bad_list_is_refused_with_its_reason` | covered |
+| the release workflow must have succeeded for the tag, verify job included | `the_release_workflow_must_have_succeeded_for_the_tag_verify_job_included` | covered |
+| after the edit, a release that is still a pre-release, not latest, or whose checksums changed is reported as a failure | `after_the_edit_a_release_that_is_still_a_pre_release_not_latest_or_with_changed_checksums_is_a_failure` | covered |
+| the stable wording drops the pre-release label and nothing else | `the_stable_wording_drops_the_pre_release_label_and_nothing_else` | covered |
+
+### build-rust
+
+| TypeScript test (`runner/test/build-rust.test.ts`) | Rust test (`crates/scaffold-release/src/build_rust/tests.rs`) | Note |
+|---|---|---|
+| every release target has a Rust target, and the Linux ones are static musl builds | `every_release_target_has_a_rust_target_and_the_linux_ones_are_static_musl_builds` | covered |
+| the plan builds the command line crate, release, locked, for the target, with the version set | `the_plan_builds_the_command_line_crate_release_locked_for_the_target_with_the_version_set` | covered |
+| the asset names are the ones the release has always used, so mise picks the same files | `the_asset_names_are_the_ones_the_release_has_always_used_so_mise_picks_the_same_files` | covered |
+| a Linux build compiles its C code with a zig cc wrapper for its own target, a macOS build is left alone | `a_linux_build_compiles_its_c_code_with_a_zig_cc_wrapper_for_its_own_target_and_a_macos_build_is_left_alone` | covered |
+| nothing in a plan needs musl-gcc or the Ubuntu archive | `nothing_in_a_plan_needs_musl_gcc_or_the_ubuntu_archive` | covered |
+| the wrapper hands zig the other arguments untouched, with spaces kept, and drops the --target the cc crate adds | `the_wrapper_hands_zig_the_other_arguments_untouched_with_spaces_kept_and_drops_the_target_the_cc_crate_adds` | covered |
+| only the musl builds must be static | `only_the_musl_builds_must_be_static` | covered |
+| a leading v is dropped from the version, and a pre-release is a version | `a_leading_v_is_dropped_from_the_version_and_a_pre_release_is_a_version` | covered |
+| an unknown target or a version that is not one is refused | `an_unknown_target_or_a_version_that_is_not_one_is_refused` | covered |
+| ldd output says whether a binary is static | `ldd_output_says_whether_a_binary_is_static` | covered |
+| the host decides which target can be built here | `the_host_decides_which_target_can_be_built_here` | covered |
+| the arguments are --target, --version and --out, and the target is required | `the_arguments_are_target_version_and_out_and_the_target_is_required` | covered |
+

@@ -234,6 +234,14 @@ fn the_update_job_which_holds_the_app_token_never_runs_cargo_and_downloads_the_t
         run_of(&steps[verify]),
         "echo \"$EXPECTED  tool/scaffold-release\" | sha256sum --check --strict -\nchmod +x tool/scaffold-release\n"
     );
+    // Also stronger (a step that ran the tool, with any argument, before the check failed neither suite): no step before the check runs the tool.
+    for step in &steps[..verify] {
+        assert!(
+            !run_of(step).contains("tool/scaffold-release"),
+            "{}",
+            step["name"]
+        );
+    }
     let first_run = steps
         .iter()
         .position(|s| run_of(s).contains(RUST_WRITE))

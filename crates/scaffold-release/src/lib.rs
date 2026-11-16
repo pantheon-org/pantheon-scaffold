@@ -5,6 +5,7 @@
 //! `pkl/PklProject` under the directory it is run from, so the workflow runs it from the checkout root.
 
 pub mod baseline;
+pub mod build_rust;
 pub mod json;
 pub mod promote;
 pub mod smoke;
@@ -195,7 +196,7 @@ fn release_assets(args: &[&str], root: &Path, out: &mut dyn Write) -> Result<(),
 }
 
 /// Both commands, for a command line that names neither.
-const ALL_USAGE: &str = "usage: scaffold-release release-assets check-tag <tag> | version | checksums <dir> <version>\n       scaffold-release promote check <tag> | promote <tag>\n       scaffold-release update-pins [--pins <file>] [--no-write] [--freshness-out <file>] [--summary <file>]";
+const ALL_USAGE: &str = "usage: scaffold-release release-assets check-tag <tag> | version | checksums <dir> <version>\n       scaffold-release promote check <tag> | promote <tag>\n       scaffold-release update-pins [--pins <file>] [--no-write] [--freshness-out <file>] [--summary <file>]\n       scaffold-release smoke <binary> [--version <x.y.z>] [--repo <checkout>]\n       scaffold-release baseline snapshot | compare | freeze | packaged | check\n       scaffold-release build-rust --target <linux-x64|linux-arm64|darwin-arm64> [--version <x.y.z>] [--out <dir>]";
 
 /// Runs the command. Exit 0 on success, 1 for a refusal (its message on `err`), 2 for a usage error.
 pub fn run(args: &[String], root: &Path, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
@@ -206,6 +207,7 @@ pub fn run(args: &[String], root: &Path, out: &mut dyn Write, err: &mut dyn Writ
         Some((&"update-pins", rest)) => return update_pins::command(rest, root, out, err),
         Some((&"smoke", rest)) => return smoke::command(rest, root, out, err),
         Some((&"baseline", rest)) => return baseline::command(rest, root, out, err),
+        Some((&"build-rust", rest)) => return build_rust::command(rest, root, out, err),
         _ => {
             let _ = writeln!(err, "{ALL_USAGE}");
             return 2;
@@ -623,6 +625,26 @@ mod tests {
             assert_eq!(out, "", "{args:?}");
             assert_eq!(err, format!("{USAGE}\n"), "{args:?}");
         }
+    }
+
+    #[test]
+    fn the_build_rust_command_is_reached_through_run_and_is_listed_in_the_usage() {
+        let root = project("0.2.0");
+        let (code, out, err) = run_in(root.path(), &["build-rust"]);
+        assert_eq!(
+            (code, out.as_str(), err.as_str()),
+            (1, "", "--target needs a value\n")
+        );
+        let (code, out, _) = run_in(
+            root.path(),
+            &["build-rust", "--target", "darwin-arm64", "--print-plan"],
+        );
+        assert_eq!(code, 0);
+        assert!(
+            out.contains("\"triple\": \"aarch64-apple-darwin\""),
+            "{out}"
+        );
+        assert!(ALL_USAGE.contains("scaffold-release build-rust --target"));
     }
 
     #[test]

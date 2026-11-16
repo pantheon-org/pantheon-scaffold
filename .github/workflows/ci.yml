@@ -192,8 +192,8 @@ jobs:
         run: cargo build -p scaffold-release --locked
       - name: Render the 61 configurations and compare them with the frozen snapshot
         run: |
-          target/debug/scaffold-release baseline snapshot . target/debug/pantheon-scaffold "$RUNNER_TEMP/candidate"
-          target/debug/scaffold-release baseline compare runner/scripts/builtins-baseline/baseline.json "$RUNNER_TEMP/candidate"
+          mise x -- target/debug/scaffold-release baseline snapshot . target/debug/pantheon-scaffold "$RUNNER_TEMP/candidate"
+          mise x -- target/debug/scaffold-release baseline compare runner/scripts/builtins-baseline/baseline.json "$RUNNER_TEMP/candidate"
       # Phase 4 of docs/ts-tooling-rust-port.md: the TypeScript baseline scripts are the reference until they are deleted. This runs them
       # and the Rust ones on the same tree and the same runner, and fails on any difference in the folders, the output or the exit code.
       - name: Compare the Rust baseline scripts with the TypeScript ones

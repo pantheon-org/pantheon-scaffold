@@ -353,6 +353,47 @@ mod tests {
         assert!(walk(dir.path(), &dir.path().join("missing")).is_empty());
     }
 
+    fn ask(folder: &Path, chunks: &[&str]) -> String {
+        use std::io::Read as _;
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let folder = folder.to_owned();
+        let server = std::thread::spawn(move || {
+            let (stream, _) = listener.accept().unwrap();
+            answer(stream, &folder);
+        });
+        let mut client = TcpStream::connect(("127.0.0.1", port)).unwrap();
+        client.set_nodelay(true).unwrap();
+        for chunk in chunks {
+            client.write_all(chunk.as_bytes()).unwrap();
+            client.flush().unwrap();
+            std::thread::sleep(std::time::Duration::from_millis(300));
+        }
+        let mut reply = String::new();
+        client.read_to_string(&mut reply).unwrap();
+        server.join().unwrap();
+        reply
+    }
+
+    #[test]
+    fn the_server_waits_for_the_whole_request_and_answers_with_the_file_or_a_404() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("a@b.zip"), "zip-bytes").unwrap();
+        let whole = ask(dir.path(), &["GET /dir/a%40b.zip?x=1 HTTP/1.1\r\n\r\n"]);
+        assert!(whole.starts_with("HTTP/1.1 200 OK\r\n"), "{whole}");
+        assert!(whole.contains("Content-Length: 9\r\n"), "{whole}");
+        assert!(whole.ends_with("\r\n\r\nzip-bytes"), "{whole}");
+        // The request line arrives in two pieces: the server must read on until the blank line.
+        let split = ask(dir.path(), &["GET /a%40", "b.zip HTTP/1.1\r\n", "\r\n"]);
+        assert!(split.starts_with("HTTP/1.1 200 OK\r\n"), "{split}");
+        let missing = ask(dir.path(), &["GET /nothing.zip HTTP/1.1\r\n\r\n"]);
+        assert!(
+            missing.starts_with("HTTP/1.1 404 Not Found\r\n"),
+            "{missing}"
+        );
+        assert!(missing.contains("Content-Length: 0\r\n"), "{missing}");
+    }
+
     #[test]
     fn say_writes_the_line_and_reports_a_writer_that_fails() {
         struct Broken;

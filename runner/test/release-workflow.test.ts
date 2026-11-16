@@ -256,8 +256,9 @@ test("the pull request checks run the Rust smoke and baseline scripts and compar
   const ci = readFileSync(join(import.meta.dir, "../../.github/workflows/ci.yml"), "utf8");
   expect(ci).toContain("runner/scripts/smoke-diff.sh target/release/scaffold-release");
   expect(ci).toContain("runner/scripts/baseline-diff.sh target/debug/scaffold-release target/debug/pantheon-scaffold");
-  expect(ci).toContain("scaffold-release baseline snapshot");
-  expect(ci).toContain("scaffold-release baseline compare runner/scripts/builtins-baseline/baseline.json");
+  // The runner needs pkl, which only mise puts on the PATH: without it every render exits 1.
+  expect(ci).toContain("mise x -- target/debug/scaffold-release baseline snapshot");
+  expect(ci).toContain("mise x -- target/debug/scaffold-release baseline compare runner/scripts/builtins-baseline/baseline.json");
   expect(ci).not.toContain("builtins-baseline/snapshot.ts");
 });
 

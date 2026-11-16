@@ -17,6 +17,6 @@ exclude_globs = ["crates/scaffold-features/**", "crates/scaffold-cli/src/main.rs
 # inputs made to fail), and by the integration tests of crates/scaffold-release/tests/smoke.rs. The helpers around them are not excluded.
 exclude_re = [
     "replace match guard done\\.refusals\\.is_empty\\(\\) with true in run_migrate",
-    "crates/scaffold-release/src/smoke\\.rs:\\d+:\\d+: .* in (suite|basics|render_flow|lock_flow|case_flow|orphan_clean|orphan_dirty)$",
-    "crates/scaffold-release/src/baseline/packaged\\.rs:\\d+:\\d+: .* in (run|compare_set|check_zip)$",
+    "crates/scaffold-release/src/smoke\\.rs:\\d+:\\d+: .*\\b(in|replace) (suite|basics|render_flow|lock_flow|case_flow|orphan_clean|orphan_dirty)( |$)",
+    "crates/scaffold-release/src/baseline/packaged\\.rs:\\d+:\\d+: .*\\b(in|replace) (run|compare_set|check_zip|packaged)( |$)",
 ]

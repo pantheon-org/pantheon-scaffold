@@ -48,24 +48,19 @@ fn walk(base: &Path, dir: &Path) -> Vec<String> {
 }
 
 fn percent_decode(text: &str) -> String {
-    let bytes = text.as_bytes();
+    let hex = |b: u8| char::from(b).to_digit(16);
     let mut out = Vec::new();
-    let mut i = 0;
-    while i < bytes.len() {
-        let hex = |b: u8| char::from(b).to_digit(16);
-        if bytes[i] == b'%'
-            && i + 2 < bytes.len()
-            && hex(bytes[i + 1]).is_some()
-            && hex(bytes[i + 2]).is_some()
-        {
-            out.push(
-                (hex(bytes[i + 1]).expect("checked") * 16 + hex(bytes[i + 2]).expect("checked"))
-                    as u8,
-            );
-            i += 3;
+    let mut rest = text.as_bytes().iter();
+    while let Some(byte) = rest.next() {
+        let escaped = match rest.as_slice() {
+            [high, low, ..] if *byte == b'%' => hex(*high).zip(hex(*low)),
+            _ => None,
+        };
+        if let Some((high, low)) = escaped {
+            out.push((high * 16 + low) as u8);
+            rest.nth(1);
         } else {
-            out.push(bytes[i]);
-            i += 1;
+            out.push(*byte);
         }
     }
     String::from_utf8_lossy(&out).into_owned()
@@ -341,6 +336,41 @@ mod tests {
         assert_eq!(percent_decode("100%"), "100%");
         assert_eq!(percent_decode("%zz"), "%zz");
         assert_eq!(percent_decode("%4"), "%4");
+        assert_eq!(percent_decode("%41%42"), "AB");
+        assert_eq!(percent_decode("x%7e"), "x~");
+        assert_eq!(percent_decode("%%41"), "%A");
+    }
+
+    #[test]
+    fn walk_lists_the_files_of_nested_folders_relative_to_the_base() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join("a/b")).unwrap();
+        std::fs::write(dir.path().join("top.txt"), "").unwrap();
+        std::fs::write(dir.path().join("a/b/deep.txt"), "").unwrap();
+        let mut found = walk(dir.path(), dir.path());
+        found.sort();
+        assert_eq!(found, ["a/b/deep.txt", "top.txt"]);
+        assert!(walk(dir.path(), &dir.path().join("missing")).is_empty());
+    }
+
+    #[test]
+    fn say_writes_the_line_and_reports_a_writer_that_fails() {
+        struct Broken;
+        impl Write for Broken {
+            fn write(&mut self, _: &[u8]) -> std::io::Result<usize> {
+                Err(std::io::Error::other("disk full"))
+            }
+            fn flush(&mut self) -> std::io::Result<()> {
+                Ok(())
+            }
+        }
+        let mut out = Vec::new();
+        say(&mut out, "hello".to_owned()).unwrap();
+        assert_eq!(String::from_utf8(out).unwrap(), "hello\n");
+        assert_eq!(
+            say(&mut Broken, "x".to_owned()),
+            Err("disk full".to_owned())
+        );
     }
 
     #[test]

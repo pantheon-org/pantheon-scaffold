@@ -421,3 +421,24 @@ fn snapshot_inner(args: &Args, out: &mut dyn Write) -> Result<(), String> {
     )
     .map_err(|e| e.to_string())
 }
+
+#[cfg(test)]
+mod run_tests {
+    use super::*;
+
+    #[test]
+    fn a_runner_that_is_killed_has_no_exit_code_and_is_recorded_as_exit_minus_1() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let script = dir.path().join("runner");
+        std::fs::write(&script, "#!/bin/sh\nkill -9 $$\n").unwrap();
+        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let placeholders = Placeholders {
+            dir: dir.path(),
+            out: dir.path(),
+            tree: dir.path(),
+        };
+        let result = run(&script, &[], dir.path(), &placeholders).unwrap();
+        assert_eq!((result.code, result.out.as_str()), (-1, ""));
+    }
+}

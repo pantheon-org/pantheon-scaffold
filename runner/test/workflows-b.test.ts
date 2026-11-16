@@ -77,7 +77,14 @@ const withExcluded = (upstream: string, extra: { skills: boolean; binary: boolea
 };
 same("adr-like", adr, ".github/dependabot.yml", withExcluded(withDistIgnore(text("workflows/dependabot.yml")), { skills: true, binary: true }));
 for (const n of ["release-please", "zizmor", "agnix", "aislop", "rust-ci"]) same("library-like", kit, `.github/workflows/${n}.yml`, text(`workflows-kit/${n}.yml`));
-same("library-like", kit, ".github/dependabot.yml", withExcluded(text("workflows-kit/dependabot.yml"), { skills: false, binary: false }));
+// The library repository's files are all rendered, so the github-actions entry would have nothing to scan (Dependabot fails with
+// dependency_file_not_found) and is left out: the expected file is the repository's own with that entry cut off.
+const cargoOnly = (upstream: string): string => {
+  const at = upstream.indexOf("  # Keeps the SHA pins");
+  if (at < 0) throw new Error("the upstream dependabot.yml has no github-actions entry to cut");
+  return `${upstream.slice(0, at).trimEnd()}\n`;
+};
+same("library-like", kit, ".github/dependabot.yml", cargoOnly(text("workflows-kit/dependabot.yml")));
 same("auditor-like", auditor, ".github/workflows/zizmor.yml", text("workflows-auditor/zizmor.yml"));
 
 test("the verbatim config files are byte for byte the repositories' files", () => {

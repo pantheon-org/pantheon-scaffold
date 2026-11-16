@@ -10,8 +10,8 @@ import "../../Pins.pkl"
 /// pin in one is drift, and `check` exits 4. Their pins move through Pins.pkl and `upgrade`. Workflows the repository writes itself are still updated.
 /// When nothing is left outside that list the entry is left out (`options.dependabotGithubActions`, `Options.githubActionsUpdates()`): Dependabot
 /// fails with `dependency_file_not_found` on an entry that has nothing to scan.
-function file(opts: Config.Options, workflowNames: List<String>): GenFiles.GenFile =
-  let (entry = opts.githubActionsUpdates())
+function file(opts: Config.Options, workflowNames: List<String>, workflowLeftOut: Boolean): GenFiles.GenFile =
+  let (entry = opts.githubActionsUpdates(workflowLeftOut))
   new GenFiles.GenFile {
     content =
       commentBlock(

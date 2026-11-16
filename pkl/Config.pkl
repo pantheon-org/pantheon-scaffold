@@ -62,18 +62,19 @@ class Options {
   /// Whether dependabot.yml has a github-actions entry. Its `exclude-paths` lists every workflow the package renders, so a repository whose workflows are
   /// all rendered leaves the entry nothing to scan and Dependabot fails with `dependency_file_not_found`. `auto` (the default) renders the entry when the
   /// repository has something the package knows lies outside that list: a binary (cargo-dist's release.yml), a composite action (action.yml), the `draft`
-  /// release shape (its own release workflow), or builtins left out with `without` (their files are then the repository's own). A repository with
+  /// release shape (its own release workflow), or a workflow Builtin left out with `without` (that file is then the repository's own). A repository with
   /// workflows of its own and none of those, or an `action.yml` without `compositeAction`, sets `on`. `off` leaves the entry out.
   dependabotGithubActions: ("auto"|"on"|"off") = "auto"
   /// Whether release-please-config.json and .release-please-manifest.json are seeded (written once, never overwritten). Set it to false when the
   /// repository keeps its release-please configuration somewhere else.
   seedReleaseConfig: Boolean = true
 
-  /// Whether dependabot.yml has a github-actions entry, from `dependabotGithubActions`.
-  function githubActionsUpdates(): Boolean =
+  /// Whether dependabot.yml has a github-actions entry, from `dependabotGithubActions`. `workflowLeftOut` is whether `without` leaves out a workflow
+  /// the repository would otherwise get (Builtins.dependabot works that out).
+  function githubActionsUpdates(workflowLeftOut: Boolean): Boolean =
     if (dependabotGithubActions == "on") true
     else if (dependabotGithubActions == "off") false
-    else binary || compositeAction || resolvedReleaseShape() == "draft" || !without.isEmpty
+    else binary || compositeAction || resolvedReleaseShape() == "draft" || workflowLeftOut
 
   /// `releaseShape`, or the shape that follows from `binary`.
   function resolvedReleaseShape(): String = releaseShape ?? (if (binary) "cargo-dist" else "published")

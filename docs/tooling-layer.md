@@ -19,7 +19,7 @@ Those are the nine shared scripts: seven from `toolingFiles(options)` and two fr
 
 ### One named difference: `sync-labels.sh` is executable
 
-In all four repositories `sync-labels.sh` is committed as `100644`, and its workflow runs it as `bash .github/scripts/sync-labels.sh`, so the bit has never mattered. The plan says the nine scripts are executable, so it is rendered `0755` like the other eight. In a repository that adopts the package, `check` reports one mode difference for it until the bit is committed (`git update-index --chmod=+x`). `tooling.test.ts` asserts it is the only script that differs.
+In all four repositories `sync-labels.sh` is committed as `100644`, and its workflow runs it as `bash .github/scripts/sync-labels.sh`, so the bit has never mattered. The plan says the nine scripts are executable, so it is rendered `0755` like the other eight. In a repository that adopts the package, `check` reports one mode difference for it until the bit is committed (`git update-index --chmod=+x`). `crates/scaffold-package-tests/tests/tooling.rs` asserts it is the only script that differs.
 
 ## The executable bit as git records it
 

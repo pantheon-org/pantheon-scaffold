@@ -100,7 +100,7 @@ Decision 74 settles how four more files are handled: `.gitignore` (the `target/`
 
 ## Wave C: keeping pins current, and proposing upgrades
 
-Wave C is new work with no upstream copy, so it is checked by structure tests (`runner/test/workflows-c.test.ts`, `update-pins-workflow.test.ts`, `update-pins-script.test.ts`) rather than by P.1 equality. The App token step of `update-pins.yml` has run successfully (the weekly run on 09-11-2026 included). Opening a pin pull request has not been exercised, because no pin has moved since, and `upgrade-scaffold.yml` has never run in a consumer repository: both stay **unverified**.
+Wave C is new work with no upstream copy, so it is checked by structure tests (`crates/scaffold-package-tests/tests/workflows_c.rs`, `update-pins-workflow.test.ts`, `update-pins-script.test.ts`) rather than by P.1 equality. The App token step of `update-pins.yml` has run successfully (the weekly run on 09-11-2026 included). Opening a pin pull request has not been exercised, because no pin has moved since, and `upgrade-scaffold.yml` has never run in a consumer repository: both stay **unverified**.
 
 ### In the package repository
 

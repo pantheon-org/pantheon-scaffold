@@ -7,4 +7,10 @@ pub mod pkg;
 pub mod repo;
 pub mod serve;
 
+pub use scaffold_core::equality::compare_directives;
 pub use scaffold_core::equality::{compare_workflows, parse_yaml};
+
+/// Parses TOML text.
+pub fn parse_toml(text: &str) -> toml::Table {
+    text.parse().expect("the TOML parses")
+}

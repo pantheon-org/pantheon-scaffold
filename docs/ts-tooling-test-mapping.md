@@ -713,3 +713,73 @@ On 16-11-2026 `runner/test/fixtures` (37 folders) and `runner/test/upstream` (44
 ### The baseline moves out of `runner/`
 
 On 16-11-2026 `runner/scripts/builtins-baseline/baseline.json` and `README.md` moved to `crates/scaffold-release/baseline/` with `git mv`, before Phase 8, so that deleting `runner/` cannot delete the frozen snapshot that the `baseline` job of `ci.yml` compares against. The blob hash of `baseline.json` is the same before and after (`beaf9f2`). The `ci.yml` job, the workflow test, the hygiene test and the docs read the new path.
+
+## Phase 6b: the update-pins tests and the differential scenarios
+
+Written on 16-11-2026 for Phase 6b of [ts-tooling-rust-port.md](ts-tooling-rust-port.md), before the TypeScript is deleted. `semver` (5 tests) and `freshness` (9 tests) have their rows above and are covered. These are the rows of the two files that had none, and of the 30 scenarios of `update-pins-diff.sh`, the only byte for byte check of the output, the files and the requests of the two tools. Three Rust tests were added for gaps this mapping found: `a_pins_file_with_no_pins_checks_zero_and_still_writes_the_record`, `a_move_to_a_pre_release_tag_with_a_dot_in_it_is_written` and `the_tag_of_an_up_to_date_pin_that_cannot_be_found_is_a_problem`, all in `crates/scaffold-release/src/update_pins/tests.rs`.
+
+### pinupdate
+
+| TypeScript test (`runner/test/pinupdate.test.ts`) | Rust test | Note |
+|---|---|---|
+| every pin line is read, with the repository part of a workflow path | `every_pin_line_is_read_with_the_repository_part_of_a_workflow_path` | covered |
+| a pin line that cannot be read is an error, never skipped | `a_pin_line_that_cannot_be_read_is_an_error_never_skipped` | covered |
+| the real Pins.pkl is read completely | `the_real_pins_pkl_is_read_completely` | covered |
+| pins that are already at the latest release and match their tag change nothing and raise no problem | `pins_already_at_the_latest_release_and_matching_their_tag_change_nothing` | covered |
+| a pin behind its latest release is updated to that release's commit, and a major bump is flagged | `a_pin_behind_its_latest_release_moves_to_that_commit_and_a_major_bump_is_flagged` | covered |
+| a pin is never moved to an older release | `a_pin_is_never_moved_to_an_older_release` | covered |
+| a pin whose commit is not the commit of its recorded tag is a problem even when it is up to date | `a_pin_whose_commit_is_not_the_commit_of_its_recorded_tag_is_a_problem_even_when_up_to_date` | covered |
+| a latest tag that is not a published release is a problem and nothing is changed for it | `a_latest_tag_that_is_not_a_published_release_is_a_problem_and_nothing_changes_for_it` | covered |
+| a commit that does not exist in the upstream repository is a problem | `a_commit_that_does_not_exist_in_the_upstream_repository_is_a_problem` | covered |
+| a repository with no release, and a GitHub error, are problems and never read as unchanged | `a_repository_with_no_release_and_a_github_error_are_problems_never_unchanged` | covered |
+| applying changes rewrites only the pin lines that changed, and applying them twice changes nothing more | `applying_changes_rewrites_only_the_pin_lines_that_changed_and_twice_changes_nothing_more` | covered |
+| applying a change to a pin that is not in the file is an error | `applying_a_change_to_a_pin_that_is_not_in_the_file_is_an_error` | covered |
+| the freshness record the update writes is one the freshness check accepts | `the_record_the_update_writes_is_one_the_check_accepts` (in `scaffold-core`) | covered |
+
+### update-pins-script
+
+| TypeScript test (`runner/test/update-pins-script.test.ts`) | Rust test | Note |
+|---|---|---|
+| a no-write run lists the changes and writes nothing | `a_no_write_run_lists_the_changes_and_writes_nothing` | covered |
+| a real run rewrites the changed pin, writes the freshness record and a summary for the pull request | `a_real_run_rewrites_the_changed_pin_and_writes_the_freshness_record_and_a_summary` | covered |
+| when nothing changed the freshness record is still written, and no summary is | `when_nothing_changed_the_freshness_record_is_still_written_and_no_summary_is` | covered |
+| a problem fails the run and writes nothing, not even the freshness record | `a_problem_fails_the_run_and_writes_nothing_not_even_the_freshness_record` | covered |
+| a major bump is marked in the summary | `a_major_bump_is_marked_in_the_summary_and_in_the_listing` | covered |
+| an unknown option is a usage error | `the_options_are_read_and_an_unknown_one_or_a_missing_value_is_a_usage_error` | covered |
+
+### The 30 scenarios of `update-pins-diff.sh`
+
+| Scenario | Rust test | Note |
+|---|---|---|
+| every pin is current: the record is written, the pins are not | `when_nothing_changed_the_freshness_record_is_still_written_and_no_summary_is` | covered |
+| the same with --no-write: nothing is written | `a_no_write_run_lists_the_changes_and_writes_nothing` | covered with pins that move; the run with every pin current and `--no-write` is the two tests together |
+| a minor move is written with the record and the summary | `a_real_run_rewrites_the_changed_pin_and_writes_the_freshness_record_and_a_summary` | covered |
+| a minor move with --no-write: listed, nothing written | `a_no_write_run_lists_the_changes_and_writes_nothing` | covered |
+| a major move is flagged in the listing and the summary | `a_major_bump_is_marked_in_the_summary_and_in_the_listing` | covered |
+| a move to a pre-release tag with a dot in it | `a_move_to_a_pre_release_tag_with_a_dot_in_it_is_written` | covered (added in 6b) |
+| the latest tag is not a published release | `a_latest_tag_that_is_not_a_published_release_is_a_problem_and_nothing_changes_for_it` | covered |
+| the latest release is a draft | `a_release_is_published_only_when_it_exists_and_is_not_a_draft` | covered (HTTP layer) |
+| the commit does not belong to the repository | `a_commit_that_does_not_exist_in_the_upstream_repository_is_a_problem` | covered |
+| a repository with no release | `a_repository_with_no_release_and_a_github_error_are_problems_never_unchanged` | covered |
+| a 503 is retried and the next answer is used | `a_5xx_is_retried_up_to_three_attempts_and_a_404_is_an_answer_that_is_not` | covered |
+| a 502 that never goes away fails after three attempts and writes nothing | `a_5xx_is_retried_up_to_three_attempts_and_a_404_is_an_answer_that_is_not`, `a_problem_fails_the_run_and_writes_nothing_not_even_the_freshness_record` | covered (two tests) |
+| a 403 is not retried and is a problem | `the_latest_release_is_its_tag_and_a_repository_with_none_is_none` | covered (HTTP layer: one 403 answer, one request) |
+| the tag of an up to date pin cannot be found | `the_tag_of_an_up_to_date_pin_that_cannot_be_found_is_a_problem` | covered (added in 6b) |
+| an up to date pin whose commit is not its tag's commit | `a_pin_whose_commit_is_not_the_commit_of_its_recorded_tag_is_a_problem_even_when_up_to_date` | covered |
+| the latest release is older than the pin: nothing moves | `a_pin_is_never_moved_to_an_older_release` | covered |
+| an annotated tag is followed to its commit | `a_tag_resolves_to_its_commit_and_an_annotated_tag_is_followed_to_it` | covered |
+| a tag that points to a tree | `a_tag_resolves_to_its_commit_and_an_annotated_tag_is_followed_to_it` | covered (the v3.0.0 case of that test) |
+| the latest tag is not a version | `a_version_that_is_not_a_version_is_a_problem_and_the_update_does_not_guess` | covered |
+| the pinned version is not a version | `a_version_that_is_not_a_version_is_a_problem_and_the_update_does_not_guess` | covered |
+| one pin moves and another has a problem: nothing is written | `a_problem_fails_the_run_and_writes_nothing_not_even_the_freshness_record` | covered |
+| an action with a workflow path in its name uses the repository part | `every_pin_line_is_read_with_the_repository_part_of_a_workflow_path` | covered |
+| a Pins.pkl with no pins checks zero and writes the record | `a_pins_file_with_no_pins_checks_zero_and_still_writes_the_record` | covered (added in 6b) |
+| no token at all: no Authorization header is sent | `the_token_is_github_token_then_gh_token_and_an_empty_one_is_no_token`, `a_request_carries_the_accept_header_and_the_token_when_there_is_one` | covered |
+| GH_TOKEN alone is used | `the_token_is_github_token_then_gh_token_and_an_empty_one_is_no_token` | covered |
+| an empty GITHUB_TOKEN ends the search: no header, and GH_TOKEN is not tried | `the_token_is_github_token_then_gh_token_and_an_empty_one_is_no_token` | covered |
+| both set: GITHUB_TOKEN is used | `the_token_is_github_token_then_gh_token_and_an_empty_one_is_no_token` | covered |
+| usage: an unknown option (exit code only) | `the_options_are_read_and_an_unknown_one_or_a_missing_value_is_a_usage_error`, `the_command_reports_a_usage_error_with_exit_2` | covered |
+| usage: --summary with no value (exit code only) | `the_options_are_read_and_an_unknown_one_or_a_missing_value_is_a_usage_error` | covered |
+| a line of Pins.pkl that cannot be read (exit code only) | `a_pins_file_that_is_missing_or_has_a_line_that_cannot_be_read_exits_1` | covered |
+
+The last differential output before deletion, from the same commit, was `30 comparisons, 0 differ`. The commit that still holds the TypeScript tool is f6a24a6 on `origin/main`. What the differential script proved at the byte level for the requests (order, Accept and Authorization headers) is covered in Rust by `a_request_carries_the_accept_header_and_the_token_when_there_is_one` and `the_whole_update_runs_against_a_server_standing_in_for_github`; the TypeScript tool has no other reference once it is deleted.

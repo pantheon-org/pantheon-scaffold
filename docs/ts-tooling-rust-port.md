@@ -148,10 +148,10 @@ Phase 6 still waits for Phases 4 and 5, because the TypeScript release code is i
 
 | File | What calls bun today | Phase |
 |---|---|---|
-| `release.yml` | `release-assets.ts` (check-tag, version, checksums), `bun test`, `build-rust.ts`. Its smoke job runs `scaffold-release smoke` since Phase 4 | 1, 8, 5 |
+| `release.yml` | `bun test` (the `package` job). The release assets (Phase 1), the smoke suite (Phase 4) and the runner build (Phase 5) run `scaffold-release` | 8 |
 | `promote.yml` | `promote.ts check` and `promote.ts promote` | 2 |
 | `update-pins.yml` | `update-pins.ts`, and `on.push.paths` lists `runner/scripts/update-pins.ts` and `runner/src/pinupdate.ts` | 3 |
-| `ci.yml` | `bun test`, `build-rust.ts`, and actionlint on `runner/test/fixtures/consumer-check.yml`. The baseline and smoke steps run `scaffold-release` since Phase 4; the TypeScript `snapshot.ts`, `compare.ts`, `freeze.ts`, `packaged.ts`, `check.sh` and `smoke.ts` run only inside `baseline-diff.sh` and `smoke-diff.sh` until Phase 6 | 5, 8, 7, 6 |
+| `ci.yml` | `bun test`, and actionlint on `runner/test/fixtures/consumer-check.yml`. The baseline, smoke and runner build steps run `scaffold-release` since Phases 4 and 5; the TypeScript `snapshot.ts`, `compare.ts`, `freeze.ts`, `packaged.ts`, `check.sh`, `smoke.ts` and `build-rust.ts` run only inside `baseline-diff.sh`, `smoke-diff.sh` and `build-rust-diff.sh` until Phase 6 | 8, 7, 6 |
 
 `release.yml` (the `prepare` and `Attest and publish` jobs), `promote.yml` and `update-pins.yml` install no Rust today. Each needs the artifact download from D2, not a toolchain step.
 

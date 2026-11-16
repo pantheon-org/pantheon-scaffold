@@ -13,8 +13,8 @@
 #   plan     for each of the three targets, with a version with and without a leading v, the plan of each tool as JSON (the cargo
 #            arguments, the environment, the paths, the zig cc wrapper to the byte), and what each prints for an input it refuses;
 #   build    both tools build the runner for the target of this machine, one after the other, each in its own copy of the checkout that
-#            has the same path and no target folder, and the two binaries must be byte for byte the same. Both must be built in the
-#            same path, because a build keeps paths in the binary: a build in another folder gives other bytes.
+#            has the same path and no target folder, and the two binaries must be byte for byte the same. CARGO_TARGET_DIR is unset: a
+#            build with another target directory gave other bytes, so both builds are made the same way.
 # --also-ts-twice adds a third build with the TypeScript tool, to say whether the TypeScript tool is reproducible by itself when the two
 # differ. It is a way to look for the cause and is not run in CI. --no-build leaves out the two builds and compares the plans only,
 # which takes seconds; CI does not use it.

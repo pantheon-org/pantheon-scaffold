@@ -123,11 +123,11 @@
     },
     ".github/workflows/rust-ci.yml": {
       "class": "owned",
-      "hash": "5e5bfe90cc10bf99390c161672426a61a7b62f730ac6146f0d42490e6813e434"
+      "hash": "7eb5a4e311b07e9a58741a25b0f78cb3bfdb3538d1eb28c0e79b569694da5c1f"
     },
     ".github/workflows/scaffold-check.yml": {
       "class": "owned",
-      "hash": "043f674103a0ad5e604bd22d02667f83ed811d422666fa5db3f9983125d1c78b"
+      "hash": "0374372ed40b8f6c6810fba580e6e7e360083212895f16a397af7b250091739d"
     },
     ".github/workflows/sync-labels.yml": {
       "class": "owned",

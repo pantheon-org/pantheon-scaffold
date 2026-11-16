@@ -11,7 +11,7 @@ cargo build -p scaffold-cli
 SCAFFOLD_BIN=target/debug/pantheon-scaffold cargo test -p scaffold-features
 ```
 
-CI builds the runner and runs the features on `linux-x64`, `linux-arm64` and `darwin-arm64`; a release binary is built by `runner/scripts/build-rust.ts` and checked by `runner/scripts/smoke.ts`.
+CI builds the runner and runs the features on `linux-x64`, `linux-arm64` and `darwin-arm64`; a release binary is built by `runner/scripts/build-rust.ts` and checked by `scaffold-release smoke`.
 
 ### The baseline
 

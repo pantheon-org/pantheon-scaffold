@@ -1,5 +1,5 @@
 //! Renders a pantheon-scaffold tree with one binary and writes what came out, one JSON file per configuration. Ported from
-//! `runner/scripts/builtins-baseline/snapshot.ts`: the folder it writes is byte for byte the one the TypeScript writes.
+//! `runner/scripts/builtins-baseline/snapshot.ts`: the folder it writes was byte for byte the one the TypeScript wrote, until the pins of the files under `.github/` and of the manifest were masked in the hashes.
 //!
 //! Configurations: the tree's own `scaffold.pkl`, every `crates/scaffold-package-tests/fixtures/*/scaffold.pkl` (or `runner/test/fixtures/*/scaffold.pkl` in a tree from before they moved), and an option matrix written into
 //! `<out dir>/_matrix` (skills, binary, compositeAction, features, plus error paths), all built on the tree's `pkl/` folder. Per
@@ -10,6 +10,10 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use std::sync::LazyLock;
+
+use regex::Regex;
+use scaffold_core::pinmask::mask_pinned_uses;
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
 
@@ -107,6 +111,46 @@ fn run(
     })
 }
 
+fn sha256_hex(bytes: &[u8]) -> String {
+    Sha256::digest(bytes)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
+}
+
+/// What a file is hashed as. The pinned `uses:` references of a file under `.github/` are masked, and the manifest is
+/// hashed with the `hash` of each of those files recomputed from the masked file, so that `update-pins` moving a pin
+/// changes neither the file list nor the manifest. Any other file, and a file that is not UTF-8, is hashed as it is.
+fn masked_bytes(root: &Path, relative: &str, bytes: &[u8]) -> Vec<u8> {
+    match std::str::from_utf8(bytes) {
+        Ok(text) if relative.starts_with(".github/") => mask_pinned_uses(text).into_bytes(),
+        Ok(text) if relative == ".pkl-gen/manifest.json" => mask_manifest(root, text).into_bytes(),
+        _ => bytes.to_vec(),
+    }
+}
+
+/// The manifest text with the `hash` of every entry under `.github/` replaced by the hash of that file with its pins
+/// masked. An entry whose file is not in the tree keeps its hash. Only the hash is rewritten, so the rest of the text,
+/// seeds and presets included, is as it was.
+fn mask_manifest(root: &Path, text: &str) -> String {
+    static ENTRY: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(r#""(?P<path>\.github/[^"]+)":\s*\{[^{}]*?"hash":\s*"(?P<hash>[0-9a-f]{64})""#)
+            .expect("valid")
+    });
+    ENTRY
+        .replace_all(text, |entry: &regex::Captures| {
+            let whole = entry[0].to_owned();
+            match std::fs::read(root.join(&entry["path"])) {
+                Ok(bytes) => whole.replace(
+                    &entry["hash"],
+                    &sha256_hex(&masked_bytes(root, &entry["path"], &bytes)),
+                ),
+                Err(_) => whole,
+            }
+        })
+        .into_owned()
+}
+
 /// Every file under `dir` as `<path> <mode> <sha256>`, sorted, leaving out the scratch folders of the runner.
 fn files(dir: &Path) -> Result<Vec<String>, String> {
     fn walk(root: &Path, current: &Path, found: &mut Vec<String>) -> Result<(), String> {
@@ -128,10 +172,7 @@ fn files(dir: &Path) -> Result<Vec<String>, String> {
                 use std::os::unix::fs::PermissionsExt;
                 let mode = std::fs::metadata(&full).map_err(read)?.permissions().mode();
                 let bytes = std::fs::read(&full).map_err(|e| format!("{}: {e}", full.display()))?;
-                let sha: String = Sha256::digest(&bytes)
-                    .iter()
-                    .map(|b| format!("{b:02x}"))
-                    .collect();
+                let sha = sha256_hex(&masked_bytes(root, &relative, &bytes));
                 found.push(format!("{relative} {} {sha}", octal_mode(mode)));
             }
         }
@@ -289,6 +330,11 @@ pub(super) fn files_for_test(dir: &Path) -> Vec<String> {
 }
 
 #[cfg(test)]
+pub(super) fn mask_manifest_for_test(root: &Path, text: &str) -> String {
+    mask_manifest(root, text)
+}
+
+#[cfg(test)]
 pub(super) fn placeholders_for_test(text: &str) -> String {
     Placeholders {
         dir: Path::new("/t/out/dir"),
@@ -399,8 +445,10 @@ fn snapshot_inner(args: &Args, out: &mut dyn Write) -> Result<(), String> {
         let check = run(binary, &root_args("check"), dir, &placeholders)?;
         let manifest_path = dir.join(".pkl-gen/manifest.json");
         let manifest = if manifest_path.exists() {
-            placeholders
-                .apply(&std::fs::read_to_string(&manifest_path).map_err(io(&manifest_path))?)
+            placeholders.apply(&mask_manifest(
+                dir,
+                &std::fs::read_to_string(&manifest_path).map_err(io(&manifest_path))?,
+            ))
         } else {
             "(none)".to_owned()
         };

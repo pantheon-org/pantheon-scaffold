@@ -1052,3 +1052,197 @@ fn an_api_right_after_the_binary_is_not_taken_for_the_work_folder_and_an_empty_o
         "an empty work folder is no folder: the current directory is left alone"
     );
 }
+
+// Pins are masked in what a snapshot hashes, so that `update-pins` moving a pin does not change it.
+
+fn sha_hex(text: &str) -> String {
+    sha2::Sha256::digest(text.as_bytes())
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
+}
+
+fn write(root: &Path, relative: &str, text: &str) {
+    let path = root.join(relative);
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(path, text).unwrap();
+}
+
+fn workflow(pin: char, version: &str, run: &str) -> String {
+    format!(
+        "jobs:\n  a:\n    steps:\n    - uses: actions/checkout@{} # {version}\n    - run: {run}\n",
+        pin.to_string().repeat(40)
+    )
+}
+
+fn manifest(path: &str, hash: &str) -> String {
+    format!(
+        "{{\n  \"manifestVersion\": 1,\n  \"files\": {{\n    \"{path}\": {{\n      \"class\": \"owned\",\n      \"hash\": \"{hash}\"\n    }},\n    \"README.md\": {{\n      \"class\": \"seed\",\n      \"hash\": \"{}\"\n    }}\n  }}\n}}\n",
+        "7".repeat(64)
+    )
+}
+
+fn row(listed: &[String], path: &str) -> String {
+    listed
+        .iter()
+        .find(|l| l.starts_with(&format!("{path} ")))
+        .unwrap_or_else(|| panic!("{path} is listed"))
+        .to_owned()
+}
+
+#[test]
+fn a_file_under_github_is_listed_with_its_pins_masked_and_a_change_elsewhere_in_it_is_seen() {
+    let (one, two, other) = (
+        tempfile::tempdir().unwrap(),
+        tempfile::tempdir().unwrap(),
+        tempfile::tempdir().unwrap(),
+    );
+    write(
+        one.path(),
+        ".github/workflows/ci.yml",
+        &workflow('a', "v1.0.0", "echo one"),
+    );
+    write(
+        two.path(),
+        ".github/workflows/ci.yml",
+        &workflow('b', "v2.0.0", "echo one"),
+    );
+    write(
+        other.path(),
+        ".github/workflows/ci.yml",
+        &workflow('a', "v1.0.0", "echo two"),
+    );
+    let list = |dir: &tempfile::TempDir| snapshot::files_for_test(dir.path());
+    assert_eq!(list(&one), list(&two));
+    assert_ne!(list(&one), list(&other));
+    let masked =
+        "jobs:\n  a:\n    steps:\n    - uses: actions/checkout@<pin>\n    - run: echo one\n";
+    assert_eq!(
+        row(&list(&one), ".github/workflows/ci.yml"),
+        format!(".github/workflows/ci.yml 644 {}", sha_hex(masked))
+    );
+}
+
+#[test]
+fn a_file_that_is_not_under_github_is_listed_as_it_is_even_with_a_pin_in_it() {
+    let (one, two) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+    write(one.path(), "docs/x.yml", &workflow('a', "v1", "echo"));
+    write(two.path(), "docs/x.yml", &workflow('b', "v1", "echo"));
+    assert_ne!(
+        snapshot::files_for_test(one.path()),
+        snapshot::files_for_test(two.path())
+    );
+}
+
+#[test]
+fn a_file_under_github_that_is_not_text_is_listed_as_it_is() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join(".github/blob.bin");
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(&path, [0xff, 0xfe, 0x00]).unwrap();
+    let hash: String = sha2::Sha256::digest([0xff, 0xfe, 0x00])
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect();
+    assert_eq!(
+        row(&snapshot::files_for_test(dir.path()), ".github/blob.bin"),
+        format!(".github/blob.bin 644 {hash}")
+    );
+}
+
+#[test]
+fn the_manifest_hash_of_a_github_file_is_the_hash_of_the_masked_file_and_nothing_else_in_it_changes()
+ {
+    let dir = tempfile::tempdir().unwrap();
+    let file = workflow('a', "v1.0.0", "echo one");
+    write(dir.path(), ".github/workflows/ci.yml", &file);
+    let before = manifest(".github/workflows/ci.yml", &"0".repeat(64));
+    let masked = snapshot::mask_manifest_for_test(dir.path(), &before);
+    let want = manifest(
+        ".github/workflows/ci.yml",
+        &sha_hex(&scaffold_core::pinmask::mask_pinned_uses(&file)),
+    );
+    assert_eq!(masked, want);
+    assert!(
+        masked.contains(&"7".repeat(64)),
+        "the seed hash is as it was"
+    );
+}
+
+#[test]
+fn a_manifest_entry_whose_file_is_not_in_the_tree_or_is_not_under_github_keeps_its_hash() {
+    let dir = tempfile::tempdir().unwrap();
+    let missing = manifest(".github/workflows/gone.yml", &"1".repeat(64));
+    assert_eq!(
+        snapshot::mask_manifest_for_test(dir.path(), &missing),
+        missing
+    );
+    write(dir.path(), "src/x.yml", &workflow('a', "v1", "echo"));
+    let elsewhere = manifest("src/x.yml", &"2".repeat(64));
+    assert_eq!(
+        snapshot::mask_manifest_for_test(dir.path(), &elsewhere),
+        elsewhere
+    );
+}
+
+#[test]
+fn a_pin_that_moves_changes_neither_the_manifest_text_nor_the_manifest_row_and_a_change_elsewhere_does()
+ {
+    let make = |pin: char, run: &str| {
+        let dir = tempfile::tempdir().unwrap();
+        write(
+            dir.path(),
+            ".github/workflows/ci.yml",
+            &workflow(pin, "v1", run),
+        );
+        // The recorded hash is the real, unmasked one, as the runner writes it.
+        let real = sha_hex(&workflow(pin, "v1", run));
+        write(
+            dir.path(),
+            ".pkl-gen/manifest.json",
+            &manifest(".github/workflows/ci.yml", &real),
+        );
+        dir
+    };
+    let (one, two, other) = (make('a', "echo"), make('b', "echo"), make('a', "echo two"));
+    let text = |d: &tempfile::TempDir| {
+        snapshot::mask_manifest_for_test(
+            d.path(),
+            &std::fs::read_to_string(d.path().join(".pkl-gen/manifest.json")).unwrap(),
+        )
+    };
+    assert_eq!(text(&one), text(&two));
+    assert_ne!(text(&one), text(&other));
+    let row_of = |d: &tempfile::TempDir| {
+        row(
+            &snapshot::files_for_test(d.path()),
+            ".pkl-gen/manifest.json",
+        )
+    };
+    assert_eq!(row_of(&one), row_of(&two));
+    assert_ne!(row_of(&one), row_of(&other));
+    assert_eq!(
+        row_of(&one),
+        format!(".pkl-gen/manifest.json 644 {}", sha_hex(&text(&one)))
+    );
+}
+
+#[test]
+fn only_the_manifest_is_listed_with_recomputed_hashes_a_file_that_looks_like_one_is_listed_as_it_is()
+ {
+    let dir = tempfile::tempdir().unwrap();
+    write(
+        dir.path(),
+        ".github/workflows/ci.yml",
+        &workflow('a', "v1", "echo"),
+    );
+    let lookalike = manifest(".github/workflows/ci.yml", &"0".repeat(64));
+    write(dir.path(), "notes/manifest-copy.json", &lookalike);
+    assert_eq!(
+        row(
+            &snapshot::files_for_test(dir.path()),
+            "notes/manifest-copy.json"
+        ),
+        format!("notes/manifest-copy.json 644 {}", sha_hex(&lookalike))
+    );
+}

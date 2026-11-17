@@ -24,6 +24,7 @@ pub mod knownbad;
 pub mod latest;
 pub mod lockcheck;
 pub mod migrate;
+pub mod pinmask;
 pub mod pins;
 pub mod preflight;
 pub mod presets;

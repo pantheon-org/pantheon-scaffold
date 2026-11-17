@@ -1,13 +1,22 @@
 name: update-pins
 
-# Weekly: moves the pinned actions in pkl/Pins.pkl to their latest published release (one pull request),
-# then records the date of the last successful check on the `freshness` branch. A failed check writes neither, so a failing check never reads as fresh.
-# Writes use the pantheon-ai-bot App token (contents and pull-requests write), so the pull request starts the required checks.
+# Weekly: moves the pinned actions in pkl/Pins.pkl to their latest published release, renders the repository so that the rendered workflows carry the
+# new pins, and opens one pull request that passes its checks with no commit from a person. Then it records the date of the last successful check
+# on the `freshness` branch. A failed check writes neither, so a failing check never reads as fresh.
 #
-# Phases 3 and 6b of docs/ts-tooling-rust-port.md: the tool is the Rust one (crates/scaffold-release), and the only one. It is built in a job of
-# its own that can read the repository and nothing else, and the update job downloads it and checks its checksum before it runs it.
-# A manual run is a dry run unless told otherwise: it checks every pin, writes nothing and mints no token. A real run is the schedule, or a
-# manual run with dry_run off.
+# Three jobs, so that nothing that runs a tool or pkl sits next to the write token (docs/workflow-layer.md):
+#   tool    builds the release tool and the runner, with no token (a build runs the build scripts of every crate it depends on);
+#   pins    checks the two binaries, updates the pins with the read-only token, renders and checks the repository, and packs what changed into one tar
+#           (.github/scripts/collect-pin-update.sh). It holds no token that can write;
+#   update  holds the write token, from the Environment of this workflow. It runs no tool and no pkl: it checks the tar against main
+#           (.github/scripts/apply-pin-update.sh, taken from this checkout, never from the tar), applies it, and opens the pull request.
+# A refusal by the apply script stops the run: no pull request and no freshness record.
+# The token has the `workflows` permission because the rendered files are workflow files, which GitHub refuses to push without it. Only this
+# workflow asks for it (crates/scaffold-package-tests/tests/app_token_permissions.rs), and the apply script limits what it can push to the workflows
+# that main's manifest lists as owned, with the pins as the only change.
+#
+# A manual run is a dry run unless told otherwise: `pins` runs in full and the `check` job runs the apply script in check-only mode, so the whole
+# path runs on a real runner, but no token is minted and nothing is pushed. A real run is the schedule, or a manual run with dry_run off.
 # There is no push trigger on purpose. It used to run the workflow when the workflow or its tool changed on main, and so merging the change that
 # moved the tool would have started a real run, with the App token, of a tool nobody had watched run yet. A later change may restore it.
 on:
@@ -16,7 +25,7 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: Check every pin and write nothing (no pull request, no freshness record)
+        description: Run everything except the writes (no token, no pull request, no freshness record)
         type: boolean
         default: true
 
@@ -27,106 +36,174 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # The release tool is built here, in a job that can read the repository and nothing else: no write permission and no token in its
-  # environment. A build runs the build scripts of every crate it depends on, and that must never happen next to a token that can
-  # write. The update job only downloads the finished binary and checks its checksum.
+  # The tools are built here, in a job that can read the repository and nothing else: no write permission and no token in its environment. The
+  # other jobs only download the finished binaries and check their checksums.
   tool:
-    name: Build the release tool
+    name: Build the tools
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     permissions:
       contents: read
     outputs:
       sha256: ${{ steps.build.outputs.sha256 }}
+      sha256-runner: ${{ steps.build.outputs.sha256-runner }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.sha }}
           persist-credentials: false
       # rustup is preinstalled on GitHub-hosted runners. The version must match rust-toolchain.toml.
       - name: Install the Rust toolchain
         run: |
           rustup toolchain install 1.96.1 --profile minimal
           rustup default 1.96.1
-      - name: Build the release tool
+      - name: Build the release tool and the runner
         id: build
         run: |
-          cargo build --release --locked -p scaffold-release
+          cargo build --release --locked -p scaffold-release -p scaffold-cli
           echo "sha256=$(sha256sum target/release/scaffold-release | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          echo "sha256-runner=$(sha256sum target/release/pantheon-scaffold | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: scaffold-release
-          path: target/release/scaffold-release
+          name: scaffold-tools
+          path: |
+            target/release/scaffold-release
+            target/release/pantheon-scaffold
           retention-days: 7
           if-no-files-found: error
 
+  # Updates the pins and renders the repository. It holds no token that can write: the pins are read from GitHub with the workflow's own read-only
+  # token, and what it changes stays on this runner until the tar below crosses to the job that can write.
+  pins:
+    name: Update and render the pins
+    needs: tool
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      # mise cannot lock Rust, so `mise install --locked` must skip it.
+      MISE_DISABLE_TOOLS: rust
+    outputs:
+      sha256: ${{ steps.pack.outputs.sha256 }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: scaffold-tools
+          path: ${{ runner.temp }}/tool
+      - name: Check that the tools are the ones that were built
+        env:
+          EXPECTED: ${{ needs.tool.outputs.sha256 }}
+          EXPECTED_RUNNER: ${{ needs.tool.outputs.sha256-runner }}
+        run: |
+          echo "$EXPECTED  $RUNNER_TEMP/tool/scaffold-release" | sha256sum --check --strict -
+          echo "$EXPECTED_RUNNER  $RUNNER_TEMP/tool/pantheon-scaffold" | sha256sum --check --strict -
+          chmod +x "$RUNNER_TEMP/tool/scaffold-release" "$RUNNER_TEMP/tool/pantheon-scaffold"
+      - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
+        with:
+          version: 2026.10.25
+          install: false
+          cache: false
+      - name: Install the pinned tools from the lock file
+        run: mise install --locked
+      - name: Check every pin and rewrite the ones that moved
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          "$RUNNER_TEMP/tool/scaffold-release" update-pins \
+            --freshness-out "$RUNNER_TEMP/freshness.json" --summary "$RUNNER_TEMP/summary.md"
+      # What a pin changes in the rendered files is rendered here, and the check that the render matches is run here, before anything crosses.
+      - name: Render the repository and check it
+        run: |
+          if git diff --quiet pkl/Pins.pkl; then echo "No pin changed."; exit 0; fi
+          mise x -- "$RUNNER_TEMP/tool/pantheon-scaffold" render scaffold.pkl --allow-local-package pkl
+          mise x -- "$RUNNER_TEMP/tool/pantheon-scaffold" check scaffold.pkl --allow-local-package pkl
+      - name: Pack what changed into one tar
+        id: pack
+        run: |
+          bash .github/scripts/collect-pin-update.sh "$RUNNER_TEMP/out" "$RUNNER_TEMP/freshness.json" "$RUNNER_TEMP/summary.md"
+          echo "sha256=$(sha256sum "$RUNNER_TEMP/out/pin-update.tar" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pin-update
+          path: ${{ runner.temp }}/out/pin-update.tar
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: error
+
+  # A dry run: the whole check of the tar, with no token and no write.
+  check:
+    name: Check the update, write nothing
+    needs: pins
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: pin-update
+          path: ${{ runner.temp }}/pin-update
+      - name: Check the tar against main, write nothing
+        env:
+          DIGEST: ${{ needs.pins.outputs.sha256 }}
+        run: bash .github/scripts/apply-pin-update.sh "$RUNNER_TEMP/pin-update/pin-update.tar" "$DIGEST" "$RUNNER_TEMP/applied" --check-only
+
+  # A real run. This job holds the write token, from the Environment `update-pins`, which only main can use. It runs no tool and no pkl.
   update:
     name: Update the pins
-    needs: tool
+    needs: pins
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
+    environment: update-pins
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
       contents: read
     steps:
-      # A dry run writes nothing, so it does not mint a token that can: it reads with the workflow's own read-only token.
       - name: Mint pantheon-ai-bot token
         id: app-token
-        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           client-id: Iv23ligzn16vkDCWfHgc
           private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
           permission-contents: write
           permission-pull-requests: write
+          permission-workflows: write
+      # The scripts are the ones of main: this is the checkout of the commit this run started on, never the tar.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: scaffold-release
-          path: tool/
-      - name: Check that the release tool is the one that was built
+          name: pin-update
+          path: ${{ runner.temp }}/pin-update
+      - name: Check the tar against main and apply it
         env:
-          EXPECTED: ${{ needs.tool.outputs.sha256 }}
-        run: |
-          echo "$EXPECTED  tool/scaffold-release" | sha256sum --check --strict -
-          chmod +x tool/scaffold-release
-      # A dry run checks every pin and writes nothing. It prints the pins it checked and the moves it would make, in the log of this step.
-      - name: Check every pin, write nothing
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: tool/scaffold-release update-pins --no-write
-      - name: Check every pin and rewrite the ones that moved
-        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
-        env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: |
-          tool/scaffold-release update-pins \
-            --freshness-out "$RUNNER_TEMP/freshness.json" --summary "$RUNNER_TEMP/summary.md"
+          DIGEST: ${{ needs.pins.outputs.sha256 }}
+        run: bash .github/scripts/apply-pin-update.sh "$RUNNER_TEMP/pin-update/pin-update.tar" "$DIGEST" "$RUNNER_TEMP/applied"
       - name: Open or update the pin pull request
-        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           REPO: ${{ github.repository }}
-        run: |
-          if git diff --quiet pkl/Pins.pkl; then echo "No pin changed."; exit 0; fi
-          branch="chore/update-pins"
-          git switch -c "$branch"
-          git add pkl/Pins.pkl
-          git -c user.name="pantheon-ai-bot[bot]" -c user.email="pantheon-ai-bot[bot]@users.noreply.github.com" \
-            commit --message "chore(deps): update pinned actions"
-          git push --force "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" "$branch"
-          if [ -z "$(gh pr list --repo "$REPO" --head "$branch" --json number --jq '.[].number')" ]; then
-            gh pr create --repo "$REPO" --head "$branch" --title "chore(deps): update pinned actions" --body-file "$RUNNER_TEMP/summary.md"
-          fi
+          SUMMARY: ${{ runner.temp }}/applied/summary.md
+        run: bash .github/scripts/open-pin-pull-request.sh
       - name: Record the successful check on the freshness branch
-        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           REPO: ${{ github.repository }}
         run: |
           git switch --orphan freshness-record
-          cp "$RUNNER_TEMP/freshness.json" freshness.json
+          cp "$RUNNER_TEMP/applied/freshness.json" freshness.json
           git add freshness.json
           git -c user.name="pantheon-ai-bot[bot]" -c user.email="pantheon-ai-bot[bot]@users.noreply.github.com" \
             commit --message "chore: record the pin check"

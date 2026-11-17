@@ -985,3 +985,20 @@ fn the_token_is_github_token_then_gh_token_and_an_empty_one_is_no_token() {
     assert_eq!(token_from(None, some("")), None);
     assert_eq!(token_from(some("a"), some("")), some("a"));
 }
+
+#[test]
+fn the_summary_ends_by_telling_a_person_to_run_the_refresh_task() {
+    let changes = [PinChange {
+        name: "checkout".to_owned(),
+        action: "actions/checkout".to_owned(),
+        from: "v1.0.0".to_owned(),
+        to: "v1.1.0".to_owned(),
+        to_sha: sha('c'),
+        major: false,
+    }];
+    let text = summary(&changes);
+    let last = text.trim_end().lines().last().unwrap();
+    assert!(last.contains("mise run refresh-pins"), "{text}");
+    assert!(last.contains("Scaffold check"), "{text}");
+    assert!(text.ends_with('\n'));
+}

@@ -174,7 +174,11 @@ pub fn apply_changes(text: &str, changes: &[PinChange]) -> Result<String, String
     Ok(lines.join("\n"))
 }
 
-/// The text of the pull request body: one line for each pin that moved.
+/// The last line of the pull request body: what a person does next. The pins also change the files this repository renders from its own
+/// `scaffold.pkl`, which the bot does not render, so `Scaffold check` fails until someone does.
+const NEXT_STEP: &str = "Before merging: run `mise run refresh-pins` on this branch and push what it changes. `Scaffold check` fails until the files this repository renders have been rendered again.";
+
+/// The text of the pull request body: one line for each pin that moved, then what to do next.
 pub fn summary(changes: &[PinChange]) -> String {
     let rows: Vec<String> = changes
         .iter()
@@ -188,7 +192,7 @@ pub fn summary(changes: &[PinChange]) -> String {
         })
         .collect();
     format!(
-        "Moves the pinned actions to their latest published release. Each commit was checked to belong to the upstream repository and the tag to be a release.\n\n{}\n",
+        "Moves the pinned actions to their latest published release. Each commit was checked to belong to the upstream repository and the tag to be a release.\n\n{}\n\n{NEXT_STEP}\n",
         rows.join("\n")
     )
 }

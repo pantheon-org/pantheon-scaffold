@@ -11,3 +11,16 @@ pkl = "0.32.2"
 # Same toolchain as rust-toolchain.toml and the rustup step in .github/workflows/ci.yml. mise cannot lock it, so the
 # workflows set MISE_DISABLE_TOOLS=rust and `mise install --locked` skips it.
 rust = { version = "1.96.1" }
+
+# After the pin bot's pull request: the pins moved, so the files this repository renders from its own scaffold.pkl must be rendered again,
+# and `Scaffold check` fails until they are. Run this on the bot's branch, commit what it changes and push. The frozen baseline does not
+# move with a pin (crates/scaffold-core/src/pinmask.rs), so the task only checks it: it never freezes it, because that would
+# accept any change as expected. A failure of `baseline check` is a change that is not a pin.
+[tasks.refresh-pins]
+description = "After a pin moved: render this repository again, then check the baseline and the render"
+run = [
+  "cargo build -p scaffold-cli -p scaffold-release --locked",
+  "target/debug/pantheon-scaffold render scaffold.pkl --allow-local-package pkl",
+  "target/debug/scaffold-release baseline check crates/scaffold-release/baseline/baseline.json target/debug/pantheon-scaffold",
+  "target/debug/pantheon-scaffold check scaffold.pkl --allow-local-package pkl",
+]

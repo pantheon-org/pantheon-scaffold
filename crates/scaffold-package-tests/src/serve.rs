@@ -71,3 +71,44 @@ fn answer(mut stream: TcpStream, folder: &Path) {
     let _ = stream.write_all(head.as_bytes());
     let _ = stream.write_all(&body);
 }
+
+/// A server that answers a request for a path with the status and body listed for it, and a 500 for any other path. It stands in for the GitHub API
+/// for the tests of the pin update. It runs for as long as the process does.
+pub fn serve_routes(routes: std::collections::BTreeMap<String, (u16, String)>) -> Server {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("a free port");
+    let port = listener.local_addr().expect("an address").port();
+    let routes = std::sync::Arc::new(routes);
+    std::thread::spawn(move || {
+        for stream in listener.incoming().flatten() {
+            let routes = std::sync::Arc::clone(&routes);
+            std::thread::spawn(move || answer_route(stream, &routes));
+        }
+    });
+    Server { port }
+}
+
+fn answer_route(mut stream: TcpStream, routes: &std::collections::BTreeMap<String, (u16, String)>) {
+    let mut request = Vec::new();
+    let mut buffer = [0u8; 1024];
+    while !request.windows(4).any(|w| w == b"\r\n\r\n") {
+        match stream.read(&mut buffer) {
+            Ok(0) | Err(_) => break,
+            Ok(n) => request.extend_from_slice(&buffer[..n]),
+        }
+    }
+    let request = String::from_utf8_lossy(&request);
+    let path = request
+        .lines()
+        .next()
+        .and_then(|l| l.split(' ').nth(1))
+        .unwrap_or("/");
+    let (status, body) = routes
+        .get(path)
+        .cloned()
+        .unwrap_or((500, format!("no route for {path}")));
+    let text = format!(
+        "HTTP/1.1 {status} X\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+        body.len()
+    );
+    let _ = stream.write_all(text.as_bytes());
+}

@@ -2,9 +2,11 @@
 //! `tests/`. They read the package in `pkl/` and the fixtures in `fixtures/` and the pinned upstream copies in `upstream/`, both in this crate. Nothing here is shipped, and it holds no product code, so it is left out of mutation testing.
 
 pub mod cli;
+pub mod pinupdate;
 pub mod pkg;
 pub mod repo;
 pub mod serve;
+pub mod tarball;
 
 pub use scaffold_core::equality::compare_directives;
 pub use scaffold_core::equality::{compare_workflows, parse_yaml};

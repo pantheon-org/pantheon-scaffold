@@ -94,15 +94,15 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: scaffold-tools
-          path: tool/
+          path: ${{ runner.temp }}/tool
       - name: Check that the tools are the ones that were built
         env:
           EXPECTED: ${{ needs.tool.outputs.sha256 }}
           EXPECTED_RUNNER: ${{ needs.tool.outputs.sha256-runner }}
         run: |
-          echo "$EXPECTED  tool/scaffold-release" | sha256sum --check --strict -
-          echo "$EXPECTED_RUNNER  tool/pantheon-scaffold" | sha256sum --check --strict -
-          chmod +x tool/scaffold-release tool/pantheon-scaffold
+          echo "$EXPECTED  $RUNNER_TEMP/tool/scaffold-release" | sha256sum --check --strict -
+          echo "$EXPECTED_RUNNER  $RUNNER_TEMP/tool/pantheon-scaffold" | sha256sum --check --strict -
+          chmod +x "$RUNNER_TEMP/tool/scaffold-release" "$RUNNER_TEMP/tool/pantheon-scaffold"
       - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
         with:
           version: 2026.10.25
@@ -114,14 +114,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          tool/scaffold-release update-pins \
+          "$RUNNER_TEMP/tool/scaffold-release" update-pins \
             --freshness-out "$RUNNER_TEMP/freshness.json" --summary "$RUNNER_TEMP/summary.md"
       # What a pin changes in the rendered files is rendered here, and the check that the render matches is run here, before anything crosses.
       - name: Render the repository and check it
         run: |
           if git diff --quiet pkl/Pins.pkl; then echo "No pin changed."; exit 0; fi
-          mise x -- tool/pantheon-scaffold render scaffold.pkl --allow-local-package pkl
-          mise x -- tool/pantheon-scaffold check scaffold.pkl --allow-local-package pkl
+          mise x -- "$RUNNER_TEMP/tool/pantheon-scaffold" render scaffold.pkl --allow-local-package pkl
+          mise x -- "$RUNNER_TEMP/tool/pantheon-scaffold" check scaffold.pkl --allow-local-package pkl
       - name: Pack what changed into one tar
         id: pack
         run: |

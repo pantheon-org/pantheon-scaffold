@@ -300,8 +300,8 @@ fn the_pins_job_checks_both_binaries_before_it_runs_either_and_in_this_order_upd
     assert_eq!(
         checks,
         [
-            r#"echo "$EXPECTED  tool/scaffold-release" | sha256sum --check --strict -"#,
-            r#"echo "$EXPECTED_RUNNER  tool/pantheon-scaffold" | sha256sum --check --strict -"#,
+            r#"echo "$EXPECTED  $RUNNER_TEMP/tool/scaffold-release" | sha256sum --check --strict -"#,
+            r#"echo "$EXPECTED_RUNNER  $RUNNER_TEMP/tool/pantheon-scaffold" | sha256sum --check --strict -"#,
         ]
     );
     for (i, step) in steps("pins").iter().enumerate().take(verify) {
@@ -310,14 +310,14 @@ fn the_pins_job_checks_both_binaries_before_it_runs_either_and_in_this_order_upd
             "step {i} runs a binary before the check"
         );
     }
-    let update = index_of("pins", "tool/scaffold-release update-pins");
-    let render = index_of("pins", "tool/pantheon-scaffold render");
-    let check = index_of("pins", "tool/pantheon-scaffold check");
+    let update = index_of("pins", "tool/scaffold-release\" update-pins");
+    let render = index_of("pins", "tool/pantheon-scaffold\" render");
+    let check = index_of("pins", "tool/pantheon-scaffold\" check");
     let collect = index_of("pins", COLLECT);
     assert!(verify < update && update < render && render <= check && check < collect);
     let block = run_of(&steps("pins")[render]);
     assert!(
-        block.find("pantheon-scaffold render") < block.find("pantheon-scaffold check"),
+        block.find("pantheon-scaffold\" render") < block.find("pantheon-scaffold\" check"),
         "the check comes after the render, in one step"
     );
     assert!(
@@ -334,14 +334,14 @@ fn the_pins_job_checks_both_binaries_before_it_runs_either_and_in_this_order_upd
 #[test]
 fn the_pins_job_installs_the_pinned_tools_from_the_lock_file_and_runs_the_runner_under_them() {
     let install = index_of("pins", "mise install --locked");
-    let render = index_of("pins", "tool/pantheon-scaffold render");
+    let render = index_of("pins", "tool/pantheon-scaffold\" render");
     assert!(install < render);
     assert!(run_of(&steps("pins")[render]).contains(
-        "mise x -- tool/pantheon-scaffold render scaffold.pkl --allow-local-package pkl"
+        "mise x -- \"$RUNNER_TEMP/tool/pantheon-scaffold\" render scaffold.pkl --allow-local-package pkl"
     ));
     assert!(
-        run_of(&steps("pins")[index_of("pins", "tool/pantheon-scaffold check")]).contains(
-            "mise x -- tool/pantheon-scaffold check scaffold.pkl --allow-local-package pkl"
+        run_of(&steps("pins")[index_of("pins", "tool/pantheon-scaffold\" check")]).contains(
+            "mise x -- \"$RUNNER_TEMP/tool/pantheon-scaffold\" check scaffold.pkl --allow-local-package pkl"
         )
     );
 }
@@ -502,4 +502,26 @@ fn there_is_one_tool_nothing_chooses_it_and_nothing_names_a_second_one_or_bun() 
         lines.is_empty(),
         "the workflow still names a second tool: {lines:?}"
     );
+}
+
+// Found by the first dry run on a real runner (run 44120168222): the binaries were downloaded to `tool/` inside the checkout, git saw them as untracked
+// files, and the collect script, which refuses any untracked file, stopped the job. They are downloaded outside the checkout.
+#[test]
+fn the_binaries_are_downloaded_outside_the_checkout_so_git_does_not_see_them() {
+    let download = steps("pins")
+        .iter()
+        .find(|s| {
+            uses_of(s).starts_with("actions/download-artifact@")
+                && s["with"]["name"] == "scaffold-tools"
+        })
+        .expect("the download");
+    assert_eq!(download["with"]["path"], "${{ runner.temp }}/tool");
+    for step in steps("pins") {
+        for line in run_of(step).lines() {
+            assert!(
+                !line.contains(" tool/") && !line.contains("\"tool/"),
+                "a binary is used from inside the checkout: {line}"
+            );
+        }
+    }
 }

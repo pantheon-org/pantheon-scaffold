@@ -842,3 +842,34 @@ The first run found three tests that failed in no breakage (the interpolation, p
 Group B, breakages on the branch only, for the rewritten and new tests: an `implementation` input back (fails the input test and the new test), a mise step back (the real run test and the new test), `--no-write` dropped from the dry run (the dry run tests), the App token given to the dry run (the dry run tests), the real run depending on an `implementation` input (the dry run reach test, the real run test and the new test), the dry run condition loosened (the dry run reach test) and bun named in a comment (the new test). Each fails what it should.
 
 The script was `breakage-update-pins.ts` (TypeScript on bun) in the session scratchpad; the breakages are the one-line `perl` substitutions named in the table.
+
+### The update-pins workflow test, rescoped for three jobs (#162)
+
+On 17-11-2026 `update-pins.yml` became three jobs (`tool`, `pins`, and `update` with its dry-run twin `check`), so that nothing that runs a tool or pkl sits next to the write token. `crates/scaffold-package-tests/tests/update_pins_workflow.rs` went from 18 tests to 22. Every property the 18 pinned is kept or rescoped; the table says where each went.
+
+| Test before (Phase 6b) | Now | Note |
+|---|---|---|
+| it runs on a schedule or by hand, and on no push | same name | kept |
+| a manual run is a dry run unless told otherwise and `dry_run` is its only input | same name | kept |
+| nothing has permissions by default and every job reads contents only | same name | kept, over four jobs |
+| the update job holds the App token (`permission-contents`, `-pull-requests`) | `the_app_token_asks_for_contents_pull_requests_and_workflows_and_for_nothing_else` | rescoped: the token now also asks for `workflows`, and nothing else, because the rendered files are workflow files |
+| the only secret is the App key, and the default token never writes | `...it_is_read_in_the_update_job_only...` | strengthened: the key is read in the `update` job only |
+| every action is pinned by a 40 character SHA and checkout keeps no credentials | same name | kept, four checkouts |
+| no run script interpolates an expression, and each is 15 lines or fewer | same name | kept |
+| the freshness record is written only after the pins were checked and the pull request step ran | `the_apply_script_comes_from_the_checkout_and_runs_on_the_digest_before_anything_is_written` | rescoped to the `update` job: apply, then the pull request script, then the record |
+| the writing step asks for the record and the summary | `the_pins_job_checks_both_binaries_before_it_runs_either_and_in_this_order_updates_renders_collects` | moved to the `pins` job |
+| the record goes to the freshness branch, never main | `the_pull_request_and_the_record_use_the_app_token_and_the_record_goes_to_the_freshness_branch_never_main` | kept |
+| the pull request step does nothing when no pin changed; it is a conventional commit with the App token | the same test and `the_pull_request_script_does_nothing_when_no_pin_changed_and_opens_a_conventional_commit_title` | the step is now `open-pin-pull-request.sh`, with 7 behaviour tests of its own |
+| the release tool is built in a job that holds no token | `the_tools_are_built_in_a_job_that_holds_no_token` | kept, and now builds the runner too |
+| the update job never runs cargo and checks the tool's checksum before it runs it | `the_pins_job_checks_both_binaries_before_it_runs_either...` and `the_update_job_runs_no_tool_no_pkl_no_mise_and_no_cargo` | split: the checksum check is in `pins` (both binaries, each against its own digest); the `update` job runs nothing |
+| no job has a job-wide token | `the_pins_job_holds_no_token_that_can_write...` | kept, per job |
+| a dry run reaches nothing that writes | `a_dry_run_reaches_nothing_that_writes_...` | kept and widened: no App token, no environment, no push, no pull request, no record in `tool`, `pins` and `check` |
+| a dry run runs the one tool with `--no-write` | `the_dry_run_check_runs_the_apply_script_from_the_checkout_in_check_only_mode_on_the_digest_of_the_tar` | rewritten: a dry run now runs `pins` in full and the apply script in check-only mode |
+| a real run uses the one tool with the App token and no step installs mise | `the_update_job_holds_the_token_in_the_protected_environment_and_mints_it_first` and `..._runs_no_tool_no_pkl_no_mise_and_no_cargo` | rescoped to the `update` job, where the reason holds: `pins` installs mise and runs pkl on purpose |
+| there is one tool, nothing names a second one or bun | same name | kept (`mise` is no longer in the list) |
+| (new) | the jobs and their order; every checkout is of the run's commit; the tar is uploaded with hidden files and fails on none; the update job is in the protected Environment | new |
+| (new, `app_token_permissions.rs`) | 3 tests | every mint step in the repository and in what the Builtins render names its permissions, and only `update-pins.yml` may ask for `workflows` |
+
+#### Breakage comparison of the rescoped test
+
+On 17-11-2026, 35 deliberate breakages of `update-pins.yml` and 6 of `open-pin-pull-request.sh` were applied one at a time and the two test files run. The workflow breakages: the mint loses `workflows` or gains `administration`; the update job has no environment or the check job has one; the update job runs on a dry run or the check job on every run; the apply script is run from the tar, has no digest, or is check-only on a real run; the update job runs cargo or mise; the pins job has a job-wide token; a checksum check is gone (each of the two binaries); a binary runs before the check; hidden files are not uploaded, or the upload does not fail on no files; a checkout is not of the run's commit, or keeps credentials; workflow permissions are `write-all`, the tool job may write, the tool job reads the secret, a second secret is read; a push trigger; the mint has its own condition; the pull request step uses the default token; the record goes to `main`; the pins step writes nothing; the render or its check is gone; the apply step does nothing; the check job holds a token; a run interpolates an expression; bun is named. The script breakages: it adds every file, ignores another person's commit, forces without a lease, ignores a missing change, always opens a pull request, commits as a person. The first round found one check no test noticed (the runner's checksum, because the test only looked for the names and a `chmod` line holds them too), and two of my breakage patterns matched nothing or the wrong line; the test was strengthened and the three were re-run. Every breakage now fails at least one test.

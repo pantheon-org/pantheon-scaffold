@@ -4,7 +4,13 @@
 all-features = true
 
 [advisories]
-ignore = []
+# Each ignore has a reason and a date to look at it again. Remove it when the reason no longer holds.
+ignore = [
+    # humantime is unmaintained because chrono is, and it wraps chrono. It reaches this repository only through cucumber, the test harness of
+    # scaffold-features, so it is a dev dependency that is not in any shipped binary. cucumber 0.23.0 is the latest release and no safe
+    # upgrade exists. Look at it again by 01-12-2026: if cucumber has a release without humantime, take it and delete this entry.
+    { id = "RUSTSEC-2026-0542", reason = "humantime via cucumber, a dev-only test harness; unmaintained, no upgrade exists. Review by 01-12-2026" },
+]
 
 [licenses]
 allow = [

@@ -46,6 +46,8 @@ It was made from main at 1259a90, where it equalled the baseline above (0 differ
 scaffold-release baseline freeze /tmp/baseline > crates/scaffold-release/baseline/baseline.json
 ```
 
+A pin that moves does not change `baseline.json`, because pins are masked before hashing. After the pin bot's pull request, `mise run refresh-pins` renders this repository again and runs `baseline check`; it never freezes the baseline, so a failure of `baseline check` is a change that is not a pin (decision 92 in `docs/workflow-layer.md`).
+
 The `baseline` job of `.github/workflows/ci.yml` builds the Rust runner, renders the 61 configurations with `scaffold-release baseline snapshot` and compares them with `baseline.json` using `scaffold-release baseline compare`.
 Run the same two commands locally to check a change:
 

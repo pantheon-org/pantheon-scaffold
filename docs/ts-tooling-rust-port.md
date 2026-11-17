@@ -140,7 +140,7 @@ After the gate, `v0.4.0` went through the Rust tools for real, so the conditions
 |---|---|
 | `v0.4.0` released by the Rust tool | Release run 43767262162 on the tag commit (it contains Phase 1): `Build the release tool`, `Check the version` (the real `check-tag`), `Attest and publish` (the real `checksums`) and the three `Verify the published release` jobs all succeeded |
 | `v0.4.0` promoted by the Rust tool | Promote run 43768748500 at 22:20, run by the owner with the default `implementation`: the Rust step ran, the TypeScript steps were skipped, every guard passed, and it printed `after the edit: stable and latest, the assets and checksums.txt are unchanged and still attested` and `v0.4.0 is now a stable release.` The dry run before it (43768540185) ran both tools and they agreed |
-| `update-pins` | Not yet run for real: the first scheduled run of the Rust tool is Monday 16-11-2026 at 04:23 UTC. Two dry runs (branch and main) ran both tools against the real GitHub API and agreed |
+| `update-pins` | Ran for real on Monday 16-11-2026 at 04:23 UTC (pull request 160, merged the same day). It needed a hand step the bot does not do: the pull request stages only `pkl/Pins.pkl`, so `Scaffold check` and `Baseline render` failed until a person rendered again and refreshed the baseline. Since 17-11-2026 the baseline masks pins and `mise run refresh-pins` is that step (decision 92 in [workflow-layer.md](workflow-layer.md)). Before that, two dry runs (branch and main) ran both tools against the real GitHub API and agreed |
 
 Phase 6 still waits for Phases 4 and 5, because the TypeScript release code is imported by what they port.
 

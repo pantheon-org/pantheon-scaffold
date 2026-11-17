@@ -116,6 +116,18 @@ The tests do not assert the exact pinned versions, so a pin pull request can pas
 
 A pin pull request changes `pkl/`, so while the version in `pkl/PklProject` is already published it also needs a version bump (`pkl project package` refuses a changed package at a published version). The workflow does not bump it.
 
+The bot stages only `pkl/Pins.pkl`, but a pin also changes the files this repository renders from its own `scaffold.pkl` (the two workflows that name it, and the manifest). The first real run, on 16-11-2026 (pull request 160), failed `Scaffold check` and `Baseline render` until a person rendered again and refreshed the baseline by hand. After the run, a person runs `mise run refresh-pins` on the bot's branch and pushes what it changes; the pull request body ends by saying so. The next run of the bot rebuilds the branch with a force push, so a commit added to an open pin pull request is lost when a pin moves again: run the task after the week's run has finished.
+
+### Decision 92: pins are masked in the baseline, and a person runs `refresh-pins` (17-11-2026)
+
+The owner chose route (d) of the update-pins plan. Its first half is `scaffold-release baseline snapshot` masking the commit and the version comment of every pinned `uses:` line before it hashes the files under `.github/` and the manifest (`crates/scaffold-core/src/pinmask.rs`, added by pull request 166), so a bot pull request never changes `baseline.json`. Its second half is the one remaining hand step, `mise run refresh-pins` (render, then `baseline check` and `check`; it never freezes).
+
+Why not the other routes. Rendering and refreshing the baseline inside the workflow needed three jobs, a patch format, an allowlist script and the `workflows` permission for the GitHub App, which is granted on the App and so reaches every repository it is installed on, to save a minute a few times a year; and a baseline that the bot regenerates from its own render cannot fail on that pull request. Doing nothing keeps the failure. The one-command task alone would have left the baseline refresh as a hand step on every pin move.
+
+Cost accepted: the baseline no longer sees which release a pin names.
+
+Revisit when: a pin-only bot pull request shows `Baseline render` red after the mask (then revert the mask commit), or the hand step has been run more than three times in a quarter (then reconsider rendering in the workflow, with the permission question decided first).
+
 ### In a consumer repository
 
 `Builtins.upgradeWorkflow(options)` renders `.github/workflows/upgrade-scaffold.yml`, weekly (Monday 05:17 UTC) and by hand:

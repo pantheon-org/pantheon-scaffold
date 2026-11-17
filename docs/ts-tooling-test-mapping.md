@@ -845,7 +845,7 @@ The script was `breakage-update-pins.ts` (TypeScript on bun) in the session scra
 
 ### The update-pins workflow test, rescoped for three jobs (#162)
 
-On 17-11-2026 `update-pins.yml` became three jobs (`tool`, `pins`, and `update` with its dry-run twin `check`), so that nothing that runs a tool or pkl sits next to the write token. `crates/scaffold-package-tests/tests/update_pins_workflow.rs` went from 18 tests to 22. Every property the 18 pinned is kept or rescoped; the table says where each went.
+On 17-11-2026 `update-pins.yml` became three jobs (`tool`, `pins`, and `update` with its dry-run twin `check`), so that nothing that runs a tool or pkl sits next to the write token. `crates/scaffold-package-tests/tests/update_pins_workflow.rs` went from 18 tests to 23. Every property the 18 pinned is kept or rescoped; the table says where each went.
 
 | Test before (Phase 6b) | Now | Note |
 |---|---|---|
@@ -867,7 +867,7 @@ On 17-11-2026 `update-pins.yml` became three jobs (`tool`, `pins`, and `update` 
 | a dry run runs the one tool with `--no-write` | `the_dry_run_check_runs_the_apply_script_from_the_checkout_in_check_only_mode_on_the_digest_of_the_tar` | rewritten: a dry run now runs `pins` in full and the apply script in check-only mode |
 | a real run uses the one tool with the App token and no step installs mise | `the_update_job_holds_the_token_in_the_protected_environment_and_mints_it_first` and `..._runs_no_tool_no_pkl_no_mise_and_no_cargo` | rescoped to the `update` job, where the reason holds: `pins` installs mise and runs pkl on purpose |
 | there is one tool, nothing names a second one or bun | same name | kept (`mise` is no longer in the list) |
-| (new) | the jobs and their order; every checkout is of the run's commit; the tar is uploaded with hidden files and fails on none; the update job is in the protected Environment | new |
+| (new) | the jobs and their order; every checkout is of the run's commit; the tar is uploaded with hidden files and fails on none; the update job is in the protected Environment; the binaries are downloaded outside the checkout | new |
 | (new, `app_token_permissions.rs`) | 3 tests | every mint step in the repository and in what the Builtins render names its permissions, and only `update-pins.yml` may ask for `workflows` |
 
 #### Breakage comparison of the rescoped test

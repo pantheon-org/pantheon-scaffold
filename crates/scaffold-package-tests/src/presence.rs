@@ -73,3 +73,9 @@ pub fn folders() -> Vec<String> {
     names.sort();
     names
 }
+
+/// Like `eval_config`, but the runner reports that the repository has (or has no) `.coderabbit.yaml`, which `reviewBot = "auto"` reads.
+pub fn eval_config_detecting(coderabbit_yaml: bool, extra: &str) -> Result<Value, String> {
+    let (_keep, path) = config(&[], extra, COMPOSITION, "");
+    crate::pkg::eval_detecting(&path, coderabbit_yaml)
+}

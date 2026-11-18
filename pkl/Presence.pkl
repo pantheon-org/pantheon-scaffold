@@ -24,6 +24,7 @@ const builtinNames: List<String> = List(
   "inline-scripts",
   "mise",
   "plumber",
+  "pr-agent",
   "pr-auto-rebase",
   "pull-request-template",
   "release",
@@ -143,4 +144,27 @@ local function optionProblem(opts: Config.Options, without: List<String>): Strin
     "options.versionFile must be a plain path inside the repository: no single quote, no newline, no leading slash and no \"..\", because the release-bump script and its API calls use it as written."
   else if (opts.versionFile != null && without.contains("release-bump"))
     "options.versionFile is set but options.without leaves out \"release-bump\", which is the builtin that uses it. Remove one of the two."
+  else providerProblem(opts.prAgentProviders.toList())
+
+/// What is wrong with `options.prAgentProviders`, or null. The secret, the variable and the model are written into the workflow (into a `${{ }}`
+/// expression, an environment key and a list in a string), so each is checked and a typo is an error here and not a broken workflow.
+local function providerProblem(providers: List<Config.Provider>): String? =
+  let (secretShape = Regex(#"[A-Z][A-Z0-9_]*"#))
+  let (envShape = Regex(#"[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*"#))
+  let (modelShape = Regex(#"[A-Za-z0-9][A-Za-z0-9._:/+-]*"#))
+  let (badSecret = providers.findOrNull((p) -> !p.secret.matches(secretShape)))
+  let (badEnv = providers.findOrNull((p) -> !p.env.matches(envShape)))
+  let (badModel = providers.findOrNull((p) -> !p.model.matches(modelShape)))
+  if (providers.isEmpty)
+    "options.prAgentProviders is empty: list at least one provider (model, secret, env), or choose reviewBot = \"coderabbit\"."
+  else if (badModel != null)
+    "options.prAgentProviders has the model \"\(badModel.model)\", which is not a plain model id: use letters, digits and . _ : / + - only, because it is written into the workflow."
+  else if (badSecret != null)
+    "options.prAgentProviders has the secret \"\(badSecret.secret)\", which is not a secret name: use capital letters, digits and _, starting with a letter, because it is written into a `${{ secrets.NAME }}` expression."
+  else if (badEnv != null)
+    "options.prAgentProviders has the env \"\(badEnv.env)\", which is not a variable name: use letters, digits and _, with dots only between parts for a pr-agent setting such as `SECTION.KEY`."
+  else if (providers.map((p) -> p.model).distinct.length != providers.length)
+    "options.prAgentProviders lists the same model twice: each provider needs its own model, and the order is the order of fallback."
+  else if (providers.any((a) -> providers.any((b) -> a.env == b.env && a.secret != b.secret)))
+    "options.prAgentProviders passes one env to two different secrets: models of one provider share an env and a secret, so give every entry of that env the same secret."
   else null

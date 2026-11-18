@@ -36,7 +36,7 @@ fn the_registry_of_builtin_names_in_shared_pkl_is_the_list_of_folders_under_pkl_
         .collect();
     names.sort();
     assert_eq!(names, folders());
-    assert_eq!(folders().len(), 29);
+    assert_eq!(folders().len(), 30);
 }
 
 // What leaving each builtin out removes from the full render (skills and binary on), read from the render and checked against what the builtin
@@ -110,7 +110,8 @@ fn expected() -> Vec<Expected> {
             paths(&[".claude/settings.json"]),
             false,
         ),
-        e("coderabbit", &[], paths(&[".coderabbit.yaml"]), false),
+        // Not rendered under the default `reviewBot = "auto"` (pr-agent), so leaving it out changes nothing; review_bot.rs covers reviewBot = "coderabbit".
+        e("coderabbit", &[], vec![], false),
         e(
             "commit-types",
             &[],
@@ -151,6 +152,12 @@ fn expected() -> Vec<Expected> {
             "plumber",
             &[],
             vec![".plumber.yaml".into(), wf("plumber.yml")],
+            true,
+        ),
+        e(
+            "pr-agent",
+            &[],
+            vec![".pr_agent.toml".into(), wf("pr-agent.yml")],
             true,
         ),
         e(
@@ -256,7 +263,7 @@ const READ_PRESENCE: [&str; 5] = [
 fn leaving_a_builtin_out_removes_what_it_owns_changes_only_dependabot_yml_and_the_files_that_read_presence_and_adds_nothing()
  {
     let full = render(&[], "");
-    assert_eq!(full.len(), 51);
+    assert_eq!(full.len(), 52);
     for entry in expected() {
         let mut without = vec![entry.name];
         without.extend(entry.also);

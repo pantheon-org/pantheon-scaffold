@@ -34,8 +34,15 @@ pub fn fixture(name: &str) -> PathBuf {
 /// `pkl/` allowed as a local package, then parsed, which renders the files that are templates, and serialized again. The error is the
 /// message of the runner.
 pub fn eval(config: &Path) -> Result<Value, String> {
+    eval_detecting(config, false)
+}
+
+/// `eval`, with the answer the runner gives to "does the repository have a .coderabbit.yaml?". The tests do not ask the checkout, which has one
+/// until it renders pr-agent.
+pub fn eval_detecting(config: &Path, coderabbit_yaml: bool) -> Result<Value, String> {
     let opts = EvalOptions {
         allow_files_under: vec![root().join("pkl")],
+        coderabbit_yaml: Some(coderabbit_yaml),
         ..EvalOptions::default()
     };
     let json = eval_contract_json(config, &root(), &opts).map_err(|e| e.to_string())?;

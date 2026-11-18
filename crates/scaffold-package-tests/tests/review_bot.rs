@@ -250,3 +250,21 @@ fn the_providers_are_checked() {
         "one env to two different secrets",
     );
 }
+
+#[test]
+fn the_comment_trigger_is_ignored_by_zizmor_with_the_reason_on_the_on_line() {
+    let w = render(&[], "");
+    let text = content(&w, WORKFLOW);
+    let on_line = text
+        .lines()
+        .find(|l| l.starts_with("'on':"))
+        .unwrap_or_else(|| panic!("no on: line: {text}"));
+    assert!(
+        on_line.contains("zizmor: ignore[dangerous-triggers]"),
+        "{on_line}"
+    );
+    assert!(
+        on_line.contains("checks out no pull request code"),
+        "{on_line}"
+    );
+}

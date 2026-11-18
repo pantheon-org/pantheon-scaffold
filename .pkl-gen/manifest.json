@@ -103,7 +103,7 @@
     },
     ".github/workflows/pr-agent.yml": {
       "class": "owned",
-      "hash": "10970a4ca30cdc04af9188c105e43cc7fa278d8ff2d09855ddf0a952f88c2f54"
+      "hash": "e2ced546c619531933dffbda4e0c0dafb5159dbb5986eb79c74ae6a44f300526"
     },
     ".github/workflows/pr-auto-rebase.yml": {
       "class": "owned",

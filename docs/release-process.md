@@ -111,6 +111,10 @@ Do this **before** the new contributor, collaborator, organisation member or bot
 
 Also settle, in the same change, the other places where the maintainer is the only check: a required approving review on `main` and the creation of release tags (see "Accepted risks and open items").
 
+## Bumping the pr-agent image
+
+The `pr-agent.yml` workflow runs `docker://pragent/pr-agent@sha256:...`, the digest of a `*-github_action` tag. A docker reference has no 40-character commit, so it is not in `pkl/Pins.pkl` and neither the pin update workflow nor Dependabot moves it. Bump it by hand in `pkl/Tools.pkl` (`prAgentImage`), when the upstream tag moves or when a model in the default providers (`prAgentProviders` in `pkl/Config.pkl`) is retired by its vendor: the workflow is advisory, so a retired model fails without any check turning red, and the first sign is a pull request with no review. Check the digest is that of the multi-arch image (a manifest list), run the package tests, render, and refresh the baseline (`crates/scaffold-release/baseline/README.md`).
+
 ## Accepted risks and open items
 
 - **No Security review.** The owner recorded P.3 as an accepted risk on 07-11-2026 (decision 78). Security has not reviewed this pipeline or the pkl flags, and no Security reviewer is named. This is a recorded risk, not an approval.

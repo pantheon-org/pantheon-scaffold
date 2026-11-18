@@ -15,6 +15,16 @@ const schemaVersion: Int = 2
 /// The oldest runner that can render this package. Raise it by hand in the release that needs a newer runner.
 const requiresRunner: String = "0.0.0"
 
+/// One LLM provider of the pr-agent review: a model, the repository secret that holds its key, and the variable pr-agent or litellm reads the key from.
+class Provider {
+  /// The litellm model id, for example `provider/model-name`. The first provider of `prAgentProviders` is the primary model, the rest are fallbacks.
+  model: String
+  /// The name of the repository secret that holds the key.
+  secret: String
+  /// The variable the key is passed in. It is the name pr-agent or litellm reads (a pr-agent setting has dots in it), and a provider whose variable they do not read silently does not work.
+  env: String
+}
+
 class Options {
   /// The Rust toolchain, one source for every file that names it.
   toolchain: String
@@ -73,6 +83,17 @@ class Options {
   /// (brownouts from November 2026, enforced from 2 December 2026) unless an Actions event policy allows it. With `pull_request_target` the workflow is
   /// the same as the pantheon-adr copy. A `pull_request` run uses the workflow file of the pull request branch; a `pull_request_target` run uses the base branch's.
   conventionalCommitsEvent: ("pull_request"|"pull_request_target") = "pull_request"
+  /// Which pull request review bot is rendered. `auto` (the default) is `pr-agent`, unless the repository already has a `.coderabbit.yaml`, then it is
+  /// `coderabbit`: the runner looks for the file and tells the package (docs/feature-toggles.md). `pr-agent` and `coderabbit` choose it. CodeRabbit reviews
+  /// repositories with more than 10 stars only. `without` still leaves either builtin out, and wins over this option.
+  reviewBot: ("auto"|"pr-agent"|"coderabbit") = "auto"
+  /// The LLM providers of the pr-agent workflow, in order: the first is the primary model, the others are fallbacks. One provider is valid. Each key is a
+  /// repository secret, and the workflow skips cleanly when none of them is set.
+  prAgentProviders: Listing<Provider> = new {
+    new { model = "gemini/gemini-3.5-flash"; secret = "GEMINI_API_KEY"; env = "GOOGLE_AI_STUDIO.GEMINI_API_KEY" }
+    new { model = "mistral/mistral-small-2603"; secret = "MISTRAL_API_KEY"; env = "MISTRAL.KEY" }
+    new { model = "cerebras/gpt-oss-120b"; secret = "CEREBRAS_API_KEY"; env = "CEREBRAS_API_KEY" }
+  }
 
   /// Whether dependabot.yml has a github-actions entry, from `dependabotGithubActions`. `workflowLeftOut` is whether `without` leaves out a workflow
   /// the repository would otherwise get (Builtins.dependabot works that out).
@@ -80,6 +101,12 @@ class Options {
     if (dependabotGithubActions == "on") true
     else if (dependabotGithubActions == "off") false
     else binary || compositeAction || resolvedReleaseShape() == "draft" || workflowLeftOut
+
+  /// The bot that is rendered: `reviewBot`, or for `auto` the one that follows from whether the repository has a `.coderabbit.yaml` (the runner passes that
+  /// as the property `scaffold.coderabbitYaml`; a run without it, such as a plain `pkl eval`, reads it as false).
+  function resolvedReviewBot(): "pr-agent"|"coderabbit" =
+    if (reviewBot == "auto") (if (read?("prop:scaffold.coderabbitYaml") == "true") "coderabbit" else "pr-agent")
+    else reviewBot as "pr-agent"|"coderabbit"
 
   /// `releaseShape`, or the shape that follows from `binary`.
   function resolvedReleaseShape(): String = releaseShape ?? (if (binary) "cargo-dist" else "published")

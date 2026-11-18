@@ -219,7 +219,7 @@ fn with_dist_ignore(upstream: &str) -> String {
 // The package also tells Dependabot to leave the workflow files it renders alone (`exclude-paths`), which the repositories' own files do not
 // have. The list is every standard workflow of the repository's options, in the order of Builtins.standardWorkflows, not only the files this
 // fixture renders.
-const STANDARD: [&str; 13] = [
+const STANDARD: [&str; 14] = [
     "plumber",
     "sync-labels",
     "pr-auto-rebase",
@@ -230,6 +230,7 @@ const STANDARD: [&str; 13] = [
     "zizmor",
     "agnix",
     "aislop",
+    "pr-agent",
     "rust-ci",
     "cargo-deny",
     "inline-scripts",

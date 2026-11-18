@@ -14,6 +14,8 @@ options {
   skills = false
   binary = false
   crateName = "pantheon-scaffold"
+  // CodeRabbit does not run here (it reviews repositories with more than 10 stars), and the repository has a .coderabbit.yaml that `auto` would keep.
+  reviewBot = "pr-agent"
   // Released as a draft by release-please and published by release.yml (docs/release-process.md); the version in pkl/PklProject is bumped after a release.
   releaseShape = "draft"
   versionFile = "pkl/PklProject"

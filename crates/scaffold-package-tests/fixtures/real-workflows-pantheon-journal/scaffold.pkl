@@ -5,6 +5,8 @@ import "../../../../pkl/Builtins.pkl"
 // Phase 4 wave D: every workflow builtin, set up like pantheon-journal, rendered by scripts/real-repo-workflows.ts and compared with the real repository.
 options {
   toolchain = "1.96.1"
+  // The repository uses CodeRabbit and the package default is pr-agent, so its .coderabbit.yaml is compared with the repository's own copy.
+  reviewBot = "coderabbit"
   skillName = "journal-entry-creator"
   crateName = "journal"
   gitDependencyIgnore { "pahdk-core"; "pahdk-install" }

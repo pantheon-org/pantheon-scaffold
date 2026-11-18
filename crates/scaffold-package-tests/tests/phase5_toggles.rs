@@ -106,9 +106,9 @@ fn skills_off_removes_and_changes_exactly_the_files_that_toggle_owns_and_adds_no
         changed,
         strings(&[
             ".agnix.toml",
-            ".coderabbit.yaml",
             ".github/dependabot.yml",
             ".github/workflows/agnix.yml",
+            ".pr_agent.toml",
             "SECURITY.md"
         ])
     );

@@ -50,6 +50,7 @@ updates:
   - .github/workflows/zizmor.yml
   - .github/workflows/agnix.yml
   - .github/workflows/aislop.yml
+  - .github/workflows/pr-agent.yml
   - .github/workflows/rust-ci.yml
   - .github/workflows/cargo-deny.yml
   - .github/workflows/inline-scripts.yml

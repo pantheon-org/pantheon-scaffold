@@ -9,17 +9,13 @@
       "class": "owned",
       "hash": "90d8f96f0c1a1a3bbf0142b85b941c1e5a022e490f608033fe57c40575f992ad"
     },
-    ".coderabbit.yaml": {
-      "class": "owned",
-      "hash": "5f04a5a80971d60df0a5c149b1a365dd027941e0c96f92bf41b57b163a03d15b"
-    },
     ".github/commit-types.txt": {
       "class": "owned",
       "hash": "bc9e90682efbc9550906b64f751057852d7be1f5e2263f646f7b17b4a23aec11"
     },
     ".github/dependabot.yml": {
       "class": "owned",
-      "hash": "45396451f086f447ac4c89923375b04160e59bb95cbe7da87a983ae141b016c0"
+      "hash": "69caad37b668b3e63c98e4a13962d760cb1117a46c4a93d752390137319aa177"
     },
     ".github/labels.txt": {
       "class": "owned",
@@ -105,6 +101,10 @@
       "class": "owned",
       "hash": "e542bf273c92464292050c0e31ca1d8e226362dc1752cb79379a00cefde0c399"
     },
+    ".github/workflows/pr-agent.yml": {
+      "class": "owned",
+      "hash": "10970a4ca30cdc04af9188c105e43cc7fa278d8ff2d09855ddf0a952f88c2f54"
+    },
     ".github/workflows/pr-auto-rebase.yml": {
       "class": "owned",
       "hash": "80eb78ca8c515218160e347eac91c3e82299a40c98c018a3f3f8a8483c9e3282"
@@ -144,6 +144,10 @@
     ".plumber.yaml": {
       "class": "owned",
       "hash": "5d17a34b7d8f4c30eeb426ec05c58818dee5ecb0976a044149ccc755f4b71981"
+    },
+    ".pr_agent.toml": {
+      "class": "owned",
+      "hash": "33bb1e6374a6670ab5ff9c3862969411631b1d3625d18a3d80b5526c345a49e4"
     },
     ".release-please-manifest.json": {
       "class": "seed",

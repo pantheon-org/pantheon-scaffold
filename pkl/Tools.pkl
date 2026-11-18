@@ -44,3 +44,8 @@ const dist: String = "0.32.0"
 
 /// The mise version the workflows that install tools with mise-action ask for, as release.yml and the consumer check sample do.
 const mise: String = "2026.10.25"
+
+/// The pr-agent image the pr-agent workflow runs as a docker step, pinned by the digest of its `0.38.0-github_action` tag (a multi-arch image). A docker
+/// reference has no 40-character commit, so it cannot be a `Pins.pkl` pin and the pin update workflow does not move it: bump it by hand, when the upstream
+/// tag moves or a model in the default providers is retired (docs/release-process.md).
+const prAgentImage: String = "docker://pragent/pr-agent@sha256:ea2ea90f072fd97708755e59827a317272f66097a1ef349eca23d39160bb0baf"

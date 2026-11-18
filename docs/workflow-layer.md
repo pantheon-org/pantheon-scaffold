@@ -98,6 +98,8 @@ P.1 ignores comments. The header of each workflow is kept, and comments between 
 
 Decision 74 settles how four more files are handled: `.gitignore` (the `target/` pick), `.coderabbit.yaml` (the skill folder is a parameter), `SECURITY.md` (seeded once) and `tag-release.sh` (the crate name is a parameter, and the `binary` variant of `release-please.yml` calls it). Phase 5 built them, with `audit-skill.yml` and `release.yml`: see [feature-toggles.md](feature-toggles.md).
 
+The `pr-agent` Builtin is the review bot of a repository that does not choose CodeRabbit (`options.reviewBot`, `options.prAgentProviders`): `pr-agent.yml`, a docker step pinned by digest, and `.pr_agent.toml`. It has no upstream copy to compare with, so it is checked by structure tests (`crates/scaffold-package-tests/tests/review_bot.rs`). Its live behaviour is **unverified** until a pull request has run it with a key set; see [feature-toggles.md](feature-toggles.md#the-review-bot).
+
 ## Wave C: keeping pins current, and proposing upgrades
 
 Wave C is new work with no upstream copy, so it is checked by structure tests (`crates/scaffold-package-tests/tests/workflows_c.rs` and `update_pins_workflow.rs`, and the `update_pins` tests of `scaffold-release`) rather than by P.1 equality. The App token step of `update-pins.yml` has run successfully (the weekly run on 09-11-2026 included). Opening a pin pull request was exercised by the real run of 16-11-2026 (#160, which needed a hand-made render commit and a baseline refresh; #162 removes both), and `upgrade-scaffold.yml` has never run in a consumer repository: that one stays **unverified**.

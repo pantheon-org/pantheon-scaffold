@@ -9,8 +9,9 @@ use crate::contract::ContractError;
 /// Flags that restrict what the consumer's scaffold.pkl may load or read.
 pub const ALLOWED_MODULES: &str = "pkl:,file:,package:,projectpackage:";
 // package: lets a package module read its own assets, https: lets pkl download the package.
-// There is no file: here, so a scaffold.pkl cannot read arbitrary files.
-pub const ALLOWED_RESOURCES: &str = "package:,projectpackage:,https:";
+// There is no file: here, so a scaffold.pkl cannot read arbitrary files. The one `prop:` pattern lets it read the properties the runner passes
+// (`scaffold.*`, see `once`) and the `pkl.*` ones pkl reads itself, and nothing else.
+pub const ALLOWED_RESOURCES: &str = r"package:,projectpackage:,https:,^prop:(scaffold|pkl)\.";
 
 pub struct EvalOptions {
     /// Absolute folders whose files a local (file:) package may read, for working on a checkout of the package.
@@ -27,6 +28,9 @@ pub struct EvalOptions {
     pub timeout: Duration,
     /// The binary to run. `pkl` unless a test points elsewhere.
     pub binary: OsString,
+    /// Whether the repository has a `.coderabbit.yaml`, which the `auto` value of `reviewBot` reads. `None` looks for the file in the working
+    /// folder; a test sets it so the answer does not depend on the checkout it runs in.
+    pub coderabbit_yaml: Option<bool>,
 }
 
 impl Default for EvalOptions {
@@ -39,6 +43,7 @@ impl Default for EvalOptions {
             env: Vec::new(),
             timeout: Duration::from_secs(120),
             binary: OsString::from("pkl"),
+            coderabbit_yaml: None,
         }
     }
 }
@@ -128,6 +133,12 @@ fn once(config: &Path, cwd: &Path, opts: &EvalOptions) -> Result<Run, ContractEr
     command
         .args(["--allowed-modules", ALLOWED_MODULES, "--allowed-resources"])
         .arg(allowed_resources(opts))
+        .arg("-p")
+        .arg(format!(
+            "scaffold.coderabbitYaml={}",
+            opts.coderabbit_yaml
+                .unwrap_or_else(|| cwd.join(".coderabbit.yaml").is_file())
+        ))
         .arg(config)
         .current_dir(cwd)
         .envs(opts.env.iter().map(|(k, v)| (k, v)))
@@ -242,7 +253,45 @@ mod tests {
     fn allowed_resources_lists_the_package_and_https_schemes_only_by_default() {
         assert_eq!(
             allowed_resources(&EvalOptions::default()),
-            "package:,projectpackage:,https:"
+            r"package:,projectpackage:,https:,^prop:(scaffold|pkl)\."
+        );
+    }
+
+    #[test]
+    fn a_scaffold_pkl_sees_whether_the_repository_has_a_coderabbit_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let config = dir.path().join("conf.pkl");
+        std::fs::write(
+            &config,
+            "output { renderer = new JsonRenderer {} }\nfound = read?(\"prop:scaffold.coderabbitYaml\")\n",
+        )
+        .unwrap();
+        let found = |opts: &EvalOptions| {
+            eval_contract_json(&config, dir.path(), opts).unwrap()["found"].clone()
+        };
+        assert_eq!(found(&EvalOptions::default()), "false");
+        std::fs::write(dir.path().join(".coderabbit.yaml"), "x: 1\n").unwrap();
+        assert_eq!(found(&EvalOptions::default()), "true");
+        let forced = EvalOptions {
+            coderabbit_yaml: Some(false),
+            ..EvalOptions::default()
+        };
+        assert_eq!(found(&forced), "false");
+    }
+
+    #[test]
+    fn only_the_scaffold_properties_can_be_read() {
+        let dir = tempfile::tempdir().unwrap();
+        let config = dir.path().join("conf.pkl");
+        std::fs::write(
+            &config,
+            "output { renderer = new JsonRenderer {} }\nother = read?(\"prop:other\")\n",
+        )
+        .unwrap();
+        let error = eval_contract_json(&config, dir.path(), &EvalOptions::default()).unwrap_err();
+        assert!(
+            error.to_string().contains("Refusing to read resource"),
+            "{error}"
         );
     }
 
@@ -254,7 +303,7 @@ mod tests {
         };
         assert_eq!(
             allowed_resources(&opts),
-            r"package:,projectpackage:,https:,^file:///work/a\.b\+c/,^file:///other/"
+            r"package:,projectpackage:,https:,^prop:(scaffold|pkl)\.,^file:///work/a\.b\+c/,^file:///other/"
         );
     }
 
@@ -543,7 +592,7 @@ mod tests {
         eval_contract_json(Path::new("conf.pkl"), dir.path(), &opts).unwrap();
         assert_eq!(
             std::fs::read_to_string(log).unwrap().trim(),
-            "eval -f json --cache-dir /cache --allowed-modules pkl:,file:,package:,projectpackage: --allowed-resources package:,projectpackage:,https: conf.pkl"
+            "eval -f json --cache-dir /cache --allowed-modules pkl:,file:,package:,projectpackage: --allowed-resources package:,projectpackage:,https:,^prop:(scaffold|pkl)\\. -p scaffold.coderabbitYaml=false conf.pkl"
         );
     }
 }

@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.3](https://github.com/pantheon-org/pantheon-scaffold/compare/v0.4.2...v0.4.3) (2026-11-20)
+
+
+### Features
+
+* **conventional-commits:** start the title check on pull_request, with an option for pull_request_target ([#164](https://github.com/pantheon-org/pantheon-scaffold/issues/164)) ([e0b1b1e](https://github.com/pantheon-org/pantheon-scaffold/commit/e0b1b1e561971a4c6c908323b38fe1aedf12e60f))
+* **pkl:** pr-agent as the default review bot, with reviewBot and prAgentProviders options ([#171](https://github.com/pantheon-org/pantheon-scaffold/issues/171)) ([407fb1e](https://github.com/pantheon-org/pantheon-scaffold/commit/407fb1e09cd27fd60dc9cc562ab4df8afbf28205))
+
+
+### Bug Fixes
+
+* **baseline:** mask pinned actions in what a snapshot hashes, so a pin move needs no refresh ([#166](https://github.com/pantheon-org/pantheon-scaffold/issues/166)) ([1c85d20](https://github.com/pantheon-org/pantheon-scaffold/commit/1c85d204b09bfd98fad166edc12d6bb45bdb641b))
+
 ## [0.4.2](https://github.com/pantheon-org/pantheon-scaffold/compare/v0.4.1...v0.4.2) (2026-11-16)
 
 

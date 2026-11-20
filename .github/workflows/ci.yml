@@ -3,6 +3,11 @@ name: ci
 on:
   pull_request:
     branches: [main]
+    # A pull request that changes only Markdown cannot break the builds or the features, so it skips them (issue #150). main has no
+    # required status checks, so a skipped run cannot block a merge. The push below has no filter: it is the post-merge safety net, and
+    # it catches what a Markdown change can still break (crates/scaffold-package-tests/tests/config_name.rs reads every tracked file).
+    paths-ignore:
+      - "**.md"
   push:
     branches: [main]
 

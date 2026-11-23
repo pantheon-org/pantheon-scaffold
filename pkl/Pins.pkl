@@ -22,11 +22,11 @@ class Pin {
 }
 
 checkout: Pin = new { action = "actions/checkout"; sha = "3d3c42e5aac5ba805825da76410c181273ba90b1"; version = "v7.0.1" }
-miseAction: Pin = new { action = "jdx/mise-action"; sha = "236a21c3b91f5db6d4e174b348674a0f0caac06d"; version = "v5.2.9" }
-createGithubAppToken: Pin = new { action = "actions/create-github-app-token"; sha = "64ab729a6294000f5aa4a4bc0b73d1f32bc45510"; version = "v3.3.0" }
+miseAction: Pin = new { action = "jdx/mise-action"; sha = "924e7c586e33d7d4bae9c14e26c5d22e2beb6e78"; version = "v5.3.0" }
+createGithubAppToken: Pin = new { action = "actions/create-github-app-token"; sha = "f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc"; version = "v3.4.0" }
 plumber: Pin = new { action = "getplumber/plumber"; sha = "ec8cb3a7edd6a324b33e85109b627b2df6023d94"; version = "v0.7.23" }
 releasePleaseAction: Pin = new { action = "googleapis/release-please-action"; sha = "45996ed1f6d02564a971a2fa1b5860e934307cf7"; version = "v5.0.0" }
-zizmorAction: Pin = new { action = "zizmorcore/zizmor-action"; sha = "45d7276c9ca790aabd705e31ca99c6185c3e76dd"; version = "v0.8.1" }
+zizmorAction: Pin = new { action = "zizmorcore/zizmor-action"; sha = "bd12b495c90993a4301c73398142281a61499af3"; version = "v0.9.0" }
 setupNode: Pin = new { action = "actions/setup-node"; sha = "949feb2413d6458794dcd2491c4babbbce0c15c1"; version = "v7.1.0" }
 findComment: Pin = new { action = "peter-evans/find-comment"; sha = "b30e6a3c0ed37e7c023ccd3f1db5c6c0b0c23aad"; version = "v4.0.0" }
 createOrUpdateComment: Pin = new { action = "peter-evans/create-or-update-comment"; sha = "e8674b075228eee787fea43ef493e45ece1004c9"; version = "v5.0.0" }

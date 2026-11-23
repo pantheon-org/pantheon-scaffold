@@ -107,27 +107,27 @@
     },
     ".github/workflows/pr-auto-rebase.yml": {
       "class": "owned",
-      "hash": "80eb78ca8c515218160e347eac91c3e82299a40c98c018a3f3f8a8483c9e3282"
+      "hash": "9ebc90d92ba3b61a65449bbfa1f6dd4b96b192793537fa8a57727d10866f7d99"
     },
     ".github/workflows/release-automerge.yml": {
       "class": "owned",
-      "hash": "772c8e92a247cb13f4e1764df593fa4f66c634c151d37a12ce995f9af29ec9dc"
+      "hash": "e302c9815454212ba867b2946812f93336ba4c7452df0256430bfbd8246881e8"
     },
     ".github/workflows/release-bump.yml": {
       "class": "owned",
-      "hash": "18fca36e14ecc81688217a3bbdcf4c729bc1c5ae6710b0750af56a587ef2994d"
+      "hash": "d84902de1dea6c7abe4dba5f26632efd9eb5d9eb2d7a05490ecd4568414f0cef"
     },
     ".github/workflows/release-please.yml": {
       "class": "owned",
-      "hash": "b15b3bab2c07de90f86e2c9578751b0c4cdea9bbc1468442d01a612e82d7f04a"
+      "hash": "6a31318c8c3f398d5aca20e0b315644ac10fbd3d8dc0ae8df06730cbcad152f7"
     },
     ".github/workflows/rust-ci.yml": {
       "class": "owned",
-      "hash": "7eb5a4e311b07e9a58741a25b0f78cb3bfdb3538d1eb28c0e79b569694da5c1f"
+      "hash": "6afeee760fd6167e6799c9414e8797123f4bf81236a269bea94d589191ecd937"
     },
     ".github/workflows/scaffold-check.yml": {
       "class": "owned",
-      "hash": "0374372ed40b8f6c6810fba580e6e7e360083212895f16a397af7b250091739d"
+      "hash": "b87cb70de33cc83eedcc6e264424c88d3ef33e41589b9c16bd7045d380ede6b7"
     },
     ".github/workflows/sync-labels.yml": {
       "class": "owned",
@@ -135,7 +135,7 @@
     },
     ".github/workflows/zizmor.yml": {
       "class": "owned",
-      "hash": "d8dd9a2ed59f79088903dea9455395aa4ca9af2fa5759d5da0a1fbc3be21ebd3"
+      "hash": "9123d339887527a2590ca84171dae33bb971907640a731cdb9f863521247d8c1"
     },
     ".gitignore": {
       "class": "owned",

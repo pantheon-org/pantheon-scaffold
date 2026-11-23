@@ -129,6 +129,7 @@ Commit the result, including `.pkl-gen/manifest.json` (what the runner knows it 
 | `reviewBot` | `"auto"` | the review bot: `"pr-agent"`, `"coderabbit"`, or `"auto"` (pr-agent, unless the repository already has a `.coderabbit.yaml`). See [feature-toggles.md](feature-toggles.md#the-review-bot) |
 | `prAgentProviders` | Gemini, Mistral, Cerebras | the LLM providers of the pr-agent workflow, in order: the first is the primary model, the rest are fallbacks. One is valid |
 | `without` | empty | builtins left out, by name (next section) |
+| `workflowLayout` | empty (every recipe `"separate"`) | how a group of builtins is laid out, by recipe. `workflowLayout { ["analysis"] = "merged" }` renders zizmor, agnix, aislop and plumber as the jobs of one `analysis.yml` instead of four workflows. See [workflow-layer.md](workflow-layer.md#the-merged-analysis-workflow) |
 
 A toggle that needs a name and has none stops the render with an error that names the option. Details and what each toggle removes: [feature-toggles.md](feature-toggles.md).
 

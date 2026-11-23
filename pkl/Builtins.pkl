@@ -13,6 +13,7 @@ import "GenFiles.pkl"
 import "Workflows.pkl"
 import "Presence.pkl"
 import "Builtins/Shared.pkl"
+import "Builtins/Recipes.pkl"
 import "Builtins/rust-toolchain/Builtin.pkl" as rustToolchainBuiltin
 import "Builtins/actionlint/Builtin.pkl" as actionlintBuiltin
 import "Builtins/coderabbit/Builtin.pkl" as coderabbitBuiltin
@@ -139,12 +140,20 @@ function agnix(opts: Config.Options): Workflows.Workflow = agnixBuiltin.workflow
 /// version.
 function aislop(): Workflows.Workflow = aislopBuiltin.workflow()
 
+/// How many workflows the repository would have as separate files: the keys of `standardWorkflows`, with the merged `analysis` key counted as the tools it
+/// holds. Only the keys are read, never the workflows: a workflow that cannot be built for these options (audit-skill without `skillName`) must not fail here.
+local function workflowUnits(opts: Config.Options): Int =
+  let (keys = standardWorkflows(opts).keys.toList())
+  let (p = Presence.forOptions(opts))
+  if (keys.contains("analysis")) keys.length - 1 + Recipes.analysisTools.count((t) -> p.has(t)) else keys.length
+
 /// The github-actions entry excludes every workflow file the package renders (`exclude-paths`): the runner owns them, so a Dependabot bump of a
 /// pin in one is drift, and `check` exits 4. Their pins move through Pins.pkl and `upgrade`. Workflows the repository writes itself are still updated.
 function dependabot(opts: Config.Options): GenFiles.GenFile =
   let (rendered = standardWorkflows(opts).keys.toList())
   // A workflow the repository would get by default but left out with `without` is probably the repository's own file, outside the exclusion list.
-  let (workflowLeftOut = rendered.length < standardWorkflows((opts) { without = new Listing {} }).keys.toList().length)
+  // Units, not keys, are counted: a merged workflow is one key for several builtins, and leaving one of them out lowers only the count of units.
+  let (workflowLeftOut = workflowUnits(opts) < workflowUnits((opts) { without = new Listing {} }))
   dependabotBuiltin.file(opts, rendered, workflowLeftOut)
 
 /// The config files that go with the wave B builtins: .agnix.toml (the first line depends on whether the repository has a skill), dependabot.yml,
@@ -198,8 +207,9 @@ function parameterisedFiles(opts: Config.Options): Mapping<String, GenFiles.GenF
 /// `skills` is on. Turning `skills` off drops the entry, so the runner deletes the file it rendered before.
 function standardWorkflows(opts: Config.Options): Mapping<String, Workflows.Workflow> =
   let (p = Presence.forOptions(opts))
+  let (analysisMerged = opts.workflowLayout.getOrNull("analysis") == "merged")
   new {
-    when (p.has("plumber")) { ["plumber"] = plumber() }
+    when (!analysisMerged && p.has("plumber")) { ["plumber"] = plumber() }
     when (p.has("sync-labels")) { ["sync-labels"] = syncLabels() }
     when (p.has("pr-auto-rebase")) { ["pr-auto-rebase"] = prAutoRebase(opts) }
     when (p.has("release-automerge")) { ["release-automerge"] = releaseAutomerge(opts) }
@@ -207,9 +217,10 @@ function standardWorkflows(opts: Config.Options): Mapping<String, Workflows.Work
     when (p.has("commit-types")) { ["commit-types"] = commitTypes() }
     when (p.has("conventional-commits")) { ["conventional-commits"] = conventionalCommits(opts) }
     when (p.has("release-please")) { ["release-please"] = releasePlease(opts) }
-    when (p.has("zizmor")) { ["zizmor"] = zizmor(opts) }
-    when (p.has("agnix")) { ["agnix"] = agnix(opts) }
-    when (p.has("aislop")) { ["aislop"] = aislop() }
+    when (!analysisMerged && p.has("zizmor")) { ["zizmor"] = zizmor(opts) }
+    when (!analysisMerged && p.has("agnix")) { ["agnix"] = agnix(opts) }
+    when (!analysisMerged && p.has("aislop")) { ["aislop"] = aislop() }
+    when (analysisMerged && Recipes.analysisTools.any((t) -> p.has(t))) { ["analysis"] = Recipes.analysis(opts, p) }
     when (p.has("pr-agent") && opts.resolvedReviewBot() == "pr-agent") { ["pr-agent"] = prAgent(opts) }
     when (p.has("rust-ci")) { ["rust-ci"] = rustCi(opts) }
     when (p.has("cargo-deny")) { ["cargo-deny"] = cargoDeny(opts) }

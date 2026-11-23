@@ -100,6 +100,23 @@ Decision 74 settles how four more files are handled: `.gitignore` (the `target/`
 
 The `pr-agent` Builtin is the review bot of a repository that does not choose CodeRabbit (`options.reviewBot`, `options.prAgentProviders`): `pr-agent.yml`, a docker step pinned by digest, and `.pr_agent.toml`. It has no upstream copy to compare with, so it is checked by structure tests (`crates/scaffold-package-tests/tests/review_bot.rs`). Its live behaviour is **unverified** until a pull request has run it with a key set; see [feature-toggles.md](feature-toggles.md#the-review-bot).
 
+## The merged analysis workflow
+
+By default every builtin is one workflow file. `options.workflowLayout` changes that for a group of builtins, by recipe name. The only recipe is `analysis`: with `workflowLayout { ["analysis"] = "merged" }` the package renders `analysis.yml`, one workflow with a job for each of zizmor, agnix, aislop and plumber, in place of `zizmor.yml`, `agnix.yml`, `aislop.yml` and `plumber.yml`. Nothing changes for a repository that does not set it. The code is `pkl/Builtins/Recipes.pkl`, an internal module: a recipe is not a builtin, so it has no name in `options.without`.
+
+| What | In the merged workflow |
+|---|---|
+| Switching a tool off | `options.without`, by the tool's name (`zizmor`, `agnix`, `aislop`, `plumber`). The job goes, and the tool's config and script files follow the tool's own presence, as before. With all four left out no `analysis.yml` is rendered. |
+| Job ids and names | The same as the separate workflows (`zizmor`, `agnix`, `quality-gate` named `aislop quality gate`, `plumber` named `Plumber Score`), so the names of the required status checks do not change. The workflow is named `analysis`. |
+| Permissions | The workflow holds `contents: read` only. The write scopes stay on the jobs that need them: agnix (`issues`, `pull-requests`) and plumber (`security-events`). `env` that agnix set on its workflow is on its job. |
+| Schedule | Plumber's weekly schedule is on the workflow. Every other job has `github.event_name != 'schedule'`, joined to its own condition in brackets (agnix: `(github.event_name != 'schedule') && (<its fork guard>)`), so only plumber runs on the schedule. Without plumber there is no schedule and no guard. |
+| Concurrency | A pull request cancels its own older run. Every other run has its own group (`github.run_id`), so a push to main or a schedule run is never replaced by a newer one. This differs from the separate workflows, where aislop, zizmor and plumber cancel an older run on a push too. |
+| Dependabot | `dependabot.yml` lists `analysis.yml` in `exclude-paths`. A tool left out with `without` counts as a workflow the repository may keep itself, as in the separate layout. |
+| Presets | The four workflow keys are not in the mapping; amend a job of `analysis` ([presets.md](presets.md#rules-and-limits)). |
+| Switching | Changing the layout and rendering deletes the files that drop out and writes the new one, under the same rules as `without` (a file edited by hand is not deleted). |
+
+How it is checked: `features/analysis.feature` (the behaviour through the runner) and `crates/scaffold-package-tests/tests/analysis_workflow.rs` (the merged jobs against the four separate workflows: ids, names, steps, permissions, `if` strings; `actionlint`; Dependabot; `Shared.compose`). Merged mode has no row in the baseline matrix, so the 61-configuration baseline shows that the default is unchanged and nothing about the merged render.
+
 ## Wave C: keeping pins current, and proposing upgrades
 
 Wave C is new work with no upstream copy, so it is checked by structure tests (`crates/scaffold-package-tests/tests/workflows_c.rs` and `update_pins_workflow.rs`, and the `update_pins` tests of `scaffold-release`) rather than by P.1 equality. The App token step of `update-pins.yml` has run successfully (the weekly run on 09-11-2026 included). Opening a pin pull request was exercised by the real run of 16-11-2026 (#160, which needed a hand-made render commit and a baseline refresh; #162 removes both), and `upgrade-scaffold.yml` has never run in a consumer repository: that one stays **unverified**.

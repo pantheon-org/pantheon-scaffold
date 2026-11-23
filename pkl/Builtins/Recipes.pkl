@@ -1,0 +1,80 @@
+/// INTERNAL. Recipes: one workflow made of the jobs of several builtins, chosen by `options.workflowLayout`. A recipe is not a builtin, so it has no
+/// folder under `pkl/Builtins/` and no name in `options.without`: the builtins it merges are switched off by their own names. Import `Builtins.pkl`,
+/// not this file. It can change without notice.
+@ModuleInfo { minPklVersion = "0.32.0" }
+module pantheon.scaffold.builtins.Recipes
+
+import "../Config.pkl"
+import "../Jobs.pkl"
+import "../Presence.pkl"
+import "../Workflows.pkl"
+import "Shared.pkl"
+import "agnix/Builtin.pkl" as agnixBuiltin
+import "aislop/Builtin.pkl" as aislopBuiltin
+import "plumber/Builtin.pkl" as plumberBuiltin
+import "zizmor/Builtin.pkl" as zizmorBuiltin
+
+/// The builtins the `analysis` recipe merges, in the order of their jobs.
+const analysisTools: List<String> = List("zizmor", "agnix", "aislop", "plumber")
+
+/// A pull request cancels its own older run. Every other run has its own group, so a push to main or a schedule run is never replaced by a newer one.
+local analysisConcurrency: Mapping<String, Any> = new Mapping {
+  ["group"] = "${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}"
+  ["cancel-in-progress"] = "${{ github.event_name == 'pull_request' }}"
+}
+
+/// The jobs of a workflow with its workflow-level `permissions` and `env` written on each job, so they stay with the job when the workflow-level
+/// values become the shared floor. A job that has its own permissions keeps them.
+local function jobsWithOwnScope(w: Workflows.Workflow): Mapping<String, Jobs.Job> =
+  w.jobs.toMap().mapValues((_, job) ->
+    let (withPermissions = if (job.permissions == null && w.permissions != null) (job) { permissions = w.permissions } else job)
+    if (w.env == null) withPermissions
+    else (withPermissions) {
+      env = new Mapping<String, Any> {
+        ...w.env
+        when (job.env != null) { ...job.env }
+      }
+    }
+  ).toMapping()
+
+/// The job as it runs on the schedule of another job of the workflow: not at all. The job's own condition is kept, in brackets, because it can hold `||`.
+local function notOnSchedule(job: Jobs.Job): Jobs.Job =
+  (job) {
+    `if` =
+      if (job.`if` == null) "github.event_name != 'schedule'"
+      else "(github.event_name != 'schedule') && (\(job.`if`))"
+  }
+
+/// One workflow with the jobs of zizmor, agnix, aislop and plumber, for the tools that are present (`options.without`). Each job keeps its id, its name
+/// and its steps, so the status checks keep their names. Permissions and `env` that a tool set on its workflow move onto its job, and the workflow
+/// holds only `contents: read`. The schedule of a tool (plumber's) goes on the workflow and the jobs of the other tools skip it.
+/// Call it only when at least one tool is present: a workflow with no jobs is not valid.
+function analysis(opts: Config.Options, p: Presence.Present): Workflows.Workflow =
+  let (all = List(
+    Pair("zizmor", zizmorBuiltin.workflow(opts)),
+    Pair("agnix", agnixBuiltin.workflow(opts)),
+    Pair("aislop", aislopBuiltin.workflow()),
+    Pair("plumber", plumberBuiltin.workflow())
+  ))
+  let (parts = all.filter((s) -> p.has(s.first)))
+  let (hasSchedule = (s: Pair<String, Workflows.Workflow>) -> s.second.on.containsKey("schedule"))
+  let (anySchedule = parts.any(hasSchedule))
+  new Workflows.Workflow {
+    header =
+      "Static analysis and quality gates of this repository, one job per tool: \(parts.map((s) -> s.first).join(", ")).\n"
+        + "Each tool's own notes follow.\n\n"
+        + parts.map((s) -> "\(s.first)\n\n\(s.second.header ?? "")").join("\n\n").trim()
+    name = "analysis"
+    on = new Mapping<String, Any?> {
+      ...Shared.mainTriggers()
+      for (s in parts) {
+        when (hasSchedule.apply(s)) { ["schedule"] = s.second.on["schedule"] }
+      }
+    }
+    permissions = Shared.readOnly
+    concurrency = analysisConcurrency
+    jobs = Shared.compose(parts.map((s) ->
+      let (own = jobsWithOwnScope(s.second))
+      Pair(s.first, if (anySchedule && !hasSchedule.apply(s)) own.toMap().mapValues((_, j) -> notOnSchedule(j)).toMapping() else own)
+    ))
+  }

@@ -5,6 +5,7 @@
 module pantheon.scaffold.builtins.Shared
 
 import "../Config.pkl"
+import "../Jobs.pkl"
 import "../Steps.pkl"
 import "../Pins.pkl"
 import "../Tools.pkl"
@@ -71,3 +72,15 @@ function miseSetup(): List<Steps.Step> = List(
   }
 )
 
+
+/// Merges the jobs of several sources into one mapping, in order. `parts` pairs a source name with its jobs. Fails, naming both sources, when two
+/// sources have a job with the same id: a silent overwrite would drop a job from the rendered workflow.
+function compose(parts: List<Pair<String, Mapping<String, Jobs.Job>>>): Mapping<String, Jobs.Job> =
+  let (ids = parts.flatMap((p) -> p.second.keys.toList().map((id) -> Pair(id, p.first))))
+  let (clash = ids.findOrNull((a) -> ids.count((b) -> b.first == a.first) > 1))
+  if (clash != null)
+    throw("job \"\(clash.first)\" is in more than one part: \(ids.filter((i) -> i.first == clash.first).map((i) -> i.second).join(" and ")). Job ids must be unique in a composed workflow.")
+  else
+    new Mapping<String, Jobs.Job> {
+      for (p in parts) { ...p.second }
+    }

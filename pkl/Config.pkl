@@ -56,6 +56,11 @@ class Options {
   /// an error that names both. A name that is not a builtin, or one listed twice, is an error. Only the aggregators read it: calling a single builtin
   /// function (`rustCi(opts)`) still renders it, and not spreading an aggregator is not leaving its builtins out.
   without: Listing<String> = new {}
+  /// How the workflows of a group of builtins are laid out, by recipe name. `separate` (the default for every recipe, and for a recipe not listed) renders
+  /// one workflow file for each builtin. `merged` renders one workflow file for the recipe, with a job for each builtin that is present. The only recipe is
+  /// `analysis`: zizmor, agnix, aislop and plumber as `analysis.yml`. `without` still switches each builtin off by its own name, in both layouts. This
+  /// is not a toggle: it removes nothing, it changes the shape. A name that is not a recipe is an error that lists the recipes.
+  workflowLayout: Mapping<String, "separate"|"merged"> = new {}
   /// How a release is made, for the header of release-please.yml and for the files that go with it. `cargo-dist`: cargo-dist creates the GitHub Release
   /// and release-please only tags (tag-release.sh). `published`: release-please publishes the release itself. `draft`: release-please makes the tag and a
   /// draft release, and the repository's own release workflow runs `.github/scripts/publish-release.sh` on the tag to publish it. Left unset it follows

@@ -1560,6 +1560,12 @@ mod tests {
         );
     }
 
+    #[test]
+    fn the_pkl_options_carry_this_runner_version_so_a_failed_evaluation_can_say_to_upgrade() {
+        let o = eval_options(&flags(&["--root", "/r"]));
+        assert_eq!(o.runner_version.as_deref(), Some(VERSION));
+    }
+
     fn preset_inputs(pairs: &[(&str, &str)]) -> PresetInputs {
         PresetInputs {
             config_name: "scaffold.pkl".into(),

@@ -1024,6 +1024,7 @@ fn eval_options(flags: &Flags) -> scaffold_core::pkl::EvalOptions {
         allow_files_under: flags.local.clone(),
         attempts: flags.attempts,
         cache_dir: Some(cache_dir),
+        runner_version: Some(VERSION.to_owned()),
         ..scaffold_core::pkl::EvalOptions::default()
     }
 }
@@ -1557,6 +1558,12 @@ mod tests {
             (o.attempts, o.cache_dir),
             (3, Some(PathBuf::from("/r/.pkl-gen/cache")))
         );
+    }
+
+    #[test]
+    fn the_pkl_options_carry_this_runner_version_so_a_failed_evaluation_can_say_to_upgrade() {
+        let o = eval_options(&flags(&["--root", "/r"]));
+        assert_eq!(o.runner_version.as_deref(), Some(VERSION));
     }
 
     fn preset_inputs(pairs: &[(&str, &str)]) -> PresetInputs {

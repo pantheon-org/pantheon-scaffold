@@ -51,6 +51,23 @@ Feature: what the runner refuses to do
     And the error contains "is not valid JSON"
     And the file "rust-toolchain.toml" does not exist
 
+  Scenario: a package that needs a newer runner and fails inside pkl says to upgrade the runner
+    Given a new empty repository
+    And I write 'output {\n  renderer = new JsonRenderer {}\n  value = new Dynamic {\n    files = read("prop:other")\n    requires = new Dynamic { runner = "999.0.0" }\n  }\n}\n' to the file "scaffold.pkl"
+    When I run "render <repo>/scaffold.pkl --root <repo>"
+    Then the exit code is 1
+    And the error contains "is older than the 999.0.0 this package requires, upgrade the runner"
+    And the error contains "Refusing to read resource"
+    And the file ".pkl-gen/manifest.json" does not exist
+
+  Scenario: a package this runner meets that fails inside pkl gives only the pkl error
+    Given a new empty repository
+    And I write 'output {\n  renderer = new JsonRenderer {}\n  value = new Dynamic {\n    files = read("prop:other")\n    requires = new Dynamic { runner = "0.0.0" }\n  }\n}\n' to the file "scaffold.pkl"
+    When I run "check <repo>/scaffold.pkl --root <repo>"
+    Then the exit code is 1
+    And the error contains "Refusing to read resource"
+    And the error does not contain "upgrade the runner"
+
   Scenario: a manifest from a newer format stops the render
     Given a new empty repository
     And I write '{"manifestVersion":2,"files":{}}' to the file ".pkl-gen/manifest.json"

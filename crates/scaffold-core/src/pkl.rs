@@ -31,6 +31,9 @@ pub struct EvalOptions {
     /// Whether the repository has a `.coderabbit.yaml`, which the `auto` value of `reviewBot` reads. `None` looks for the file in the working
     /// folder; a test sets it so the answer does not depend on the checkout it runs in.
     pub coderabbit_yaml: Option<bool>,
+    /// This runner's version. When an evaluation fails, the package's `requires.runner` is read on its own and a runner older
+    /// than it is told to upgrade first, since pkl stops before the contract can be checked. `None` skips that read.
+    pub runner_version: Option<String>,
 }
 
 impl Default for EvalOptions {
@@ -44,6 +47,7 @@ impl Default for EvalOptions {
             timeout: Duration::from_secs(120),
             binary: OsString::from("pkl"),
             coderabbit_yaml: None,
+            runner_version: None,
         }
     }
 }
@@ -115,7 +119,14 @@ fn retry_while_busy<T>(
     attempt()
 }
 
-fn once(config: &Path, cwd: &Path, opts: &EvalOptions) -> Result<Run, ContractError> {
+/// One pkl run. With an `expression`, pkl evaluates only that (`-x`) in the module, which it loads as the module `repl:text`,
+/// so `repl:` is allowed for that run alone. The expression is the runner's own, never the consumer's.
+fn once(
+    config: &Path,
+    cwd: &Path,
+    opts: &EvalOptions,
+    expression: Option<&str>,
+) -> Result<Run, ContractError> {
     use std::io::Read;
     use std::process::{Command, Stdio};
 
@@ -130,8 +141,14 @@ fn once(config: &Path, cwd: &Path, opts: &EvalOptions) -> Result<Run, ContractEr
     if let Some(cache) = &opts.cache_dir {
         command.arg("--cache-dir").arg(cache);
     }
+    let modules = match expression {
+        Some(_) => format!("{ALLOWED_MODULES},repl:"),
+        None => ALLOWED_MODULES.to_owned(),
+    };
     command
-        .args(["--allowed-modules", ALLOWED_MODULES, "--allowed-resources"])
+        .arg("--allowed-modules")
+        .arg(modules)
+        .arg("--allowed-resources")
         .arg(allowed_resources(opts))
         .arg("-p")
         .arg(format!(
@@ -139,6 +156,7 @@ fn once(config: &Path, cwd: &Path, opts: &EvalOptions) -> Result<Run, ContractEr
             opts.coderabbit_yaml
                 .unwrap_or_else(|| cwd.join(".coderabbit.yaml").is_file())
         ))
+        .args(expression.map(|x| ["-x", x]).into_iter().flatten())
         .arg(config)
         .current_dir(cwd)
         .envs(opts.env.iter().map(|(k, v)| (k, v)))
@@ -194,7 +212,7 @@ pub fn eval_contract_json(
 ) -> Result<serde_json::Value, ContractError> {
     let attempts = opts.attempts.max(1);
     for attempt in 1..=attempts {
-        let run = once(config, cwd, opts)?;
+        let run = once(config, cwd, opts, None)?;
         if run.code == 0 {
             return serde_json::from_str(&run.out)
                 .map_err(|_| ContractError("pkl eval did not print JSON".to_owned()));
@@ -207,15 +225,33 @@ pub fn eval_contract_json(
                 String::new()
             };
             let closed = if fetch { ", failing closed" } else { "" };
-            return Err(ContractError(format!(
+            let failed = format!(
                 "pkl eval failed (exit {}){tries}{closed}:\n{}",
                 run.code,
                 run.err.trim()
-            )));
+            );
+            // A package that needs a newer runner can fail inside pkl (a resource this runner does not allow, say) before
+            // preflight sees `requires.runner`. A fetch failure is left alone: the package itself could not be loaded.
+            if !fetch
+                && let Some(runner) = &opts.runner_version
+                && let Some(need) = required_runner(config, cwd, opts)
+                && let Some(upgrade) = crate::preflight::older_runner(runner, &need)
+            {
+                return Err(ContractError(format!("{upgrade}\n{failed}")));
+            }
+            return Err(ContractError(failed));
         }
         std::thread::sleep(opts.delay);
     }
     unreachable!("the last attempt always returns")
+}
+
+/// The runner version the package requires, read on its own. pkl evaluates only `requires.runner` of the contract, so a
+/// failure elsewhere in it does not hide the requirement. `None` when that read fails too. What it returns is not checked
+/// here: `older_runner` ignores anything that is not a version.
+fn required_runner(config: &Path, cwd: &Path, opts: &EvalOptions) -> Option<String> {
+    let run = once(config, cwd, opts, Some("output.value.requires.runner")).ok()?;
+    (run.code == 0).then(|| run.out.trim().trim_matches('"').to_owned())
 }
 
 #[cfg(test)]
@@ -431,6 +467,190 @@ mod tests {
             err(eval_contract_json(Path::new("x.pkl"), dir.path(), &opts)),
             "pkl eval failed (exit 1):\nType mismatch"
         );
+    }
+
+    /// A stand-in for pkl that fails a full evaluation, as a runner that does not allow a resource the package reads
+    /// would, and answers the evaluation of `requires.runner` alone with `need`. Every call is logged to `log`.
+    fn needs(dir: &Path, need: &str) -> OsString {
+        let log = dir.join("log");
+        fake(
+            dir,
+            &format!(
+                "echo \"$*\" >> '{}'\ncase \"$*\" in *'-x output.value.requires.runner'*) printf '{need}'; exit 0;; esac\necho 'Refusing to read resource `prop:scaffold.x`' >&2; exit 1",
+                log.display()
+            ),
+        )
+    }
+
+    fn calls(dir: &Path) -> usize {
+        std::fs::read_to_string(dir.join("log"))
+            .unwrap_or_default()
+            .lines()
+            .count()
+    }
+
+    #[test]
+    fn a_failure_on_a_package_that_needs_a_newer_runner_says_to_upgrade_the_runner_first() {
+        let dir = tempfile::tempdir().unwrap();
+        let opts = EvalOptions {
+            binary: needs(dir.path(), "0.6.0"),
+            runner_version: Some("0.5.0".to_owned()),
+            ..fast()
+        };
+        assert_eq!(
+            err(eval_contract_json(Path::new("x.pkl"), dir.path(), &opts)),
+            "runner 0.5.0 is older than the 0.6.0 this package requires, upgrade the runner\npkl eval failed (exit 1):\nRefusing to read resource `prop:scaffold.x`"
+        );
+        let log = std::fs::read_to_string(dir.path().join("log")).unwrap();
+        let runs: Vec<&str> = log.lines().collect();
+        assert_eq!(runs.len(), 2, "{log}");
+        // Only the read of the requirement may load the `-x` expression, which pkl names `repl:text`.
+        assert!(
+            runs[0].contains("--allowed-modules pkl:,file:,package:,projectpackage: --"),
+            "{log}"
+        );
+        assert!(
+            !runs[0].contains("repl:") && !runs[0].contains("-x"),
+            "{log}"
+        );
+        assert!(
+            runs[1].contains("--allowed-modules pkl:,file:,package:,projectpackage:,repl: --"),
+            "{log}"
+        );
+        assert!(
+            runs[1].ends_with("-x output.value.requires.runner x.pkl"),
+            "{log}"
+        );
+    }
+
+    #[test]
+    fn a_failure_with_a_runner_that_meets_the_requirement_is_reported_as_it_is() {
+        for runner in ["0.6.0", "0.7.0"] {
+            let dir = tempfile::tempdir().unwrap();
+            let opts = EvalOptions {
+                binary: needs(dir.path(), "0.6.0"),
+                runner_version: Some(runner.to_owned()),
+                ..fast()
+            };
+            assert_eq!(
+                err(eval_contract_json(Path::new("x.pkl"), dir.path(), &opts)),
+                "pkl eval failed (exit 1):\nRefusing to read resource `prop:scaffold.x`",
+                "{runner}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_failure_whose_requirement_cannot_be_read_either_is_reported_as_it_is() {
+        for need in ["", "soon"] {
+            let dir = tempfile::tempdir().unwrap();
+            let opts = EvalOptions {
+                binary: needs(dir.path(), need),
+                runner_version: Some("0.5.0".to_owned()),
+                ..fast()
+            };
+            assert_eq!(
+                err(eval_contract_json(Path::new("x.pkl"), dir.path(), &opts)),
+                "pkl eval failed (exit 1):\nRefusing to read resource `prop:scaffold.x`",
+                "{need:?}"
+            );
+        }
+        let dir = tempfile::tempdir().unwrap();
+        let opts = EvalOptions {
+            binary: fake(dir.path(), "echo 'Type mismatch' >&2; exit 1"),
+            runner_version: Some("0.5.0".to_owned()),
+            ..fast()
+        };
+        assert_eq!(
+            err(eval_contract_json(Path::new("x.pkl"), dir.path(), &opts)),
+            "pkl eval failed (exit 1):\nType mismatch"
+        );
+    }
+
+    #[test]
+    fn the_requirement_is_read_separately_only_after_a_failure_and_with_a_runner_version() {
+        let dir = tempfile::tempdir().unwrap();
+        let opts = EvalOptions {
+            binary: needs(dir.path(), "0.6.0"),
+            ..fast()
+        };
+        assert_eq!(
+            err(eval_contract_json(Path::new("x.pkl"), dir.path(), &opts)),
+            "pkl eval failed (exit 1):\nRefusing to read resource `prop:scaffold.x`"
+        );
+        assert_eq!(calls(dir.path()), 1);
+
+        let dir = tempfile::tempdir().unwrap();
+        let log = dir.path().join("log");
+        let opts = EvalOptions {
+            binary: fake(
+                dir.path(),
+                &format!(
+                    "echo \"$*\" >> '{}'; echo '{{\"ok\": true}}'",
+                    log.display()
+                ),
+            ),
+            runner_version: Some("0.5.0".to_owned()),
+            ..fast()
+        };
+        assert_eq!(
+            eval_contract_json(Path::new("x.pkl"), dir.path(), &opts).unwrap()["ok"],
+            true
+        );
+        assert_eq!(calls(dir.path()), 1);
+    }
+
+    #[test]
+    fn a_fetch_failure_does_not_read_the_requirement_separately() {
+        let dir = tempfile::tempdir().unwrap();
+        let log = dir.path().join("log");
+        let body = format!(
+            "echo \"$*\" >> '{}'; echo 'Cannot download package' >&2; exit 1",
+            log.display()
+        );
+        let opts = EvalOptions {
+            binary: fake(dir.path(), &body),
+            attempts: 2,
+            runner_version: Some("0.5.0".to_owned()),
+            ..fast()
+        };
+        assert_eq!(
+            err(eval_contract_json(Path::new("x.pkl"), dir.path(), &opts)),
+            "pkl eval failed (exit 1) after 2 attempts, failing closed:\nCannot download package"
+        );
+        assert_eq!(calls(dir.path()), 2);
+    }
+
+    #[test]
+    fn the_requirement_is_read_even_when_the_rest_of_the_contract_cannot_be_evaluated() {
+        let dir = tempfile::tempdir().unwrap();
+        let config = dir.path().join("scaffold.pkl");
+        std::fs::write(
+            &config,
+            "output {\n  renderer = new JsonRenderer {}\n  value = new Dynamic {\n    files = read(\"prop:other\")\n    requires = new Dynamic { runner = \"9.9.9\" }\n  }\n}\n",
+        )
+        .unwrap();
+        let opts = EvalOptions {
+            runner_version: Some("0.5.0".to_owned()),
+            ..EvalOptions::default()
+        };
+        let message = err(eval_contract_json(&config, dir.path(), &opts));
+        assert!(
+            message.starts_with(
+                "runner 0.5.0 is older than the 9.9.9 this package requires, upgrade the runner\npkl eval failed (exit 1):\n"
+            ),
+            "{message}"
+        );
+        assert!(message.contains("Refusing to read resource"), "{message}");
+    }
+
+    #[test]
+    fn the_package_requirement_is_found_where_the_separate_read_looks_for_it() {
+        let fixture = root().join("crates/scaffold-package-tests/fixtures/minimal/scaffold.pkl");
+        let need = required_runner(&fixture, &root(), &EvalOptions::default());
+        let json = eval_contract_json(&fixture, &root(), &EvalOptions::default()).unwrap();
+        assert_eq!(need.as_deref(), json["requires"]["runner"].as_str());
+        assert!(need.is_some());
     }
 
     #[test]

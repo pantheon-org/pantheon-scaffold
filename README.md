@@ -25,6 +25,7 @@ Dropped for now: repository governance (rulesets, merge settings and drift check
 | What `migrate` found in the four `pantheon-*` repositories | [docs/migrate-dry-runs.md](docs/migrate-dry-runs.md) |
 | Replace stale drifted files with the package's (`migrate --accept-builtins`), and why it needs git | [docs/migrate.md](docs/migrate.md), the design in [docs/migrate-accept-builtins-design.md](docs/migrate-accept-builtins-design.md) |
 | Cut or promote a release, and the accepted risks | [docs/release-process.md](docs/release-process.md) |
+| Why git-cliff does not replace release-please (yet) | [docs/git-cliff-evaluation.md](docs/git-cliff-evaluation.md) |
 | Install the runner, and what `upgrade`, `render`, `check` and `detach` do | [docs/runner-install.md](docs/runner-install.md), [docs/runner-upgrade.md](docs/runner-upgrade.md), [docs/runner-lifecycle.md](docs/runner-lifecycle.md), [docs/runner-safety.md](docs/runner-safety.md) |
 | Run `check` in CI | [docs/check-in-ci.md](docs/check-in-ci.md) |
 | Change what the package renders for your repository (Presets) | [docs/presets.md](docs/presets.md), the design in [docs/presets-design.md](docs/presets-design.md) |

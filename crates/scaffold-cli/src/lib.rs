@@ -1024,6 +1024,7 @@ fn eval_options(flags: &Flags) -> scaffold_core::pkl::EvalOptions {
         allow_files_under: flags.local.clone(),
         attempts: flags.attempts,
         cache_dir: Some(cache_dir),
+        runner_version: Some(VERSION.to_owned()),
         ..scaffold_core::pkl::EvalOptions::default()
     }
 }

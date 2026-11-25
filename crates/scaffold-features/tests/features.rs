@@ -265,6 +265,17 @@ fn error_contains(world: &mut ScaffoldWorld, text: String) {
     );
 }
 
+#[then(expr = "the error does not contain {string}")]
+fn error_lacks(world: &mut ScaffoldWorld, text: String) {
+    let run = world.last();
+    assert!(
+        !run.err.contains(&text),
+        "stderr contains {text:?}, which it must not\nstdout: {}\nstderr: {}",
+        run.out,
+        run.err
+    );
+}
+
 #[then(expr = "the file {string} exists")]
 fn file_exists(world: &mut ScaffoldWorld, path: String) {
     assert!(

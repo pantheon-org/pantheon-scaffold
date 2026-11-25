@@ -59,7 +59,17 @@ pub fn package_version_of(uri: Option<&str>) -> Result<Option<String>, String> {
     }
 }
 
-/// The rules checked before anything is rendered: the runner is new enough for the package, the package is not older than
+/// The "upgrade the runner" message when `runner` is older than the `need` a package requires, and `None` otherwise,
+/// including when either one is not a version.
+pub fn older_runner(runner: &str, need: &str) -> Option<String> {
+    (compare_semver(runner, need) == Ok(Ordering::Less)).then(|| {
+        format!(
+            "runner {runner} is older than the {need} this package requires, upgrade the runner"
+        )
+    })
+}
+
+/// The rules checked before anything is rendered:the runner is new enough for the package, the package is not older than
 /// the one that last rendered this repo, the package is not on the known-bad list, and no required Security builtin is
 /// disabled. errors stop the run (exit 1), refusals are exit 3, warnings are printed.
 pub fn preflight(contract: &Contract, manifest: &Manifest, opts: &PreflightOptions) -> Preflight {
@@ -84,11 +94,8 @@ pub fn preflight(contract: &Contract, manifest: &Manifest, opts: &PreflightOptio
                 "runner version {} is not a version",
                 json(opts.runner_version)
             ));
-        } else if compare_semver(opts.runner_version, need) == Ok(Ordering::Less) {
-            out.errors.push(format!(
-                "runner {} is older than the {need} this package requires, upgrade the runner",
-                opts.runner_version
-            ));
+        } else if let Some(message) = older_runner(opts.runner_version, need) {
+            out.errors.push(message);
         }
     }
 
@@ -255,6 +262,28 @@ mod tests {
             r.errors,
             ["runner 0.5.0 is older than the 0.6.0 this package requires, upgrade the runner"]
         );
+    }
+
+    #[test]
+    fn older_runner_names_only_a_runner_below_a_readable_requirement() {
+        assert_eq!(
+            older_runner("0.5.0", "0.6.0").as_deref(),
+            Some("runner 0.5.0 is older than the 0.6.0 this package requires, upgrade the runner")
+        );
+        assert_eq!(
+            older_runner("0.6.0-rc.1", "0.6.0").as_deref(),
+            Some(
+                "runner 0.6.0-rc.1 is older than the 0.6.0 this package requires, upgrade the runner"
+            )
+        );
+        for (runner, need) in [
+            ("0.6.0", "0.6.0"),
+            ("0.7.0", "0.6.0"),
+            ("0.5.0", "soon"),
+            ("dev", "0.6.0"),
+        ] {
+            assert_eq!(older_runner(runner, need), None, "{runner} {need}");
+        }
     }
 
     #[test]

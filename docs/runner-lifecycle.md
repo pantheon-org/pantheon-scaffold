@@ -19,6 +19,8 @@ A package URI with no readable version is an error, never ignored. After every r
 
 Versions are compared as semantic versions, not as text. A pre-release ranks below its release, so a runner `0.1.0-rc.1` is older than a requirement of `0.1.0`. Keep `requires.runner` at a version that pre-releases of the next release can meet: CI builds `0.0.1-ci.N` against the current requirement of `0.0.0`, and the smoke suite fails if it does not. `--repair` skips reading the manifest first, because it exists to fix one that cannot be read.
 
+A package that needs a newer runner can fail inside pkl before this rule is reached, for example by reading a property or resource that this runner does not allow. So when `pkl eval` fails, the runner asks pkl for `requires.runner` on its own (`pkl eval -x output.value.requires.runner`, which evaluates nothing else of the contract) and, if this runner is older, prints "upgrade the runner" above the pkl error. A runner that meets the requirement, a requirement that cannot be read, and a failure to download the package all give the pkl error unchanged. Only that one read may load the `-x` expression, which pkl names `repl:text`, so only it adds `repl:` to the allowed modules. The read runs only after a failure, so a render that succeeds costs one pkl run as before. Runners released before this read existed (0.4.2 and older) still stop at the pkl error.
+
 ## The package cache
 
 The runner passes `--cache-dir` to pkl, by default `.pkl-gen/cache` under the repository root (override with `--cache-dir <dir>`). A warm cache lets pkl render with no network, which is what spike S.1 showed. In consumer CI, keep the folder with `actions/cache` so an outage does not block the job. Add `.pkl-gen/cache/` to `.gitignore`.
